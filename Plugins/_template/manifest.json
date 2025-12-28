@@ -1,0 +1,39 @@
+{
+  "name": "plugin-name",
+  "version": "1.0.0",
+  "displayName": "插件显示名称",
+  "description": "插件功能描述",
+  "author": "插件作者",
+  "license": "MIT",
+  "icon": "https://api.iconify.design/mdi:plugin.svg",
+  "category": "export|import|mock|test|integration|buildin|other",
+  "entry": {
+    "server": "./Server/index.js",
+    "client": "./Client/index.tsx"
+  },
+  "hooks": [
+    "beforeRequest",
+    "afterResponse"
+  ],
+  "routes": [
+    {
+      "path": "/action",
+      "method": "POST",
+      "handler": "./Server/Controller.js#action"
+    }
+  ],
+  "permissions": [
+    "read:interface"
+  ],
+  "dependencies": {},
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "apiKey": {
+        "type": "string",
+        "description": "API Key"
+      }
+    }
+  }
+}
+

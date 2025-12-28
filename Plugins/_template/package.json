@@ -1,0 +1,13 @@
+{
+  "name": "@apiadmin/plugin-name",
+  "version": "1.0.0",
+  "description": "Plugin description",
+  "main": "Server/index.js",
+  "keywords": [
+    "apiadmin",
+    "plugin"
+  ],
+  "author": "Plugin Author",
+  "license": "MIT"
+}
+

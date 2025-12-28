@@ -1,0 +1,2294 @@
+import React, { useEffect, useState } from 'react';
+import {
+  Card,
+  Button,
+  Table,
+  Space,
+  Modal,
+  Form,
+  Input,
+  Select,
+  Tag,
+  App,
+  Descriptions,
+  Typography,
+  Collapse,
+  Switch,
+  InputNumber,
+  Divider,
+  Empty,
+  Upload,
+  Radio,
+} from 'antd';
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  PlayCircleOutlined,
+  EyeOutlined,
+  ArrowUpOutlined,
+  ArrowDownOutlined,
+  SettingOutlined,
+  ImportOutlined,
+  ExportOutlined,
+  CopyOutlined,
+  HolderOutlined,
+} from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
+import { DndProvider, useDrag, useDrop } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+import { api } from '../../Utils/api';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../../Reducer/Create';
+
+const { TextArea } = Input;
+const { Option } = Select;
+const { Text, Paragraph } = Typography;
+
+// 拖拽项类型
+const DRAG_TYPE = 'TEST_CASE';
+
+// 可拖拽的测试用例项组件
+interface DraggableTestCaseItemProps {
+  testCase: TestCase;
+  index: number;
+  interfaceData: any;
+  onMove: (dragIndex: number, hoverIndex: number) => void;
+  onEdit: (index: number) => void;
+  onDelete: (index: number) => void;
+  onMoveUp: (index: number) => void;
+  onMoveDown: (index: number) => void;
+  onOrderChange: (index: number, newOrder: number) => void;
+  onRunSingle: (index: number) => void;
+  isRunning?: boolean;
+  totalCases: number;
+  isFirst: boolean;
+  isLast: boolean;
+}
+
+const DraggableTestCaseItem: React.FC<DraggableTestCaseItemProps> = ({
+  testCase,
+  index,
+  interfaceData,
+  onMove,
+  onEdit,
+  onDelete,
+  onMoveUp,
+  onMoveDown,
+  onOrderChange,
+  onRunSingle,
+  isRunning = false,
+  totalCases,
+  isFirst,
+  isLast,
+}) => {
+  const { message: messageApi } = App.useApp();
+  const ref = React.useRef<HTMLDivElement>(null);
+  const lastHoverIndex = React.useRef<number>(-1);
+  const [isEditingOrder, setIsEditingOrder] = React.useState(false);
+  const [orderValue, setOrderValue] = React.useState(index + 1);
+  const inputRef = React.useRef<any>(null);
+
+  const [{ isDragging }, drag] = useDrag({
+    type: DRAG_TYPE,
+    item: () => ({ index }),
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  });
+
+  const [{ isOver }, drop] = useDrop({
+    accept: DRAG_TYPE,
+    hover: (item: { index: number }, monitor) => {
+      if (!ref.current) {
+        return;
+      }
+      const dragIndex = item.index;
+      const hoverIndex = index;
+
+      // 避免重复调用
+      if (dragIndex === hoverIndex || hoverIndex === lastHoverIndex.current) {
+        return;
+      }
+
+      // 检查是否真的在悬停在这个元素上
+      const hoverBoundingRect = ref.current.getBoundingClientRect();
+      const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
+      const clientOffset = monitor.getClientOffset();
+      if (!clientOffset) return;
+      
+      const hoverClientY = clientOffset.y - hoverBoundingRect.top;
+
+      // 只有当鼠标在元素的上半部分或下半部分时才移动
+      if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) {
+        return;
+      }
+      if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
+        return;
+      }
+
+      onMove(dragIndex, hoverIndex);
+      lastHoverIndex.current = hoverIndex;
+      item.index = hoverIndex;
+    },
+    collect: (monitor) => ({
+      isOver: monitor.isOver(),
+    }),
+  });
+
+  drag(drop(ref));
+
+  // 处理双击编辑编号
+  const handleDoubleClick = () => {
+    setIsEditingOrder(true);
+    setOrderValue(index + 1);
+    // 延迟聚焦，确保输入框已渲染
+    setTimeout(() => {
+      inputRef.current?.focus?.();
+      inputRef.current?.select?.();
+    }, 0);
+  };
+
+  // 处理编号变更
+  const handleOrderChange = (newOrder: number) => {
+    if (newOrder < 1 || newOrder > totalCases) {
+      messageApi.warning(`编号必须在 1 到 ${totalCases} 之间`);
+      setOrderValue(index + 1);
+      setIsEditingOrder(false);
+      return;
+    }
+    
+    if (newOrder === index + 1) {
+      setIsEditingOrder(false);
+      return;
+    }
+    
+    onOrderChange(index, newOrder - 1);
+    setIsEditingOrder(false);
+  };
+
+  // 处理输入框失焦
+  const handleBlur = () => {
+    handleOrderChange(orderValue);
+  };
+
+  // 处理回车键
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleOrderChange(orderValue);
+    } else if (e.key === 'Escape') {
+      setOrderValue(index + 1);
+      setIsEditingOrder(false);
+    }
+  };
+
+  // 当 index 变化时更新 orderValue
+  React.useEffect(() => {
+    if (!isEditingOrder) {
+      setOrderValue(index + 1);
+    }
+  }, [index, isEditingOrder]);
+
+  return (
+    <div
+      ref={ref}
+      style={{
+        opacity: isDragging ? 0.5 : 1,
+        cursor: 'move',
+        backgroundColor: isOver ? '#f0f0f0' : 'transparent',
+        transition: 'background-color 0.2s',
+      }}
+    >
+      <Card
+        size="small"
+        styles={{ body: { padding: '12px 16px' } }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Space>
+            <HolderOutlined style={{ color: '#999', cursor: 'move' }} />
+            {isEditingOrder ? (
+              <InputNumber
+                ref={inputRef}
+                value={orderValue}
+                min={1}
+                max={totalCases}
+                size="small"
+                style={{ width: 60 }}
+                onBlur={handleBlur}
+                onPressEnter={handleKeyPress}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    setOrderValue(index + 1);
+                    setIsEditingOrder(false);
+                  }
+                }}
+                onChange={(value) => {
+                  if (value !== null && value !== undefined) {
+                    setOrderValue(value);
+                  }
+                }}
+                autoFocus
+              />
+            ) : (
+              <Tag
+                onDoubleClick={handleDoubleClick}
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+                title="双击编辑编号"
+              >
+                {index + 1}
+              </Tag>
+            )}
+            <Tag color={testCase.enabled ? 'green' : 'default'}>
+              {testCase.enabled ? '启用' : '禁用'}
+            </Tag>
+            <Text strong>
+              {interfaceData ? `${interfaceData.method || ''} ${interfaceData.path || ''}`.trim() || '未知接口' : '未知接口'}
+            </Text>
+          </Space>
+          <Space>
+            <Button
+              type="link"
+              icon={<PlayCircleOutlined />}
+              onClick={() => onRunSingle(index)}
+              loading={isRunning}
+              disabled={!testCase.enabled || isRunning}
+              size="small"
+              style={{ color: '#1890ff' }}
+            >
+              运行
+            </Button>
+            <Button
+              type="link"
+              icon={<ArrowUpOutlined />}
+              onClick={() => onMoveUp(index)}
+              disabled={isFirst}
+              size="small"
+            >
+              上移
+            </Button>
+            <Button
+              type="link"
+              icon={<ArrowDownOutlined />}
+              onClick={() => onMoveDown(index)}
+              disabled={isLast}
+              size="small"
+            >
+              下移
+            </Button>
+            <Button
+              type="link"
+              icon={<SettingOutlined />}
+              onClick={() => onEdit(index)}
+              size="small"
+            >
+              配置
+            </Button>
+            <Button
+              type="link"
+              danger
+              icon={<DeleteOutlined />}
+              onClick={() => onDelete(index)}
+              size="small"
+            >
+              删除
+            </Button>
+          </Space>
+        </div>
+      </Card>
+    </div>
+  );
+};
+
+interface TestCase {
+  _id?: string;
+  interface_id: string;
+  order: number;
+  enabled: boolean;
+  custom_headers?: Record<string, any>;
+  custom_data?: Record<string, any>;
+  path_params?: Record<string, any>;
+  query_params?: Record<string, any>;
+  assertion_script?: string;
+}
+
+interface TestTask {
+  _id: string;
+  name: string;
+  description?: string;
+  project_id: string;
+  test_cases: TestCase[];
+  environment_id?: string;
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+interface TestResult {
+  _id: string;
+  task_id: string;
+  status: 'running' | 'passed' | 'failed' | 'error';
+  summary: {
+    total: number;
+    passed: number;
+    failed: number;
+    error: number;
+  };
+  results: Array<{
+    interface_id: string;
+    interface_name: string;
+    order: number;
+    status: string;
+    request: {
+      method: string;
+      url: string;
+      headers: Record<string, any>;
+      body: any;
+      query: Record<string, any>;
+    };
+    response: {
+      status_code: number;
+      headers: Record<string, any>;
+      body: any;
+      duration: number;
+    };
+    error?: {
+      message: string;
+      stack: string;
+      code: string;
+    };
+    assertion_result?: {
+      passed: boolean;
+      message: string;
+      errors: string[];
+    };
+    duration: number;
+    started_at: string;
+    completed_at: string;
+  }>;
+  started_at: string;
+  completed_at?: string;
+  duration: number;
+}
+
+// 移除拖拽相关代码，使用按钮调整顺序
+
+// 默认的测试用例 headers
+const DEFAULT_TEST_CASE_HEADERS = {
+  'Content-Type': 'application/json',
+  'Accept': 'application/json',
+  'Authorization': 'Bearer token',
+  'User-Agent': 'ApiAdmin/1.0',
+};
+
+// 示例数据
+const EXAMPLE_HEADERS = {
+  'Content-Type': 'application/json',
+  'Accept': 'application/json',
+  'Authorization': 'Bearer your_token_here',
+  'X-Request-ID': '{{$randomUUID}}',
+  'User-Agent': 'ApiAdmin/1.0',
+};
+
+const EXAMPLE_CUSTOM_DATA = {
+  name: '测试用户',
+  email: 'test@example.com',
+  age: 25,
+  status: 'active',
+  tags: ['tag1', 'tag2'],
+};
+
+const EXAMPLE_QUERY_PARAMS = {
+  page: 1,
+  pageSize: 10,
+  sort: 'created_at',
+  order: 'desc',
+  keyword: 'search_term',
+};
+
+// 生成 CURL 命令
+const generateCurlCommand = (request: any): string => {
+  const { method, url, headers = {}, body, query = {} } = request;
+  
+  if (!method || !url) {
+    return '# 无法生成 CURL 命令：缺少必要信息';
+  }
+  
+  // 构建完整 URL（包含查询参数）
+  let fullUrl = url || '';
+  
+  // 处理查询参数
+  const queryParams = Object.entries(query || {})
+    .filter(([_, value]) => value !== undefined && value !== null && value !== '')
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+    .join('&');
+  
+  if (queryParams) {
+    // 检查 URL 是否已包含查询参数
+    const urlHasQuery = fullUrl.includes('?');
+    const urlHasHash = fullUrl.includes('#');
+    
+    if (urlHasHash) {
+      // 如果 URL 包含 #，需要在 # 之前插入查询参数
+      const [baseUrl, hash] = fullUrl.split('#');
+      fullUrl = `${baseUrl}${urlHasQuery ? '&' : '?'}${queryParams}#${hash}`;
+    } else {
+      fullUrl += (urlHasQuery ? '&' : '?') + queryParams;
+    }
+  }
+  
+  // 转义 URL 中的单引号（用于 shell 命令）
+  const escapedUrl = fullUrl.replace(/'/g, "'\\''");
+  
+  // 构建 CURL 命令
+  let curl = `curl -X ${method.toUpperCase()} '${escapedUrl}'`;
+  
+  // 添加请求头
+  if (headers && typeof headers === 'object') {
+    Object.entries(headers).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        // 转义请求头值中的单引号
+        const escapedValue = String(value).replace(/'/g, "'\\''");
+        curl += ` \\\n  -H '${key}: ${escapedValue}'`;
+      }
+    });
+  }
+  
+  // 添加请求体（仅对需要请求体的方法）
+  const methodsWithBody = ['POST', 'PUT', 'PATCH', 'DELETE'];
+  if (methodsWithBody.includes(method.toUpperCase()) && body !== undefined && body !== null) {
+    let bodyStr = '';
+    let contentType = 'application/json';
+    
+    // 检查是否已有 Content-Type 头
+    if (headers && typeof headers === 'object') {
+      const contentTypeHeader = headers['Content-Type'] || headers['content-type'];
+      if (contentTypeHeader) {
+        contentType = String(contentTypeHeader).split(';')[0].trim();
+      }
+    }
+    
+    // 根据 Content-Type 处理请求体
+    if (typeof body === 'string') {
+      bodyStr = body;
+    } else if (typeof body === 'object') {
+      if (contentType === 'application/json' || contentType.includes('json')) {
+        bodyStr = JSON.stringify(body);
+      } else if (contentType === 'application/x-www-form-urlencoded') {
+        bodyStr = Object.entries(body)
+          .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+          .join('&');
+      } else if (contentType === 'multipart/form-data') {
+        // multipart/form-data 在 curl 中需要使用 -F 参数
+        // 这里简化为 JSON 格式，实际使用时需要根据具体情况调整
+        bodyStr = JSON.stringify(body);
+      } else {
+        bodyStr = JSON.stringify(body);
+      }
+    } else {
+      bodyStr = String(body);
+    }
+    
+    if (bodyStr) {
+      // 转义单引号（用于 shell 命令）
+      const escapedBody = bodyStr.replace(/'/g, "'\\''");
+      curl += ` \\\n  -d '${escapedBody}'`;
+    }
+  }
+  
+  return curl;
+};
+
+const EXAMPLE_ASSERTION_SCRIPT = `// 断言响应状态码为 200
+assert.status(200);
+
+// 断言响应体不为空
+assert.ok(body !== null && body !== undefined, '响应体不应为空');
+
+// 断言响应体是对象类型（对于 JSON 响应）
+assert.ok(typeof body === 'object', '响应体应为对象类型');
+
+// 示例：断言响应体包含特定字段（根据实际 API 响应调整）
+// assert.ok(body.data, '响应应包含 data 字段');
+
+// 示例：断言响应体字段值（根据实际 API 响应调整）
+// assert.equal(body.code, 0, '响应 code 应为 0');
+
+// 示例：断言数组长度（根据实际 API 响应调整）
+// if (Array.isArray(body.data.list)) {
+//   assert.ok(body.data.list.length > 0, '列表不应为空');
+// }`;
+
+const TestPipeline: React.FC = () => {
+  const { t } = useTranslation();
+  const { message: messageApi } = App.useApp();
+  const user = useSelector((state: RootState) => state.user.user);
+  const [tasks, setTasks] = useState<TestTask[]>([]);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [interfaces, setInterfaces] = useState<any[]>([]);
+  const [environments, setEnvironments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [caseModalVisible, setCaseModalVisible] = useState(false);
+  const [resultModalVisible, setResultModalVisible] = useState(false);
+  const [editingTask, setEditingTask] = useState<TestTask | null>(null);
+  const [editingCase, setEditingCase] = useState<TestCase | null>(null);
+  const [editingCaseIndex, setEditingCaseIndex] = useState<number>(-1);
+  const [selectedTask, setSelectedTask] = useState<TestTask | null>(null);
+  const [selectedResult, setSelectedResult] = useState<TestResult | null>(null);
+  const [running, setRunning] = useState(false);
+  const [runningCaseIndex, setRunningCaseIndex] = useState<number | null>(null);
+  const [form] = Form.useForm();
+  const [caseForm] = Form.useForm();
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [importModalVisible, setImportModalVisible] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importFile, setImportFile] = useState<any>(null);
+  const [importMode, setImportMode] = useState<string>('normal');
+  const saveTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+  
+  // 格式状态：每个字段支持 JSON 和 key=value 两种格式
+  const [headersFormat, setHeadersFormat] = useState<'json' | 'keyvalue'>('json');
+  const [dataFormat, setDataFormat] = useState<'json' | 'keyvalue'>('json');
+  const [pathParamsFormat, setPathParamsFormat] = useState<'json' | 'keyvalue'>('json');
+  const [queryParamsFormat, setQueryParamsFormat] = useState<'json' | 'keyvalue'>('json');
+
+  useEffect(() => {
+    if (user) {
+      fetchProjects();
+      // 初始化时获取所有测试流水线
+      fetchTasks();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  // 组件卸载时清理定时器
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    // 无论是否选择项目，都获取测试流水线
+    fetchTasks();
+    
+    if (selectedProjectId) {
+      fetchInterfaces();
+      fetchEnvironments(selectedProjectId, false); // 不显示警告，测试环境是可选的
+    } else {
+      // 清空接口和环境列表
+      setInterfaces([]);
+      setEnvironments([]);
+    }
+  }, [selectedProjectId]);
+
+  const fetchProjects = async () => {
+    try {
+      // 如果是超级管理员，使用管理员 API 获取所有项目
+      // 否则使用普通用户 API，只返回用户参与的项目
+      const apiPath = user?.role === 'super_admin' ? '/admin/project/list' : '/project/list';
+      const response = await api.get(apiPath);
+      setProjects(response.data.data || []);
+    } catch (error: any) {
+      messageApi.error(error.response?.data?.message || '获取项目列表失败');
+    }
+  };
+
+  const fetchTasks = async () => {
+    setLoading(true);
+    try {
+      const params: any = {};
+      // 只有当选择了项目时才传递 project_id 参数
+      if (selectedProjectId) {
+        params.project_id = selectedProjectId;
+      }
+      const response = await api.get('/auto-test/tasks', { params });
+      setTasks(response.data.data || []);
+    } catch (error: any) {
+      messageApi.error(error.response?.data?.message || '获取测试流水线失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchInterfaces = async () => {
+    try {
+      const response = await api.get('/interface/list', {
+        params: { project_id: selectedProjectId },
+      });
+      setInterfaces(response.data.data || []);
+    } catch (error: any) {
+      messageApi.error('获取接口列表失败');
+    }
+  };
+
+  const fetchEnvironments = async (projectId?: string, showWarning = false) => {
+    const targetProjectId = projectId || selectedProjectId;
+    if (!targetProjectId) {
+      setEnvironments([]);
+      return;
+    }
+    
+    try {
+      const response = await api.get('/test/environments', {
+        params: { project_id: targetProjectId },
+      });
+      const envList = response.data?.data || [];
+      // 统一环境数据结构，确保与环境管理页面一致
+      const normalizedEnvs = envList.map((env: any) => ({
+        ...env,
+        // 确保 base_url 字段存在（后端已统一使用 base_url）
+        base_url: env.base_url || env.host || '',
+      }));
+      setEnvironments(normalizedEnvs);
+      // 只在明确需要警告时才显示（例如创建测试流水线时）
+      if (normalizedEnvs.length === 0 && showWarning) {
+        messageApi.warning('该项目暂无测试环境，测试环境为可选配置');
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || '获取环境列表失败';
+      messageApi.error(errorMessage);
+      setEnvironments([]);
+    }
+  };
+
+  const handleCreate = async () => {
+    if (!selectedProjectId) {
+      messageApi.warning('请先选择项目');
+      return;
+    }
+    
+    setEditingTask(null);
+    form.resetFields();
+    form.setFieldsValue({
+      project_id: selectedProjectId,
+      environment_id: undefined, // 明确设置为 undefined，让用户选择
+      enabled: true,
+      test_cases: [],
+    });
+    
+    // 确保环境列表已加载，不显示警告（测试环境是可选的）
+    if (environments.length === 0) {
+      await fetchEnvironments(selectedProjectId, false);
+    }
+    
+    setModalVisible(true);
+  };
+
+  const handleEdit = async (task: TestTask) => {
+    setEditingTask(task);
+    
+    // 处理 environment_id：确保是字符串ID（处理populated对象的情况）
+    let environmentId: string | undefined = undefined;
+    if (task.environment_id) {
+      if (typeof task.environment_id === 'string') {
+        environmentId = task.environment_id;
+      } else if (task.environment_id && typeof task.environment_id === 'object') {
+        // 处理 populated 对象
+        environmentId = (task.environment_id as any)?._id?.toString() || (task.environment_id as any)?.toString();
+      }
+    }
+    
+    form.setFieldsValue({
+      name: task.name,
+      description: task.description || '',
+      project_id: typeof task.project_id === 'string' 
+        ? task.project_id 
+        : (task.project_id as any)?._id?.toString() || task.project_id,
+      environment_id: environmentId,
+      enabled: task.enabled !== undefined ? task.enabled : true,
+    });
+    
+    // 确保环境列表已加载，不显示警告（测试环境是可选的）
+    const projectId = typeof task.project_id === 'string' 
+      ? task.project_id 
+      : (task.project_id as any)?._id?.toString() || task.project_id;
+    if (environments.length === 0 && projectId) {
+      await fetchEnvironments(projectId, false);
+    }
+    
+    setModalVisible(true);
+  };
+
+  const handleDelete = (id: string) => {
+    Modal.confirm({
+      title: '确认删除',
+      content: '确定要删除这个测试流水线吗？',
+      onOk: async () => {
+        try {
+          await api.delete(`/auto-test/tasks/${id}`);
+          messageApi.success('删除成功');
+          fetchTasks();
+        } catch (error: any) {
+          messageApi.error(error.response?.data?.message || '删除失败');
+        }
+      },
+    });
+  };
+
+  const handleSubmit = async () => {
+    try {
+      const values = await form.validateFields();
+      
+      // 处理 environment_id：确保空字符串、undefined 或无效值转换为 null
+      let environmentId: string | null = null;
+      if (values.environment_id) {
+        const envIdStr = String(values.environment_id).trim();
+        if (envIdStr !== '' && envIdStr !== 'undefined' && envIdStr !== 'null') {
+          environmentId = envIdStr;
+        }
+      }
+      
+      const submitData = {
+        ...values,
+        environment_id: environmentId,
+      };
+      
+      console.log('提交数据:', submitData); // 调试日志
+      
+      if (editingTask) {
+        await api.put(`/auto-test/tasks/${editingTask._id}`, submitData);
+        messageApi.success('更新成功');
+      } else {
+        await api.post('/auto-test/tasks', submitData);
+        messageApi.success('创建成功');
+      }
+      setModalVisible(false);
+      form.resetFields();
+      setEditingTask(null);
+      fetchTasks();
+    } catch (error: any) {
+      console.error('提交失败:', error); // 调试日志
+      messageApi.error(error.response?.data?.message || '操作失败');
+    }
+  };
+
+  // 将对象转换为 key=value 格式字符串
+  const objectToKeyValue = (obj: any): string => {
+    if (!obj || typeof obj !== 'object') {
+      return '';
+    }
+    return Object.entries(obj)
+      .map(([key, value]) => `${key}=${value}`)
+      .join('\n');
+  };
+
+  // 将 key=value 格式字符串转换为对象
+  const keyValueToObject = (str: string): any => {
+    if (!str || typeof str !== 'string') {
+      return {};
+    }
+    const obj: any = {};
+    const lines = str.split('\n');
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      if (!trimmedLine) continue;
+      const equalIndex = trimmedLine.indexOf('=');
+      if (equalIndex > 0) {
+        const key = trimmedLine.substring(0, equalIndex).trim();
+        const value = trimmedLine.substring(equalIndex + 1).trim();
+        if (key) {
+          obj[key] = value;
+        }
+      }
+    }
+    return obj;
+  };
+
+  const handleAddCase = () => {
+    if (!selectedTask) return;
+    setEditingCase(null);
+    setEditingCaseIndex(-1);
+    caseForm.resetFields();
+    
+    // 重置格式为 JSON
+    setHeadersFormat('json');
+    setDataFormat('json');
+    setPathParamsFormat('json');
+    setQueryParamsFormat('json');
+    
+    caseForm.setFieldsValue({
+      enabled: true,
+      order: selectedTask.test_cases.length,
+      custom_headers: JSON.stringify(DEFAULT_TEST_CASE_HEADERS, null, 2),
+      custom_data: '{}',
+      path_params: '{}',
+      query_params: '{}',
+    });
+    setCaseModalVisible(true);
+  };
+
+  const handleEditCase = (index: number) => {
+    if (!selectedTask) return;
+    const testCase = selectedTask.test_cases[index];
+    setEditingCase(testCase);
+    setEditingCaseIndex(index);
+    
+    // 处理interface_id：确保是字符串ID（处理populated对象的情况）
+    const interfaceId = typeof testCase.interface_id === 'string' 
+      ? testCase.interface_id 
+      : (testCase.interface_id?._id || testCase.interface_id)?.toString();
+    
+    // 如果 custom_headers 为空，使用默认值
+    let customHeaders = testCase.custom_headers;
+    if (!customHeaders || (typeof customHeaders === 'object' && Object.keys(customHeaders).length === 0)) {
+      customHeaders = DEFAULT_TEST_CASE_HEADERS;
+    }
+    
+    // 重置格式为 JSON
+    setHeadersFormat('json');
+    setDataFormat('json');
+    setPathParamsFormat('json');
+    setQueryParamsFormat('json');
+    
+    caseForm.setFieldsValue({
+      ...testCase,
+      interface_id: interfaceId, // 确保使用字符串ID，而不是populated对象
+      custom_headers: typeof customHeaders === 'object' ? JSON.stringify(customHeaders, null, 2) : customHeaders || JSON.stringify(DEFAULT_TEST_CASE_HEADERS, null, 2),
+      custom_data: typeof testCase.custom_data === 'object' ? JSON.stringify(testCase.custom_data, null, 2) : testCase.custom_data || '{}',
+      path_params: typeof testCase.path_params === 'object' ? JSON.stringify(testCase.path_params, null, 2) : testCase.path_params || '{}',
+      query_params: typeof testCase.query_params === 'object' ? JSON.stringify(testCase.query_params, null, 2) : testCase.query_params || '{}',
+    });
+    setCaseModalVisible(true);
+  };
+
+  const handleDeleteCase = (index: number) => {
+    if (!selectedTask) return;
+    Modal.confirm({
+      title: '确认删除',
+      content: '确定要删除这个测试用例吗？',
+      onOk: async () => {
+        try {
+          const updatedCases = selectedTask.test_cases.filter((_, i) => i !== index);
+          // 重新排序并清理数据
+          const cleanedCases = updatedCases.map((tc, i) => ({
+            interface_id: typeof tc.interface_id === 'string' ? tc.interface_id : (tc.interface_id?._id || tc.interface_id)?.toString() || tc.interface_id,
+            order: i,
+            enabled: tc.enabled !== undefined ? tc.enabled : true,
+            custom_headers: tc.custom_headers || {},
+            custom_data: tc.custom_data || {},
+            path_params: tc.path_params || {},
+            query_params: tc.query_params || {},
+            assertion_script: tc.assertion_script || '',
+          }));
+          
+          await api.put(`/auto-test/tasks/${selectedTask._id}`, {
+            test_cases: cleanedCases,
+          });
+          messageApi.success('删除成功');
+          fetchTasks();
+          // 重新获取任务详情以更新 selectedTask
+          const response = await api.get(`/auto-test/tasks/${selectedTask._id}`);
+          setSelectedTask(response.data.data);
+        } catch (error: any) {
+          messageApi.error(error.response?.data?.message || '删除失败');
+        }
+      },
+    });
+  };
+
+  const handleSubmitCase = async () => {
+    try {
+      const values = await caseForm.validateFields();
+      if (!selectedTask) return;
+
+      // 解析字段值，支持 JSON 和 key=value 两种格式
+      const parseField = (value: string | object, format: 'json' | 'keyvalue'): any => {
+        if (typeof value === 'object') return value;
+        if (!value || typeof value !== 'string') return {};
+        
+        try {
+          if (format === 'json') {
+            return JSON.parse(value || '{}');
+          } else {
+            // key=value 格式
+            return keyValueToObject(value);
+          }
+        } catch (error) {
+          messageApi.error(`格式无效（${format === 'json' ? 'JSON' : 'key=value'}）`);
+          throw error;
+        }
+      };
+
+      const testCase: TestCase = {
+        interface_id: values.interface_id,
+        order: values.order,
+        enabled: values.enabled,
+        custom_headers: parseField(values.custom_headers, headersFormat),
+        custom_data: parseField(values.custom_data, dataFormat),
+        path_params: parseField(values.path_params, pathParamsFormat),
+        query_params: parseField(values.query_params, queryParamsFormat),
+        assertion_script: values.assertion_script || '',
+      };
+
+      let updatedCases: TestCase[];
+      if (editingCaseIndex >= 0) {
+        updatedCases = [...selectedTask.test_cases];
+        updatedCases[editingCaseIndex] = testCase;
+      } else {
+        updatedCases = [...selectedTask.test_cases, testCase];
+      }
+
+      // 重新排序并清理数据
+      const cleanedCases = updatedCases.map((tc, i) => ({
+        interface_id: typeof tc.interface_id === 'string' ? tc.interface_id : (tc.interface_id?._id || tc.interface_id)?.toString() || tc.interface_id,
+        order: i,
+        enabled: tc.enabled !== undefined ? tc.enabled : true,
+        custom_headers: tc.custom_headers || {},
+        custom_data: tc.custom_data || {},
+        path_params: tc.path_params || {},
+        query_params: tc.query_params || {},
+        assertion_script: tc.assertion_script || '',
+      }));
+
+      await api.put(`/auto-test/tasks/${selectedTask._id}`, {
+        test_cases: cleanedCases,
+      });
+
+      messageApi.success(editingCaseIndex >= 0 ? '更新成功' : '添加成功');
+      setCaseModalVisible(false);
+      caseForm.resetFields();
+      fetchTasks();
+      const updatedTask = { ...selectedTask, test_cases: updatedCases };
+      setSelectedTask(updatedTask);
+    } catch (error: any) {
+      messageApi.error(error.response?.data?.message || '操作失败');
+    }
+  };
+
+  const handleImportAllAPIs = async () => {
+    if (!selectedTask || !selectedProjectId) {
+      messageApi.warning('请先选择项目和测试流水线');
+      return;
+    }
+
+    if (interfaces.length === 0) {
+      messageApi.warning('当前项目没有可用的API接口');
+      return;
+    }
+
+    // 获取已添加的接口ID列表
+    const existingInterfaceIds = new Set(
+      selectedTask.test_cases.map((tc) => {
+        const id = typeof tc.interface_id === 'string' 
+          ? tc.interface_id 
+          : (tc.interface_id?._id || tc.interface_id)?.toString();
+        return id;
+      })
+    );
+
+    // 过滤出未添加的接口
+    const newInterfaces = interfaces.filter(
+      (inter) => !existingInterfaceIds.has(inter._id)
+    );
+
+    if (newInterfaces.length === 0) {
+      messageApi.info('所有API接口已添加，无需重复导入');
+      return;
+    }
+
+    Modal.confirm({
+      title: '确认导入',
+      content: `将导入 ${newInterfaces.length} 个API接口作为测试用例，是否继续？`,
+      onOk: async () => {
+        try {
+          // 构建新的测试用例
+          const currentMaxOrder = selectedTask.test_cases.length > 0
+            ? Math.max(...selectedTask.test_cases.map((tc) => tc.order || 0))
+            : -1;
+
+          const newTestCases: TestCase[] = newInterfaces.map((inter, index) => ({
+            interface_id: inter._id,
+            order: currentMaxOrder + index + 1,
+            enabled: true,
+            custom_headers: DEFAULT_TEST_CASE_HEADERS,
+            custom_data: {},
+            path_params: {},
+            query_params: {},
+            assertion_script: '',
+          }));
+
+          // 合并现有测试用例和新测试用例
+          const updatedCases = [...selectedTask.test_cases, ...newTestCases];
+
+          // 重新排序并清理数据
+          const cleanedCases = updatedCases.map((tc, i) => ({
+            interface_id: typeof tc.interface_id === 'string' 
+              ? tc.interface_id 
+              : (tc.interface_id?._id || tc.interface_id)?.toString() || tc.interface_id,
+            order: i,
+            enabled: tc.enabled !== undefined ? tc.enabled : true,
+            custom_headers: tc.custom_headers || {},
+            custom_data: tc.custom_data || {},
+            path_params: tc.path_params || {},
+            query_params: tc.query_params || {},
+            assertion_script: tc.assertion_script || '',
+          }));
+
+          await api.put(`/auto-test/tasks/${selectedTask._id}`, {
+            test_cases: cleanedCases,
+          });
+
+          messageApi.success(`成功导入 ${newInterfaces.length} 个API接口`);
+          setCaseModalVisible(false);
+          caseForm.resetFields();
+          fetchTasks();
+          // 重新获取任务详情以更新 selectedTask，确保接口信息被正确populate
+          try {
+            const response = await api.get(`/auto-test/tasks/${selectedTask._id}`);
+            const updatedTask = response.data.data;
+            // 确保接口信息被正确保存（后端会返回populated的接口对象）
+            setSelectedTask(updatedTask);
+          } catch (error) {
+            // 如果获取失败，至少更新本地状态
+            console.error('获取更新后的任务详情失败:', error);
+            // 使用本地更新的数据（但接口信息可能不完整）
+            const updatedCases = [...selectedTask.test_cases, ...newTestCases];
+            setSelectedTask({ ...selectedTask, test_cases: updatedCases });
+          }
+        } catch (error: any) {
+          messageApi.error(error.response?.data?.message || '导入失败');
+        }
+      },
+    });
+  };
+
+  const handleMoveCase = async (index: number, direction: 'up' | 'down') => {
+    if (!selectedTask) return;
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= selectedTask.test_cases.length) return;
+
+    const updatedCases = [...selectedTask.test_cases];
+    [updatedCases[index], updatedCases[newIndex]] = [updatedCases[newIndex], updatedCases[index]];
+    
+    await saveTestCasesOrder(updatedCases, true);
+  };
+
+  // 保存测试用例顺序
+  const saveTestCasesOrder = async (updatedCases: TestCase[], showSuccessMessage = true) => {
+    if (!selectedTask) return;
+    
+    // 重新排序并清理数据
+    const cleanedCases = updatedCases.map((tc, i) => ({
+      interface_id: typeof tc.interface_id === 'string' ? tc.interface_id : (tc.interface_id?._id || tc.interface_id)?.toString() || tc.interface_id,
+      order: i,
+      enabled: tc.enabled !== undefined ? tc.enabled : true,
+      custom_headers: tc.custom_headers || {},
+      custom_data: tc.custom_data || {},
+      path_params: tc.path_params || {},
+      query_params: tc.query_params || {},
+      assertion_script: tc.assertion_script || '',
+    }));
+
+    try {
+      await api.put(`/auto-test/tasks/${selectedTask._id}`, {
+        test_cases: cleanedCases,
+      });
+      
+      // 重新获取任务详情以确保数据同步
+      const response = await api.get(`/auto-test/tasks/${selectedTask._id}`);
+      const updatedTask = response.data.data || { ...selectedTask, test_cases: updatedCases };
+      setSelectedTask(updatedTask);
+      
+      // 刷新任务列表
+      fetchTasks();
+      
+      if (showSuccessMessage) {
+        messageApi.success('测试用例顺序已保存');
+      }
+    } catch (error: any) {
+      messageApi.error(error.response?.data?.message || '保存顺序失败');
+      // 保存失败时恢复原状态
+      fetchTasks();
+      if (selectedTask._id) {
+        try {
+          const response = await api.get(`/auto-test/tasks/${selectedTask._id}`);
+          setSelectedTask(response.data.data);
+        } catch (fetchError) {
+          console.error('恢复任务状态失败:', fetchError);
+        }
+      }
+    }
+  };
+
+  // 处理编号变更（通过双击编辑编号）
+  const handleOrderChange = async (currentIndex: number, newOrder: number) => {
+    if (!selectedTask) return;
+    
+    const totalCases = selectedTask.test_cases.length;
+    
+    // 如果 newOrder 等于 currentIndex，说明是无效值（验证失败）
+    if (newOrder === currentIndex && newOrder < 0) {
+      return; // 已经在子组件中处理了错误提示
+    }
+    
+    if (newOrder < 0 || newOrder >= totalCases) {
+      messageApi.warning(`编号必须在 1 到 ${totalCases} 之间`);
+      return;
+    }
+    
+    if (newOrder === currentIndex) {
+      return; // 位置没有变化
+    }
+    
+    const updatedCases = [...selectedTask.test_cases];
+    const [movedCase] = updatedCases.splice(currentIndex, 1);
+    updatedCases.splice(newOrder, 0, movedCase);
+    
+    await saveTestCasesOrder(updatedCases, true);
+  };
+
+  // 处理拖拽排序（仅更新本地状态，延迟保存）
+  const handleDragCase = (dragIndex: number, hoverIndex: number) => {
+    if (!selectedTask) return;
+    if (dragIndex === hoverIndex) return;
+
+    const updatedCases = [...selectedTask.test_cases];
+    const [draggedItem] = updatedCases.splice(dragIndex, 1);
+    updatedCases.splice(hoverIndex, 0, draggedItem);
+    
+    // 立即更新本地状态，提供即时反馈
+    const updatedTask = { ...selectedTask, test_cases: updatedCases };
+    setSelectedTask(updatedTask);
+    
+    // 清除之前的定时器
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+    }
+    
+    // 延迟保存（防抖），避免频繁请求
+    saveTimerRef.current = setTimeout(() => {
+      saveTestCasesOrder(updatedCases, true);
+    }, 800); // 800ms 防抖
+  };
+
+  const handleRunSingleCase = async (index: number) => {
+    if (!selectedTask) return;
+    
+    const testCase = selectedTask.test_cases[index];
+    if (!testCase || !testCase.enabled) {
+      messageApi.warning('该测试用例已禁用，无法执行');
+      return;
+    }
+
+    // 获取接口信息
+    const interfaceId = typeof testCase.interface_id === 'string' 
+      ? testCase.interface_id 
+      : (testCase.interface_id?._id || testCase.interface_id)?.toString();
+    
+    let interfaceData = null;
+    if (testCase.interface_id && typeof testCase.interface_id === 'object' && testCase.interface_id.path) {
+      interfaceData = testCase.interface_id;
+    } else {
+      interfaceData = interfaces.find((i) => i._id === interfaceId);
+    }
+
+    setRunningCaseIndex(index);
+    try {
+      const response = await api.post(`/auto-test/tasks/${selectedTask._id}/run-single`, {
+        test_case_index: index,
+        environment_id: selectedTask.environment_id,
+      });
+
+      const result = response.data?.data;
+      if (result) {
+        // 构建单个测试用例的结果格式，与完整测试结果格式一致
+        const singleResult = {
+          _id: `single-${Date.now()}`,
+          task_id: selectedTask._id,
+          status: result.status,
+          summary: {
+            total: 1,
+            passed: result.status === 'passed' ? 1 : 0,
+            failed: result.status === 'failed' ? 1 : 0,
+            error: result.status === 'error' ? 1 : 0,
+            skipped: 0,
+          },
+          results: [{
+            interface_id: interfaceId,
+            interface_name: interfaceData?.title || interfaceData?.path || 'Unknown Interface',
+            order: testCase.order,
+            status: result.status,
+            request: result.request,
+            response: result.response,
+            error: result.error,
+            assertion_result: result.assertion_result,
+            duration: result.duration,
+            started_at: new Date().toISOString(),
+            completed_at: new Date().toISOString(),
+          }],
+          started_at: new Date().toISOString(),
+          completed_at: new Date().toISOString(),
+          duration: result.duration,
+        };
+
+        setSelectedResult(singleResult);
+        setResultModalVisible(true);
+        
+        if (result.status === 'passed') {
+          messageApi.success('测试用例执行成功');
+        } else if (result.status === 'failed') {
+          messageApi.warning('测试用例执行失败');
+        } else {
+          messageApi.error('测试用例执行出错');
+        }
+      } else {
+        messageApi.error('获取测试结果失败：结果数据为空');
+      }
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.message || error.message || '执行测试用例失败';
+      messageApi.error(errorMsg);
+      console.error('执行单个测试用例异常：', error);
+    } finally {
+      setRunningCaseIndex(null);
+    }
+  };
+
+  const handleRunTest = async (task?: TestTask) => {
+    const taskToRun = task || selectedTask;
+    if (!taskToRun) return;
+    
+    // 检查是否有测试用例
+    if (!taskToRun.test_cases || taskToRun.test_cases.length === 0) {
+      messageApi.warning('该测试流水线没有测试用例，请先添加API');
+      return;
+    }
+
+    setRunning(true);
+    try {
+      const response = await api.post(`/auto-test/tasks/${taskToRun._id}/run`);
+      // 兼容两种字段名格式
+      const resultId = response.data?.data?.resultId || response.data?.data?.result_id;
+      if (resultId) {
+        // 轮询获取结果
+        const pollResult = async () => {
+          try {
+            const resultResponse = await api.get(`/auto-test/results/${resultId}`);
+            const result = resultResponse.data?.data;
+            if (result && result.status === 'running') {
+              setTimeout(pollResult, 1000);
+            } else if (result) {
+              setSelectedResult(result);
+              setResultModalVisible(true);
+              setRunning(false);
+            } else {
+              setRunning(false);
+              messageApi.error('获取测试结果失败：结果数据为空');
+            }
+          } catch (error: any) {
+            setRunning(false);
+            messageApi.error(error.response?.data?.message || '获取测试结果失败');
+          }
+        };
+        pollResult();
+      } else {
+        setRunning(false);
+        // 提供更详细的错误信息
+        const errorMsg = response.data?.message || '启动测试失败：未返回结果ID';
+        messageApi.error(errorMsg);
+        console.error('启动测试失败，响应数据：', response.data);
+      }
+    } catch (error: any) {
+      setRunning(false);
+      const errorMsg = error.response?.data?.message || error.message || '运行测试失败';
+      messageApi.error(errorMsg);
+      console.error('运行测试异常：', error);
+    }
+  };
+
+  const handleViewTask = async (task: TestTask) => {
+    try {
+      const response = await api.get(`/auto-test/tasks/${task._id}`);
+      setSelectedTask(response.data.data);
+    } catch (error: any) {
+      messageApi.error(error.response?.data?.message || '获取任务详情失败');
+    }
+  };
+
+  const handleExport = async (task: TestTask) => {
+    try {
+      const response = await api.get(`/auto-test/tasks/${task._id}/export`, {
+        params: { format: 'json' },
+        responseType: 'blob',
+      });
+      const blob = new Blob([response.data], { type: 'application/json' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${task.name}.json`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      messageApi.success('导出成功');
+    } catch (error: any) {
+      messageApi.error(error.response?.data?.message || '导出失败');
+    }
+  };
+
+  const handleImport = async () => {
+    if (!selectedProjectId) {
+      messageApi.warning('请先选择项目');
+      return;
+    }
+
+    if (!importFile) {
+      messageApi.warning('请选择要导入的文件');
+      return;
+    }
+
+    setImporting(true);
+    try {
+      const fileContent = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target?.result as string);
+        reader.onerror = reject;
+        reader.readAsText(importFile.originFileObj as File);
+      });
+
+      let data;
+      try {
+        data = JSON.parse(fileContent);
+      } catch (parseError) {
+        messageApi.error('无效的JSON格式');
+        setImporting(false);
+        return;
+      }
+
+      await api.post('/auto-test/tasks/import', {
+        project_id: selectedProjectId,
+        mode: importMode,
+        data,
+      });
+      messageApi.success('导入成功');
+      setImportModalVisible(false);
+      setImportFile(null);
+      fetchTasks();
+    } catch (error: any) {
+      messageApi.error(error.response?.data?.message || '导入失败');
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const taskColumns = [
+    {
+      title: '名称',
+      dataIndex: 'name',
+      key: 'name',
+    },
+    {
+      title: '描述',
+      dataIndex: 'description',
+      key: 'description',
+    },
+    {
+      title: '测试用例数',
+      dataIndex: 'test_cases',
+      key: 'test_cases',
+      render: (cases: TestCase[]) => cases?.length || 0,
+    },
+    {
+      title: '状态',
+      dataIndex: 'enabled',
+      key: 'enabled',
+      render: (enabled: boolean) => (
+        <Tag color={enabled ? 'green' : 'default'}>{enabled ? '启用' : '禁用'}</Tag>
+      ),
+    },
+    {
+      title: '操作',
+      key: 'action',
+      width: 380,
+      render: (_: any, record: TestTask) => (
+        <Space>
+          <Button
+            type="primary"
+            icon={<PlayCircleOutlined />}
+            onClick={() => handleRunTest(record)}
+            loading={running && selectedTask?._id === record._id}
+            disabled={!record.test_cases || record.test_cases.length === 0 || !record.enabled}
+            size="small"
+            style={{ color: '#ffffff' }}
+          >
+            运行测试
+          </Button>
+          <Button type="link" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
+            编辑
+          </Button>
+          <Button type="link" onClick={() => handleViewTask(record)}>
+            查看
+          </Button>
+          <Button type="link" icon={<ExportOutlined />} onClick={() => handleExport(record)}>
+            导出
+          </Button>
+          <Button type="link" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record._id)}>
+            删除
+          </Button>
+        </Space>
+      ),
+    },
+  ];
+
+  return (
+    <div>
+      <Card
+        title="测试流水线管理"
+        extra={
+          <Space>
+            <Select
+              placeholder="选择项目"
+              value={selectedProjectId}
+              onChange={setSelectedProjectId}
+              style={{ width: 200 }}
+              notFoundContent={projects.length === 0 ? '暂无项目，请先创建项目' : '暂无数据'}
+              showSearch
+              filterOption={(input, option) =>
+                (option?.children as string)?.toLowerCase().includes(input.toLowerCase())
+              }
+            >
+              {projects.length === 0 ? (
+                <Option value="" disabled>
+                  请先创建项目
+                </Option>
+              ) : !selectedProjectId ? (
+                <>
+                  <Option value="" disabled style={{ color: '#999' }}>
+                    请选择项目
+                  </Option>
+                  {projects.map((project) => (
+                    <Option key={project._id} value={project._id}>
+                      {project.project_name}
+                    </Option>
+                  ))}
+                </>
+              ) : (
+                projects.map((project) => (
+                  <Option key={project._id} value={project._id}>
+                    {project.project_name}
+                  </Option>
+                ))
+              )}
+            </Select>
+            <Button
+              icon={<ImportOutlined />}
+              onClick={() => setImportModalVisible(true)}
+              disabled={!selectedProjectId}
+            >
+              导入
+            </Button>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={handleCreate}
+              disabled={!selectedProjectId}
+              style={{ color: '#ffffff' }}
+            >
+              创建测试流水线
+            </Button>
+          </Space>
+        }
+      >
+        <Table
+          columns={taskColumns}
+          dataSource={tasks}
+          rowKey="_id"
+          loading={loading}
+        />
+      </Card>
+
+      {selectedTask && (
+        <Card
+          title={selectedTask.name}
+          extra={
+            <Space>
+              <Button
+                type="primary"
+                icon={<PlayCircleOutlined />}
+                onClick={() => handleRunTest()}
+                loading={running}
+                disabled={!selectedTask.test_cases || selectedTask.test_cases.length === 0 || !selectedTask.enabled}
+                style={{ color: '#ffffff' }}
+              >
+                一键测试
+              </Button>
+              <Button icon={<PlusOutlined />} onClick={handleAddCase}>
+                添加API
+              </Button>
+            </Space>
+          }
+          style={{ marginTop: 16 }}
+        >
+          {selectedTask.test_cases.length === 0 ? (
+            <Empty description="暂无测试用例，请添加API" />
+          ) : (
+            <DndProvider backend={HTML5Backend}>
+            <Space direction="vertical" style={{ width: '100%' }}>
+              {selectedTask.test_cases.map((testCase, index) => {
+                // 处理接口信息：优先使用populated的接口对象，如果没有则从interfaces数组查找
+                let interfaceData = null;
+                const interfaceId = typeof testCase.interface_id === 'string' 
+                  ? testCase.interface_id 
+                  : (testCase.interface_id?._id || testCase.interface_id)?.toString();
+                
+                // 如果interface_id是populated对象，直接使用
+                if (testCase.interface_id && typeof testCase.interface_id === 'object' && testCase.interface_id.path) {
+                  interfaceData = testCase.interface_id;
+                } else {
+                  // 否则从interfaces数组查找
+                  interfaceData = interfaces.find((i) => i._id === interfaceId);
+                }
+                
+                return (
+                    <DraggableTestCaseItem
+                      key={`${testCase.interface_id}-${index}`}
+                      testCase={testCase}
+                      index={index}
+                      interfaceData={interfaceData}
+                      onMove={handleDragCase}
+                      onEdit={handleEditCase}
+                      onDelete={handleDeleteCase}
+                      onMoveUp={(idx) => handleMoveCase(idx, 'up')}
+                      onMoveDown={(idx) => handleMoveCase(idx, 'down')}
+                      onOrderChange={handleOrderChange}
+                      onRunSingle={handleRunSingleCase}
+                      isRunning={runningCaseIndex === index}
+                      totalCases={selectedTask.test_cases.length}
+                      isFirst={index === 0}
+                      isLast={index === selectedTask.test_cases.length - 1}
+                    />
+                );
+              })}
+            </Space>
+            </DndProvider>
+          )}
+        </Card>
+      )}
+
+      <Modal
+        title={editingTask ? '编辑测试流水线' : '创建测试流水线'}
+        open={modalVisible}
+        onOk={handleSubmit}
+        onCancel={() => {
+          setModalVisible(false);
+          form.resetFields();
+        }}
+        width={600}
+        okButtonProps={{ style: { color: '#ffffff' } }}
+      >
+        <Form form={form} layout="vertical">
+          <Form.Item name="project_id" hidden>
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name="name"
+            label="名称"
+            rules={[{ required: true, message: '请输入名称' }]}
+          >
+            <Input placeholder="请输入测试流水线名称" />
+          </Form.Item>
+          <Form.Item name="description" label="描述">
+            <TextArea rows={3} placeholder="请输入描述" />
+          </Form.Item>
+          <Form.Item name="environment_id" label="测试环境">
+            <Select 
+              placeholder={environments.length === 0 ? "暂无测试环境，请先创建" : "选择测试环境"} 
+              allowClear
+              notFoundContent={environments.length === 0 ? "暂无测试环境" : undefined}
+            >
+              {environments.map((env: any) => (
+                <Option key={env._id} value={env._id}>
+                  {env.name} - {env.base_url}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item name="enabled" valuePropName="checked" label="启用">
+            <Switch />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title={editingCase ? '编辑测试用例' : '添加测试用例'}
+        open={caseModalVisible}
+        onOk={handleSubmitCase}
+        onCancel={() => {
+          setCaseModalVisible(false);
+          caseForm.resetFields();
+        }}
+        width={800}
+        okButtonProps={{ style: { color: '#ffffff' } }}
+      >
+        <Form form={caseForm} layout="vertical">
+          <Form.Item
+            name="interface_id"
+            label={
+              <Space>
+                <span>API接口</span>
+                {!editingCase && (
+                  <Button
+                    type="link"
+                    size="small"
+                    onClick={handleImportAllAPIs}
+                    disabled={interfaces.length === 0}
+                  >
+                    一键导入所有API
+                  </Button>
+                )}
+              </Space>
+            }
+            rules={[{ required: true, message: '请选择API接口' }]}
+          >
+            <Select placeholder="选择API接口">
+              {interfaces.map((inter) => (
+                <Option key={inter._id} value={inter._id}>
+                  {inter.method} {inter.path}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item name="order" label="顺序">
+            <InputNumber min={0} />
+          </Form.Item>
+          <Form.Item name="enabled" valuePropName="checked" label="启用">
+            <Switch />
+          </Form.Item>
+          <Divider>请求配置</Divider>
+          <Form.Item 
+            name="custom_headers" 
+            label={
+              <Space>
+                <span>自定义Headers</span>
+                <Radio.Group 
+                  size="small" 
+                  value={headersFormat} 
+                  onChange={(e) => {
+                    const newFormat = e.target.value;
+                    const currentValue = caseForm.getFieldValue('custom_headers') || '';
+                    
+                    if (newFormat === 'keyvalue') {
+                      // 从 JSON 转换为 key=value
+                      try {
+                        const obj = JSON.parse(currentValue || '{}');
+                        caseForm.setFieldValue('custom_headers', objectToKeyValue(obj));
+                      } catch {
+                        // 如果解析失败，保持原值
+                      }
+                    } else {
+                      // 从 key=value 转换为 JSON
+                      try {
+                        const obj = keyValueToObject(currentValue);
+                        caseForm.setFieldValue('custom_headers', JSON.stringify(obj, null, 2));
+                      } catch {
+                        // 如果转换失败，保持原值
+                      }
+                    }
+                    setHeadersFormat(newFormat);
+                  }}
+                >
+                  <Radio.Button value="json">JSON</Radio.Button>
+                  <Radio.Button value="keyvalue">Key=Value</Radio.Button>
+                </Radio.Group>
+                <Button 
+                  type="link" 
+                  size="small" 
+                  style={{ padding: 0, height: 'auto' }}
+                  onClick={() => {
+                    const example = headersFormat === 'json' 
+                      ? JSON.stringify(EXAMPLE_HEADERS, null, 2)
+                      : objectToKeyValue(EXAMPLE_HEADERS);
+                    caseForm.setFieldsValue({
+                      custom_headers: example,
+                    });
+                  }}
+                >
+                  示例
+                </Button>
+              </Space>
+            }
+          >
+            <TextArea 
+              rows={4} 
+              placeholder={
+                headersFormat === 'json' 
+                  ? '{"Authorization": "Bearer token"}' 
+                  : 'Authorization=Bearer token\nContent-Type=application/json'
+              } 
+            />
+          </Form.Item>
+          <Form.Item 
+            name="custom_data" 
+            label={
+              <Space>
+                <span>自定义数据</span>
+                <Radio.Group 
+                  size="small" 
+                  value={dataFormat} 
+                  onChange={(e) => {
+                    const newFormat = e.target.value;
+                    const currentValue = caseForm.getFieldValue('custom_data') || '';
+                    
+                    if (newFormat === 'keyvalue') {
+                      // 从 JSON 转换为 key=value
+                      try {
+                        const obj = JSON.parse(currentValue || '{}');
+                        caseForm.setFieldValue('custom_data', objectToKeyValue(obj));
+                      } catch {
+                        // 如果解析失败，保持原值
+                      }
+                    } else {
+                      // 从 key=value 转换为 JSON
+                      try {
+                        const obj = keyValueToObject(currentValue);
+                        caseForm.setFieldValue('custom_data', JSON.stringify(obj, null, 2));
+                      } catch {
+                        // 如果转换失败，保持原值
+                      }
+                    }
+                    setDataFormat(newFormat);
+                  }}
+                >
+                  <Radio.Button value="json">JSON</Radio.Button>
+                  <Radio.Button value="keyvalue">Key=Value</Radio.Button>
+                </Radio.Group>
+                <Button 
+                  type="link" 
+                  size="small" 
+                  style={{ padding: 0, height: 'auto' }}
+                  onClick={() => {
+                    const example = dataFormat === 'json' 
+                      ? JSON.stringify(EXAMPLE_CUSTOM_DATA, null, 2)
+                      : objectToKeyValue(EXAMPLE_CUSTOM_DATA);
+                    caseForm.setFieldsValue({
+                      custom_data: example,
+                    });
+                  }}
+                >
+                  示例
+                </Button>
+              </Space>
+            }
+          >
+            <TextArea 
+              rows={6} 
+              placeholder={
+                dataFormat === 'json' 
+                  ? '{"key": "value"}' 
+                  : 'key1=value1\nkey2=value2'
+              } 
+            />
+          </Form.Item>
+          <Form.Item 
+            name="path_params" 
+            label={
+              <Space>
+                <span>路径参数</span>
+                <Radio.Group 
+                  size="small" 
+                  value={pathParamsFormat} 
+                  onChange={(e) => {
+                    const newFormat = e.target.value;
+                    const currentValue = caseForm.getFieldValue('path_params') || '';
+                    
+                    if (newFormat === 'keyvalue') {
+                      // 从 JSON 转换为 key=value
+                      try {
+                        const obj = JSON.parse(currentValue || '{}');
+                        caseForm.setFieldValue('path_params', objectToKeyValue(obj));
+                      } catch {
+                        // 如果解析失败，保持原值
+                      }
+                    } else {
+                      // 从 key=value 转换为 JSON
+                      try {
+                        const obj = keyValueToObject(currentValue);
+                        caseForm.setFieldValue('path_params', JSON.stringify(obj, null, 2));
+                      } catch {
+                        // 如果转换失败，保持原值
+                      }
+                    }
+                    setPathParamsFormat(newFormat);
+                  }}
+                >
+                  <Radio.Button value="json">JSON</Radio.Button>
+                  <Radio.Button value="keyvalue">Key=Value</Radio.Button>
+                </Radio.Group>
+              </Space>
+            }
+          >
+            <TextArea 
+              rows={4} 
+              placeholder={
+                pathParamsFormat === 'json' 
+                  ? '{"id": "123"}' 
+                  : 'id=123\nuserId=456'
+              } 
+            />
+          </Form.Item>
+          <Form.Item 
+            name="query_params" 
+            label={
+              <Space>
+                <span>查询参数</span>
+                <Radio.Group 
+                  size="small" 
+                  value={queryParamsFormat} 
+                  onChange={(e) => {
+                    const newFormat = e.target.value;
+                    const currentValue = caseForm.getFieldValue('query_params') || '';
+                    
+                    if (newFormat === 'keyvalue') {
+                      // 从 JSON 转换为 key=value
+                      try {
+                        const obj = JSON.parse(currentValue || '{}');
+                        caseForm.setFieldValue('query_params', objectToKeyValue(obj));
+                      } catch {
+                        // 如果解析失败，保持原值
+                      }
+                    } else {
+                      // 从 key=value 转换为 JSON
+                      try {
+                        const obj = keyValueToObject(currentValue);
+                        caseForm.setFieldValue('query_params', JSON.stringify(obj, null, 2));
+                      } catch {
+                        // 如果转换失败，保持原值
+                      }
+                    }
+                    setQueryParamsFormat(newFormat);
+                  }}
+                >
+                  <Radio.Button value="json">JSON</Radio.Button>
+                  <Radio.Button value="keyvalue">Key=Value</Radio.Button>
+                </Radio.Group>
+                <Button 
+                  type="link" 
+                  size="small" 
+                  style={{ padding: 0, height: 'auto' }}
+                  onClick={() => {
+                    const example = queryParamsFormat === 'json' 
+                      ? JSON.stringify(EXAMPLE_QUERY_PARAMS, null, 2)
+                      : objectToKeyValue(EXAMPLE_QUERY_PARAMS);
+                    caseForm.setFieldsValue({
+                      query_params: example,
+                    });
+                  }}
+                >
+                  示例
+                </Button>
+              </Space>
+            }
+          >
+            <TextArea 
+              rows={4} 
+              placeholder={
+                queryParamsFormat === 'json' 
+                  ? '{"page": 1}' 
+                  : 'page=1\npageSize=10'
+              } 
+            />
+          </Form.Item>
+          <Form.Item 
+            name="assertion_script" 
+            label={
+              <Space>
+                <span>断言脚本 (JavaScript)</span>
+                <Button 
+                  type="link" 
+                  size="small" 
+                  style={{ padding: 0, height: 'auto' }}
+                  onClick={() => {
+                    caseForm.setFieldsValue({
+                      assertion_script: EXAMPLE_ASSERTION_SCRIPT,
+                    });
+                  }}
+                >
+                  示例
+                </Button>
+              </Space>
+            }
+          >
+            <TextArea rows={6} placeholder="// 示例：assert.status(200);" />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title="测试结果"
+        open={resultModalVisible}
+        onCancel={() => {
+          setResultModalVisible(false);
+          setSelectedResult(null);
+        }}
+        footer={null}
+        width={1200}
+      >
+        {selectedResult && (
+          <div>
+            <Descriptions bordered column={2} style={{ marginBottom: 16 }}>
+              <Descriptions.Item label="状态">
+                <Tag color={selectedResult.status === 'passed' ? 'green' : selectedResult.status === 'failed' ? 'red' : 'orange'}>
+                  {selectedResult.status === 'passed' ? '通过' : selectedResult.status === 'failed' ? '失败' : selectedResult.status === 'error' ? '错误' : '运行中'}
+                </Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="总用例数">{selectedResult.summary.total}</Descriptions.Item>
+              <Descriptions.Item label="通过">{selectedResult.summary.passed}</Descriptions.Item>
+              <Descriptions.Item label="失败">{selectedResult.summary.failed}</Descriptions.Item>
+              <Descriptions.Item label="错误">{selectedResult.summary.error}</Descriptions.Item>
+              <Descriptions.Item label="耗时">{selectedResult.duration}ms</Descriptions.Item>
+            </Descriptions>
+            <Divider>测试用例结果</Divider>
+            <Collapse
+              items={selectedResult.results.map((result, index) => ({
+                key: index,
+                label: (
+                  <Space>
+                    <Tag>{index + 1}</Tag>
+                    <Tag color={result.status === 'passed' ? 'green' : result.status === 'failed' ? 'red' : 'orange'}>
+                      {result.status === 'passed' ? '通过' : result.status === 'failed' ? '失败' : '错误'}
+                    </Tag>
+                    <Text strong>{result.interface_name}</Text>
+                    <Text type="secondary">{result.request.method} {result.request.url}</Text>
+                  </Space>
+                ),
+                children: (
+                  <div style={{ width: '100%', maxWidth: '100%', overflow: 'hidden' }}>
+                    <Descriptions bordered size="small" column={1} style={{ width: '100%' }}>
+                      <Descriptions.Item label="请求URL">
+                        <Typography.Text 
+                          style={{ 
+                            wordBreak: 'break-all',
+                            wordWrap: 'break-word',
+                            maxWidth: '100%',
+                            display: 'block'
+                          }}
+                        >
+                          {result.request.url}
+                        </Typography.Text>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="请求方法">{result.request.method}</Descriptions.Item>
+                      <Descriptions.Item label="CURL 命令">
+                        <div style={{ position: 'relative', width: '100%', maxWidth: '100%', overflow: 'hidden' }}>
+                          <pre style={{ 
+                            maxHeight: 300, 
+                            overflow: 'auto', 
+                            margin: 0, 
+                            padding: '8px', 
+                            background: '#f0f7ff', 
+                            borderRadius: '4px',
+                            whiteSpace: 'pre-wrap',
+                            wordBreak: 'break-word',
+                            wordWrap: 'break-word',
+                            maxWidth: '100%',
+                            boxSizing: 'border-box',
+                            fontFamily: 'monospace',
+                            fontSize: '12px',
+                            lineHeight: '1.5'
+                          }}>
+                            {generateCurlCommand(result.request)}
+                          </pre>
+                          <Button
+                            type="default"
+                            size="small"
+                            icon={<CopyOutlined />}
+                            onClick={() => {
+                              const curlCommand = generateCurlCommand(result.request);
+                              navigator.clipboard.writeText(curlCommand);
+                              messageApi.success('CURL 命令已复制到剪贴板');
+                            }}
+                            style={{ position: 'absolute', bottom: 8, right: 8 }}
+                          >
+                            复制
+                          </Button>
+                        </div>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="请求Headers">
+                        <div style={{ position: 'relative', width: '100%', maxWidth: '100%', overflow: 'hidden' }}>
+                          <pre style={{ 
+                            maxHeight: 200, 
+                            overflow: 'auto', 
+                            margin: 0, 
+                            padding: '8px', 
+                            background: '#f5f5f5', 
+                            borderRadius: '4px',
+                            whiteSpace: 'pre-wrap',
+                            wordBreak: 'break-word',
+                            wordWrap: 'break-word',
+                            maxWidth: '100%',
+                            boxSizing: 'border-box'
+                          }}>
+                            {result.request.headers && typeof result.request.headers === 'object'
+                              ? JSON.stringify(result.request.headers, null, 2)
+                              : result.request.headers || '{}'}
+                          </pre>
+                          <Button
+                            type="default"
+                            size="small"
+                            icon={<CopyOutlined />}
+                            onClick={() => {
+                              const text = result.request.headers && typeof result.request.headers === 'object'
+                                ? JSON.stringify(result.request.headers, null, 2)
+                                : result.request.headers || '{}';
+                              navigator.clipboard.writeText(text);
+                              messageApi.success('已复制到剪贴板');
+                            }}
+                            style={{ position: 'absolute', bottom: 8, right: 8 }}
+                          >
+                            复制
+                          </Button>
+                        </div>
+                      </Descriptions.Item>
+                      {result.request.body !== undefined && result.request.body !== null && (
+                        <Descriptions.Item label="请求Body">
+                          <div style={{ position: 'relative', width: '100%', maxWidth: '100%', overflow: 'hidden' }}>
+                            <pre style={{ 
+                              maxHeight: 200, 
+                              overflow: 'auto', 
+                              margin: 0, 
+                              padding: '8px', 
+                              background: '#f5f5f5', 
+                              borderRadius: '4px', 
+                              whiteSpace: 'pre-wrap', 
+                              wordBreak: 'break-word',
+                              wordWrap: 'break-word',
+                              maxWidth: '100%',
+                              boxSizing: 'border-box'
+                            }}>
+                              {typeof result.request.body === 'string'
+                                ? result.request.body
+                                : typeof result.request.body === 'object'
+                                  ? JSON.stringify(result.request.body, null, 2)
+                                  : String(result.request.body)}
+                            </pre>
+                            <Button
+                              type="default"
+                              size="small"
+                              icon={<CopyOutlined />}
+                              onClick={() => {
+                                const text = typeof result.request.body === 'string'
+                                  ? result.request.body
+                                  : typeof result.request.body === 'object'
+                                    ? JSON.stringify(result.request.body, null, 2)
+                                    : String(result.request.body);
+                                navigator.clipboard.writeText(text);
+                                messageApi.success('已复制到剪贴板');
+                              }}
+                              style={{ position: 'absolute', bottom: 8, right: 8 }}
+                            >
+                              复制
+                            </Button>
+                          </div>
+                        </Descriptions.Item>
+                      )}
+                      <Descriptions.Item label="响应状态码">
+                        {result.response && result.response.status_code !== undefined && result.response.status_code !== null ? (
+                          <Tag color={result.response.status_code >= 200 && result.response.status_code < 300 ? 'green' : 'red'}>
+                            {result.response.status_code}
+                          </Tag>
+                        ) : (
+                          <Text type="secondary">未返回</Text>
+                        )}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="响应Headers">
+                        <div style={{ position: 'relative', width: '100%', maxWidth: '100%', overflow: 'hidden' }}>
+                          <pre style={{ 
+                            maxHeight: 200, 
+                            overflow: 'auto', 
+                            margin: 0, 
+                            padding: '8px', 
+                            background: '#f5f5f5', 
+                            borderRadius: '4px',
+                            whiteSpace: 'pre-wrap',
+                            wordBreak: 'break-word',
+                            wordWrap: 'break-word',
+                            maxWidth: '100%',
+                            boxSizing: 'border-box'
+                          }}>
+                            {result.response && result.response.headers
+                              ? (result.response.headers && typeof result.response.headers === 'object'
+                                  ? JSON.stringify(result.response.headers, null, 2)
+                                  : result.response.headers || '{}')
+                              : '{}'}
+                          </pre>
+                          <Button
+                            type="default"
+                            size="small"
+                            icon={<CopyOutlined />}
+                            onClick={() => {
+                              const text = result.response && result.response.headers
+                                ? (result.response.headers && typeof result.response.headers === 'object'
+                                    ? JSON.stringify(result.response.headers, null, 2)
+                                    : result.response.headers || '{}')
+                                : '{}';
+                              navigator.clipboard.writeText(text);
+                              messageApi.success('已复制到剪贴板');
+                            }}
+                            style={{ position: 'absolute', bottom: 8, right: 8 }}
+                          >
+                            复制
+                          </Button>
+                        </div>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="响应内容">
+                        <div style={{ position: 'relative', width: '100%', maxWidth: '100%', overflow: 'hidden' }}>
+                          <pre style={{ 
+                            maxHeight: 300, 
+                            overflow: 'auto', 
+                            margin: 0, 
+                            padding: '8px', 
+                            background: '#f5f5f5', 
+                            borderRadius: '4px', 
+                            whiteSpace: 'pre-wrap', 
+                            wordBreak: 'break-word',
+                            wordWrap: 'break-word',
+                            maxWidth: '100%',
+                            boxSizing: 'border-box'
+                          }}>
+                            {result.response && result.response.body !== undefined && result.response.body !== null
+                              ? (typeof result.response.body === 'string'
+                                  ? result.response.body
+                                  : typeof result.response.body === 'object'
+                                    ? JSON.stringify(result.response.body, null, 2)
+                                    : String(result.response.body))
+                              : '无响应内容'}
+                          </pre>
+                          <Button
+                            type="default"
+                            size="small"
+                            icon={<CopyOutlined />}
+                            onClick={() => {
+                              const text = result.response && result.response.body !== undefined && result.response.body !== null
+                                ? (typeof result.response.body === 'string'
+                                    ? result.response.body
+                                    : typeof result.response.body === 'object'
+                                      ? JSON.stringify(result.response.body, null, 2)
+                                      : String(result.response.body))
+                                : '无响应内容';
+                              navigator.clipboard.writeText(text);
+                              messageApi.success('已复制到剪贴板');
+                            }}
+                            style={{ position: 'absolute', bottom: 8, right: 8 }}
+                          >
+                            复制
+                          </Button>
+                        </div>
+                      </Descriptions.Item>
+                      {result.error && (
+                        <Descriptions.Item label="错误信息">
+                          <Typography.Text type="danger">
+                            <div style={{ position: 'relative', width: '100%', maxWidth: '100%', overflow: 'hidden' }}>
+                              <pre style={{ 
+                                maxHeight: 200, 
+                                overflow: 'auto', 
+                                margin: 0, 
+                                padding: '8px', 
+                                background: '#fff1f0', 
+                                borderRadius: '4px',
+                                whiteSpace: 'pre-wrap',
+                                wordBreak: 'break-word',
+                                wordWrap: 'break-word',
+                                maxWidth: '100%',
+                                boxSizing: 'border-box'
+                              }}>
+                              {result.error.message}
+                              {result.error.stack && `\n${result.error.stack}`}
+                            </pre>
+                            </div>
+                          </Typography.Text>
+                        </Descriptions.Item>
+                      )}
+                      {result.assertion_result && (
+                        <Descriptions.Item label="断言结果">
+                          <div style={{ width: '100%', maxWidth: '100%' }}>
+                          <Tag color={result.assertion_result.passed ? 'green' : 'red'}>
+                            {result.assertion_result.passed ? '通过' : '失败'}
+                          </Tag>
+                          {result.assertion_result.message && (
+                              <Text style={{ 
+                                display: 'block', 
+                                marginTop: 4,
+                                wordBreak: 'break-word',
+                                wordWrap: 'break-word',
+                                maxWidth: '100%'
+                              }}>
+                                {result.assertion_result.message}
+                              </Text>
+                          )}
+                          {result.assertion_result.errors && result.assertion_result.errors.length > 0 && (
+                              <div style={{ marginTop: 8 }}>
+                              {result.assertion_result.errors.map((err, i) => (
+                                  <Text 
+                                    key={i} 
+                                    type="danger" 
+                                    block
+                                    style={{
+                                      wordBreak: 'break-word',
+                                      wordWrap: 'break-word',
+                                      maxWidth: '100%'
+                                    }}
+                                  >
+                                  {err}
+                                </Text>
+                              ))}
+                            </div>
+                          )}
+                          </div>
+                        </Descriptions.Item>
+                      )}
+                      <Descriptions.Item label="耗时">{result.duration}ms</Descriptions.Item>
+                    </Descriptions>
+                  </div>
+                ),
+              }))}
+            />
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        title="导入测试流水线"
+        open={importModalVisible}
+        onOk={handleImport}
+        onCancel={() => {
+          setImportModalVisible(false);
+          setImportFile(null);
+        }}
+        confirmLoading={importing}
+        okButtonProps={{ style: { color: '#ffffff' } }}
+      >
+        <Form layout="vertical">
+          <Form.Item label="导入模式">
+            <Select value={importMode} onChange={setImportMode}>
+              <Option value="normal">普通模式（跳过已存在的任务）</Option>
+              <Option value="good">智能合并（合并测试用例，保留已有修改）</Option>
+              <Option value="mergin">完全覆盖（完全使用新数据）</Option>
+            </Select>
+          </Form.Item>
+          <Form.Item label="选择文件">
+            <Upload
+              beforeUpload={(file) => {
+                setImportFile({ originFileObj: file });
+                return false;
+              }}
+              accept=".json"
+              maxCount={1}
+              onRemove={() => setImportFile(null)}
+            >
+              <Button icon={<ImportOutlined />}>选择JSON文件</Button>
+            </Upload>
+            {importFile && (
+              <div style={{ marginTop: 8, color: '#666' }}>
+                已选择: {importFile.originFileObj?.name}
+              </div>
+            )}
+          </Form.Item>
+        </Form>
+      </Modal>
+    </div>
+  );
+};
+
+export default TestPipeline;
+

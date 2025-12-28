@@ -1,0 +1,240 @@
+import React from 'react';
+import { Layout, Menu } from 'antd';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../../Reducer/Create';
+import {
+  FolderOutlined,
+  SettingOutlined,
+  HomeOutlined,
+  ProjectOutlined,
+  ApiOutlined,
+  EnvironmentOutlined,
+  ImportOutlined,
+  ExperimentOutlined,
+} from '@ant-design/icons';
+import type { MenuProps } from 'antd';
+import Logo from '../Logo';
+
+const { Sider } = Layout;
+
+interface SidebarProps {
+  collapsed?: boolean;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { t } = useTranslation();
+  const user = useSelector((state: RootState) => state.user.user);
+  
+  // 根据当前路径确定打开的菜单项
+  const getOpenKeys = () => {
+    if (location.pathname.startsWith('/admin')) {
+      return ['/admin'];
+    }
+    return [];
+  };
+  
+  const [openKeys, setOpenKeys] = React.useState<string[]>(getOpenKeys());
+  
+  // 当路径变化时更新打开的菜单项
+  React.useEffect(() => {
+    setOpenKeys(getOpenKeys());
+  }, [location.pathname]);
+
+  // 调试：记录用户信息和角色
+  React.useEffect(() => {
+    if (user) {
+      console.log('Sidebar - User info:', {
+        userId: user._id,
+        username: user.username,
+        role: user.role,
+        isSuperAdmin: user.role === 'super_admin',
+      });
+    } else {
+      console.warn('Sidebar - User is null or undefined');
+    }
+  }, [user]);
+  
+  // 构建系统管理子菜单项
+  const adminMenuItems = [
+    {
+      key: '/admin/user',
+      label: t('sidebar.adminUser'),
+    },
+    {
+      key: '/admin/sso',
+      label: t('sidebar.adminSSO'),
+    },
+    {
+      key: '/admin/third-party-auth',
+      label: t('sidebar.adminThirdPartyAuth'),
+    },
+    {
+      key: '/admin/whitelist',
+      label: t('sidebar.adminWhitelist'),
+    },
+    {
+      key: '/admin/email',
+      label: t('sidebar.adminEmail'),
+    },
+    {
+      key: '/admin/monitor',
+      label: t('sidebar.adminMonitor'),
+    },
+    {
+      key: '/admin/plugin',
+      label: t('sidebar.adminPlugin'),
+    },
+    {
+      key: '/admin/operation-log',
+      label: t('sidebar.adminOperationLog'),
+    },
+    {
+      key: '/admin/login-log',
+      label: t('sidebar.adminLoginLog'),
+    },
+  ];
+
+  // 检查用户是否有权限查看系统管理菜单
+  const isSuperAdmin = user?.role === 'super_admin';
+  
+  const menuItems: MenuProps['items'] = [
+    {
+      key: '/group',
+      icon: <FolderOutlined />,
+      label: t('sidebar.group'),
+    },
+    {
+      key: '/project',
+      icon: <ProjectOutlined />,
+      label: t('sidebar.project'),
+    },
+    {
+      key: '/interface',
+      icon: <ApiOutlined />,
+      label: t('sidebar.interface'),
+    },
+    {
+      key: '/environment',
+      icon: <EnvironmentOutlined />,
+      label: t('sidebar.environment'),
+    },
+    {
+      key: '/swagger-import',
+      icon: <ImportOutlined />,
+      label: t('sidebar.swaggerImport'),
+    },
+    {
+      key: '/postman-import',
+      icon: <ImportOutlined />,
+      label: t('sidebar.postmanImport'),
+    },
+    {
+      key: '/test-pipeline',
+      icon: <ExperimentOutlined />,
+      label: t('sidebar.testPipeline'),
+    },
+    // 系统管理菜单：只有超级管理员可见
+    ...(isSuperAdmin
+      ? [
+          {
+            key: '/admin',
+            icon: <SettingOutlined />,
+            label: t('sidebar.admin'),
+            children: adminMenuItems,
+          },
+        ]
+      : []),
+  ];
+
+  const handleMenuClick = ({ key }: { key: string }) => {
+    navigate(key);
+  };
+
+  return (
+    <Sider
+      width={200}
+      collapsed={collapsed}
+      collapsedWidth={80}
+      style={{
+        overflow: 'hidden',
+        height: '100vh',
+        position: 'fixed',
+        left: 0,
+        top: 0,
+        bottom: 0,
+        zIndex: 1000,
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      <div
+        onClick={() => navigate('/')}
+        style={{
+          height: '64px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: collapsed ? 'center' : 'flex-start',
+          color: '#fff',
+          fontSize: collapsed ? '14px' : '18px',
+          fontWeight: 'bold',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          flexShrink: 0,
+          cursor: 'pointer',
+          gap: '12px',
+          padding: collapsed ? '0' : '0 16px',
+          transition: 'background-color 0.2s',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = 'transparent';
+        }}
+      >
+        <Logo size={collapsed ? 32 : 28} collapsed={collapsed} />
+        {!collapsed && (
+          <span style={{ 
+            fontSize: '18px',
+            fontWeight: 600,
+            letterSpacing: '0.5px',
+          }}>
+            ApiAdmin
+          </span>
+        )}
+      </div>
+      <div 
+        style={{ 
+          flex: 1, 
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          minHeight: 0,
+          maxHeight: 'calc(100vh - 64px)',
+        }}
+      >
+        <Menu
+          theme="dark"
+          mode="inline"
+          selectedKeys={[location.pathname]}
+          openKeys={openKeys}
+          onOpenChange={setOpenKeys}
+          items={menuItems}
+          onClick={handleMenuClick}
+          style={{
+            height: '100%',
+            overflowY: 'auto',
+            overflowX: 'hidden',
+          }}
+        />
+      </div>
+    </Sider>
+  );
+};
+
+export default Sidebar;
+

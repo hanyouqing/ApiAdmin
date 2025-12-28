@@ -1,0 +1,63 @@
+{
+  "name": "apiadmin",
+  "version": "0.0.1",
+  "description": "A modern API management platform",
+  "private": true,
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "scripts": {
+    "preinstall": "node scripts/check-node-version.js",
+    "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
+    "dev:client": "cd Client && npm run dev",
+    "dev:server": "cd Server && npm run dev",
+    "build": "npm run build:client && npm run build:server",
+    "build:client": "cd Client && npm run build",
+    "build:server": "cd Server && npm run build",
+    "build:docker": "bash scripts/build-docker.sh",
+    "install:all": "npm install && cd Client && npm install && cd ../Server && npm install",
+    "lint": "eslint .",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
+    "test:ui": "vitest --ui",
+    "check:node": "node scripts/check-node-version.js",
+    "fix:audit": "node scripts/fix-npm-audit.js",
+    "fix:audit:simple": "bash scripts/fix-npm-audit-simple.sh",
+    "fix:security": "node scripts/fix-security-audit.js",
+    "generate:icons": "node Scripts/generate-icons-svg.js"
+  },
+  "keywords": [
+    "api",
+    "management",
+    "mock",
+    "testing",
+    "documentation"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@eslint/js": "^9.15.0",
+    "@types/node": "^22.10.5",
+    "@typescript-eslint/eslint-plugin": "^8.18.2",
+    "@typescript-eslint/parser": "^8.18.2",
+    "@vitest/coverage-v8": "^2.1.9",
+    "@vitest/ui": "^2.1.9",
+    "concurrently": "^9.1.0",
+    "eslint": "^9.15.0",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "eslint-plugin-react-refresh": "^0.4.16",
+    "globals": "^15.12.0",
+    "mongoose": "^8.20.4",
+    "prettier": "^3.4.2",
+    "sharp": "^0.34.5",
+    "to-ico": "^1.1.5",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.18.2",
+    "vitest": "^2.1.8"
+  },
+  "overrides": {
+    "esbuild": "^0.25.0"
+  }
+}

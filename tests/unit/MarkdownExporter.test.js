@@ -1,0 +1,117 @@
+import { describe, it, expect } from 'vitest';
+import { MarkdownExporter } from '../../Server/Utils/exporters/MarkdownExporter.js';
+
+describe('MarkdownExporter', () => {
+  let exporter;
+
+  beforeEach(() => {
+    exporter = new MarkdownExporter();
+  });
+
+  describe('export', () => {
+    it('should export interfaces to Markdown format', async () => {
+      const interfaces = [
+        {
+          path: '/api/test',
+          method: 'GET',
+          title: 'Test Interface',
+          desc: 'Test Description',
+          req_query: [],
+          req_body: null,
+          res_body: '{"data": "test"}',
+        },
+      ];
+
+      const project = {
+        project_name: 'Test Project',
+        project_desc: 'Test Description',
+      };
+
+      const result = await exporter.export(interfaces, { project });
+
+      expect(result).toBeDefined();
+      expect(result).toContain('# Test Project');
+      expect(result).toContain('## GET /api/test');
+      expect(result).toContain('**Test Interface**');
+    });
+
+    it('should filter public interfaces when publicOnly is true', async () => {
+      const interfaces = [
+        {
+          path: '/api/public',
+          method: 'GET',
+          title: 'Public Interface',
+          tag: ['public'],
+          req_query: [],
+        },
+        {
+          path: '/api/private',
+          method: 'GET',
+          title: 'Private Interface',
+          tag: ['private'],
+          req_query: [],
+        },
+      ];
+
+      const project = {
+        project_name: 'Test Project',
+        project_desc: '',
+      };
+
+      const result = await exporter.export(interfaces, { project, publicOnly: true });
+
+      expect(result).toContain('Public Interface');
+      expect(result).not.toContain('Private Interface');
+    });
+
+    it('should include query parameters table', async () => {
+      const interfaces = [
+        {
+          path: '/api/test',
+          method: 'GET',
+          title: 'Test Interface',
+          req_query: [
+            { name: 'id', type: 'string', required: true, desc: 'ID' },
+          ],
+          req_body: null,
+          res_body: '{}',
+        },
+      ];
+
+      const project = {
+        project_name: 'Test Project',
+        project_desc: '',
+      };
+
+      const result = await exporter.export(interfaces, { project });
+
+      expect(result).toContain('### Query Parameters');
+      expect(result).toContain('| id |');
+    });
+
+    it('should include request and response bodies', async () => {
+      const interfaces = [
+        {
+          path: '/api/test',
+          method: 'POST',
+          title: 'Test Interface',
+          req_query: [],
+          req_body: '{"name": "test"}',
+          res_body: '{"result": "success"}',
+        },
+      ];
+
+      const project = {
+        project_name: 'Test Project',
+        project_desc: '',
+      };
+
+      const result = await exporter.export(interfaces, { project });
+
+      expect(result).toContain('### Request Body');
+      expect(result).toContain('### Response');
+      expect(result).toContain('```json');
+    });
+  });
+});
+
