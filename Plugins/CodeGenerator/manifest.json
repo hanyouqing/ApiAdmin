@@ -1,0 +1,43 @@
+{
+  "name": "code-generator",
+  "version": "1.0.0",
+  "displayName": "代码生成器",
+  "description": "为接口生成各种编程语言的请求代码，支持 cURL、JavaScript、Python、Java、Go、PHP 等多种语言",
+  "author": "ApiAdmin Team",
+  "license": "MIT",
+  "icon": "https://api.iconify.design/mdi:code-tags.svg",
+  "category": "buildin",
+  "entry": {
+    "server": "./Server/index.js",
+    "client": "./Client/index.tsx"
+  },
+  "hooks": [],
+  "routes": [
+    {
+      "path": "/generate",
+      "method": "POST",
+      "handler": "./Server/Controller.js#generate"
+    }
+  ],
+  "permissions": [
+    "read:interface"
+  ],
+  "dependencies": {},
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "defaultLanguage": {
+        "type": "string",
+        "enum": ["curl", "javascript", "python", "java", "go", "php", "ruby", "swift"],
+        "default": "javascript",
+        "description": "默认代码生成语言"
+      },
+      "includeComments": {
+        "type": "boolean",
+        "default": true,
+        "description": "是否包含注释"
+      }
+    }
+  }
+}
+

@@ -1,0 +1,14 @@
+{
+  "name": "@apiadmin/plugin-code-generator",
+  "version": "1.0.0",
+  "description": "Code generator plugin for ApiAdmin",
+  "main": "Server/index.js",
+  "keywords": [
+    "apiadmin",
+    "plugin",
+    "code-generator"
+  ],
+  "author": "ApiAdmin Team",
+  "license": "MIT"
+}
+

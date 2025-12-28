@@ -1,0 +1,319 @@
+// 颜色变量 - 基于 hanyouqing.com 的颜色方案
+:root {
+  // Primary colors (绿色系)
+  --color-primary: #16a34a;
+  --color-primary-50: #f0fdf4;
+  --color-primary-100: #dcfce7;
+  --color-primary-200: #bbf7d0;
+  --color-primary-500: #22c55e;
+  --color-primary-600: #16a34a;
+  --color-primary-700: #15803d;
+  
+  // Dark colors (灰色系)
+  --color-dark-50: #f8fafc;
+  --color-dark-100: #f1f5f9;
+  --color-dark-200: #e2e8f0;
+  --color-dark-300: #cbd5e1;
+  --color-dark-400: #94a3b8;
+  --color-dark-500: #64748b;
+  --color-dark-600: #475569;
+  --color-dark-700: #334155;
+  --color-dark-800: #1e293b;
+  --color-dark-900: #0f172a;
+  
+  // Tech colors (蓝色系)
+  --color-tech-100: #dbeafe;
+  --color-tech-400: #60a5fa;
+  --color-tech-500: #3b82f6;
+  --color-tech-600: #2563eb;
+  
+  // Warning colors (黄色系)
+  --color-warning-100: #fef3c7;
+  --color-warning-600: #d97706;
+  
+  // Theme color - Logo 深蓝色
+  --color-theme: #1a365d;
+  
+  // Logo 渐变颜色
+  --color-logo-start: #1a365d;
+  --color-logo-end: #16a34a;
+  
+  // 字体
+  --font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  --font-family-code: 'JetBrains Mono', 'Fira Code', Consolas, 'Courier New', monospace;
+  
+  // 圆角
+  --border-radius: 8px;
+  --border-radius-lg: 12px;
+  --border-radius-sm: 6px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-family);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--color-dark-50);
+  color: var(--color-dark-800);
+}
+
+#root {
+  width: 100%;
+  height: 100vh;
+}
+
+code {
+  font-family: var(--font-family-code);
+}
+
+// 优化侧边栏收起时子菜单的样式
+// Ant Design Menu 在 dark 主题下，收起时的子菜单 Popover 需要特殊处理
+// 确保子菜单有浅色背景和深色文字，保证对比度
+
+// 针对 Ant Design 5.x 的子菜单 Popover（收起状态）
+// 增强背景色、文字颜色和阴影效果，确保与页面背景有足够的对比度
+.ant-menu-dark.ant-menu-inline-collapsed .ant-menu-submenu-popup,
+.ant-menu-submenu-popup {
+  // Popover 容器样式
+  .ant-menu:not(.ant-menu-dark) {
+    background: #ffffff !important;
+    border: 1px solid rgba(0, 0, 0, 0.12) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.12), 
+                0 3px 6px -4px rgba(0, 0, 0, 0.12), 
+                0 9px 28px 8px rgba(0, 0, 0, 0.05) !important;
+    padding: 4px 0 !important;
+    min-width: 160px !important;
+    
+    .ant-menu-item {
+      color: rgba(0, 0, 0, 0.88) !important;
+      font-weight: 400 !important;
+      margin: 0 4px !important;
+      border-radius: 6px !important;
+      height: 36px !important;
+      line-height: 36px !important;
+      transition: all 0.2s !important;
+      
+      &:hover {
+        background-color: #f5f5f5 !important;
+        color: #16a34a !important;
+      }
+      
+      &.ant-menu-item-selected {
+        background-color: #f0fdf4 !important;
+        color: #16a34a !important;
+        font-weight: 500 !important;
+        
+        &::after {
+          display: none !important;
+        }
+      }
+      
+      .ant-menu-title-content {
+        color: inherit !important;
+      }
+    }
+    
+    .ant-menu-submenu-title {
+      color: rgba(0, 0, 0, 0.88) !important;
+      font-weight: 400 !important;
+      margin: 0 4px !important;
+      border-radius: 6px !important;
+      height: 36px !important;
+      line-height: 36px !important;
+      transition: all 0.2s !important;
+      
+      &:hover {
+        background-color: #f5f5f5 !important;
+        color: #16a34a !important;
+      }
+      
+      .ant-menu-title-content {
+        color: inherit !important;
+      }
+    }
+    
+    // 确保图标颜色正确
+    .anticon {
+      color: inherit !important;
+    }
+  }
+}
+
+// 更具体的选择器，确保样式优先级
+.ant-menu-dark.ant-menu-inline-collapsed .ant-menu-submenu-popup .ant-menu,
+.ant-menu-dark.ant-menu-inline-collapsed .ant-menu-submenu-popup .ant-menu-submenu-popup .ant-menu {
+  background: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+  
+  .ant-menu-item,
+  .ant-menu-submenu-title {
+    color: rgba(0, 0, 0, 0.88) !important;
+    
+    &:hover {
+      background-color: #f5f5f5 !important;
+      color: #16a34a !important;
+    }
+    
+    &.ant-menu-item-selected {
+      background-color: #f0fdf4 !important;
+      color: #16a34a !important;
+    }
+  }
+}
+
+// 针对 Dropdown 菜单的样式（保持一致性）
+.ant-dropdown .ant-menu:not(.ant-menu-dark) {
+  background: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.12), 
+              0 3px 6px -4px rgba(0, 0, 0, 0.12), 
+              0 9px 28px 8px rgba(0, 0, 0, 0.05) !important;
+  padding: 4px 0 !important;
+  
+  .ant-menu-item {
+    color: rgba(0, 0, 0, 0.88) !important;
+    margin: 0 4px !important;
+    border-radius: 6px !important;
+    height: 36px !important;
+    line-height: 36px !important;
+    
+    &:hover {
+      background-color: #f5f5f5 !important;
+      color: #16a34a !important;
+    }
+    
+    &.ant-menu-item-selected {
+      background-color: #f0fdf4 !important;
+      color: #16a34a !important;
+    }
+  }
+}
+
+// 确保 Popover 的箭头也有正确的样式
+.ant-menu-submenu-popup::before {
+  background: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+}
+
+// 优化侧边栏收起状态下菜单项的 Tooltip 样式
+// 确保 Tooltip 背景和文字颜色与页面背景有足够的对比度
+// 使用更高优先级的选择器确保样式能够覆盖 Ant Design 默认样式
+.ant-menu-dark.ant-menu-inline-collapsed {
+  // 针对侧边栏收起状态下的 Tooltip（从菜单项触发的）
+  + .ant-tooltip,
+  ~ .ant-tooltip {
+    .ant-tooltip-inner {
+      background-color: rgba(0, 0, 0, 0.88) !important;
+      color: #ffffff !important;
+      font-size: 14px !important;
+      font-weight: 400 !important;
+      padding: 6px 12px !important;
+      border-radius: 6px !important;
+      box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.12), 
+                  0 3px 6px -4px rgba(0, 0, 0, 0.12), 
+                  0 9px 28px 8px rgba(0, 0, 0, 0.05) !important;
+      min-height: 32px !important;
+      line-height: 20px !important;
+    }
+    
+    .ant-tooltip-arrow {
+      &::before {
+        background-color: rgba(0, 0, 0, 0.88) !important;
+        border: none !important;
+      }
+    }
+  }
+}
+
+// 针对所有从侧边栏菜单项触发的 Tooltip（更通用的选择器）
+body .ant-tooltip {
+  // 当 Tooltip 显示在侧边栏附近时（通过 z-index 和位置判断）
+  .ant-tooltip-inner {
+    background-color: rgba(0, 0, 0, 0.88) !important;
+    color: #ffffff !important;
+    font-size: 14px !important;
+    font-weight: 400 !important;
+    padding: 6px 12px !important;
+    border-radius: 6px !important;
+    box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.12), 
+                0 3px 6px -4px rgba(0, 0, 0, 0.12), 
+                0 9px 28px 8px rgba(0, 0, 0, 0.05) !important;
+    min-height: 32px !important;
+    line-height: 20px !important;
+  }
+  
+  .ant-tooltip-arrow {
+    &::before {
+      background-color: rgba(0, 0, 0, 0.88) !important;
+      border: none !important;
+    }
+  }
+}
+
+// 更通用的 Tooltip 样式优化（确保所有 Tooltip 都有足够的对比度）
+.ant-tooltip {
+  // 默认深色 Tooltip（用于浅色背景）
+  &.ant-tooltip-placement-right,
+  &.ant-tooltip-placement-left,
+  &.ant-tooltip-placement-top,
+  &.ant-tooltip-placement-bottom {
+    .ant-tooltip-inner {
+      background-color: rgba(0, 0, 0, 0.85) !important;
+      color: #ffffff !important;
+      font-size: 14px !important;
+      font-weight: 400 !important;
+      padding: 6px 12px !important;
+      border-radius: 6px !important;
+      box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.12), 
+                  0 3px 6px -4px rgba(0, 0, 0, 0.12), 
+                  0 9px 28px 8px rgba(0, 0, 0, 0.05) !important;
+      min-height: 32px !important;
+      line-height: 20px !important;
+    }
+    
+    .ant-tooltip-arrow {
+      &::before {
+        background-color: rgba(0, 0, 0, 0.85) !important;
+        border: none !important;
+      }
+    }
+  }
+}
+
+// 确保所有 primary 按钮的文字颜色为白色
+.ant-btn-primary,
+.ant-btn-primary:hover,
+.ant-btn-primary:focus,
+.ant-btn-primary:active {
+  color: #ffffff !important;
+}
+
+.ant-btn-primary[disabled],
+.ant-btn-primary[disabled]:hover,
+.ant-btn-primary[disabled]:focus,
+.ant-btn-primary[disabled]:active {
+  color: rgba(255, 255, 255, 0.3) !important;
+}
+
+// Modal 确定按钮文字颜色为白色
+.ant-modal-footer .ant-btn-primary,
+.ant-modal-footer .ant-btn-primary:hover,
+.ant-modal-footer .ant-btn-primary:focus,
+.ant-modal-footer .ant-btn-primary:active {
+  color: #ffffff !important;
+}
+
+// 确保所有 primary 按钮内的文字和图标都是白色
+.ant-btn-primary span,
+.ant-btn-primary .anticon {
+  color: #ffffff !important;
+}
+

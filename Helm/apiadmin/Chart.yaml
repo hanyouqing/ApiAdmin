@@ -1,0 +1,17 @@
+apiVersion: v2
+name: apiadmin
+description: A Helm chart for ApiAdmin API Management Platform
+type: application
+version: 0.0.1
+appVersion: "0.0.1"
+keywords:
+  - api
+  - management
+  - mock
+  - testing
+maintainers:
+  - name: ApiAdmin Team
+home: https://github.com/hanyouqing/ApiAdmin
+sources:
+  - https://github.com/hanyouqing/ApiAdmin
+

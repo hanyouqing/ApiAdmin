@@ -1,0 +1,35 @@
+.code-block-container {
+  position: relative;
+  background: #f5f5f5;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.code-block {
+  margin: 0;
+  padding: 16px;
+  background: #282c34;
+  color: #abb2bf;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-x: auto;
+  border-radius: 4px;
+
+  code {
+    color: inherit;
+    font-family: inherit;
+    font-size: inherit;
+    background: transparent;
+    padding: 0;
+    border: none;
+  }
+}
+
+.code-block-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+}
+

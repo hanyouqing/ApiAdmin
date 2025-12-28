@@ -1,0 +1,53 @@
+{
+  "name": "apiadmin-server",
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch App.js",
+    "build": "echo 'Server build not needed'",
+    "start": "node App.js"
+  },
+  "dependencies": {
+    "@koa/cors": "^5.0.0",
+    "ajv": "^8.13.0",
+    "axios": "^1.13.2",
+    "bcrypt": "^5.1.1",
+    "dayjs": "^1.11.13",
+    "dotenv": "^16.6.1",
+    "helmet": "^7.2.0",
+    "ioredis": "^5.4.1",
+    "json5": "^2.2.3",
+    "jsonwebtoken": "^9.0.2",
+    "koa": "^2.16.0",
+    "koa-bodyparser": "^4.4.1",
+    "koa-helmet": "^7.0.2",
+    "koa-multer": "^1.0.2",
+    "koa-ratelimit": "^4.0.0",
+    "koa-router": "^12.0.1",
+    "koa-static": "^5.0.0",
+    "koa2-swagger-ui": "^5.10.0",
+    "lodash": "^4.17.21",
+    "mockjs": "^1.1.0",
+    "mongoose": "^8.8.4",
+    "nodemailer": "^6.9.16",
+    "passport": "^0.7.0",
+    "passport-cas": "^0.1.1",
+    "passport-google-oauth20": "^2.0.0",
+    "passport-ldapauth": "^3.0.0",
+    "passport-oauth2": "^1.7.0",
+    "passport-openidconnect": "^0.1.1",
+    "passport-saml": "^3.2.4",
+    "pino": "^9.6.0",
+    "pino-pretty": "^13.0.0",
+    "prom-client": "^15.1.0",
+    "sharp": "^0.33.5",
+    "socket.io": "^4.8.1",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-dist": "^5.17.14",
+    "vm2": "^3.9.19",
+    "winston": "^3.15.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5"
+  }
+}
