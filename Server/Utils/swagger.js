@@ -1735,19 +1735,138 @@ const swaggerDefinition = {
                 type: 'object',
                 required: ['project_id', 'format', 'data'],
                 properties: {
-                  project_id: { type: 'string' },
-                  format: { type: 'string', enum: ['postman', 'swagger', 'har', 'apiadmin'] },
-                  mode: { type: 'string', enum: ['normal', 'good', 'mergin'], default: 'normal' },
-                  data: { type: 'object', description: 'Import data' },
+                  project_id: { 
+                    type: 'string',
+                    description: 'Project ID to import data into',
+                    example: '507f1f77bcf86cd799439011'
+                  },
+                  format: { 
+                    type: 'string', 
+                    enum: ['postman', 'swagger', 'openapi', 'har', 'apiadmin', 'json'],
+                    description: 'Import format type',
+                    example: 'swagger'
+                  },
+                  mode: { 
+                    type: 'string', 
+                    enum: ['normal', 'good', 'mergin'], 
+                    default: 'normal',
+                    description: 'Import mode: normal (skip existing), good (merge smartly), mergin (merge all)',
+                    example: 'normal'
+                  },
+                  data: { 
+                    type: 'object', 
+                    description: 'Import data (Swagger/OpenAPI spec, Postman collection, HAR file, or ApiAdmin JSON)',
+                    additionalProperties: true
+                  },
                 },
               },
             },
           },
         },
         responses: {
-          '200': { description: 'Import successful' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
+          '200': {
+            description: 'Import successful',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: '导入成功' },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        imported: { 
+                          type: 'number', 
+                          description: 'Number of successfully imported interfaces',
+                          example: 10
+                        },
+                        skipped: { 
+                          type: 'number', 
+                          description: 'Number of skipped interfaces (already exist in normal mode)',
+                          example: 2
+                        },
+                        updated: {
+                          type: 'number',
+                          description: 'Number of updated interfaces (in mergin/good mode)',
+                          example: 0
+                        },
+                        errors: {
+                          type: 'array',
+                          description: 'List of import errors',
+                          items: {
+                            type: 'object',
+                            properties: {
+                              path: { type: 'string', example: '/api/users' },
+                              method: { type: 'string', example: 'GET' },
+                              error: { type: 'string', example: 'Error message' }
+                            }
+                          },
+                          example: []
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          '400': { 
+            description: 'Bad request',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: false },
+                    message: { type: 'string', example: '无效的项目ID' }
+                  }
+                }
+              }
+            }
+          },
+          '401': { 
+            description: 'Unauthorized',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: false },
+                    message: { type: 'string', example: 'Unauthorized' }
+                  }
+                }
+              }
+            }
+          },
+          '404': {
+            description: 'Project not found',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: false },
+                    message: { type: 'string', example: '项目不存在' }
+                  }
+                }
+              }
+            }
+          },
+          '500': {
+            description: 'Internal server error',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: false },
+                    message: { type: 'string', example: '导入失败' }
+                  }
+                }
+              }
+            }
+          }
         },
       },
     },

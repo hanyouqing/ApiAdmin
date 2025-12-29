@@ -14,6 +14,7 @@ export class SwaggerImporter {
     const results = {
       imported: 0,
       skipped: 0,
+      updated: 0,
       errors: [],
     };
 
@@ -38,11 +39,6 @@ export class SwaggerImporter {
         path,
         method,
       });
-
-      if (existing && mode === 'normal') {
-        results.skipped++;
-        return;
-      }
 
       // 处理 parameters，可能是数组或字符串
       let parameters = operation.parameters || [];
@@ -87,16 +83,21 @@ export class SwaggerImporter {
         .filter((p) => p && typeof p === 'object' && p.in === 'query')
         .map((p) => {
           // 确保所有字段都是正确的类型
+          const schema = p.schema || {};
           const queryItem = {
             name: String(p.name || ''),
-            type: String(p.schema?.type || p.type || 'string'),
+            type: String(schema.type || p.type || 'string'),
             required: Boolean(p.required || false),
-            default: String(p.schema?.default || p.default || ''),
+            default: String(schema.default !== undefined ? schema.default : (p.default !== undefined ? p.default : '')),
             desc: String(p.description || p.desc || ''),
+            example: String(schema.example !== undefined ? schema.example : (p.example !== undefined ? p.example : '')),
           };
-          // 确保 default 值不为 undefined 或 null
+          // 确保 default 和 example 值不为 undefined 或 null
           if (queryItem.default === 'undefined' || queryItem.default === 'null') {
             queryItem.default = '';
+          }
+          if (queryItem.example === 'undefined' || queryItem.example === 'null') {
+            queryItem.example = '';
           }
           return queryItem;
         });
@@ -112,23 +113,65 @@ export class SwaggerImporter {
 
       let reqBody = '';
       let reqBodyType = 'json';
+      let reqBodyForm = [];
+      let reqBodyOther = '';
+      
       if (operation.requestBody) {
         const content = operation.requestBody.content || {};
+        
         if (content['application/json']) {
           reqBody = JSON.stringify(content['application/json'].schema || {}, null, 2);
           reqBodyType = 'json';
-        } else if (content['application/x-www-form-urlencoded']) {
+        } else if (content['application/x-www-form-urlencoded'] || content['multipart/form-data']) {
           reqBodyType = 'form';
+          const schema = content['application/x-www-form-urlencoded']?.schema || content['multipart/form-data']?.schema || {};
+          
+          // 处理 form 数据
+          if (schema.properties) {
+            reqBodyForm = Object.entries(schema.properties).map(([name, prop]) => {
+              const propSchema = prop.schema || prop;
+              return {
+                name: String(name),
+                type: String(propSchema.type || 'string'),
+                required: Boolean((schema.required || []).includes(name) || propSchema.required || false),
+                default: String(propSchema.default !== undefined ? propSchema.default : ''),
+                desc: String(propSchema.description || prop.description || ''),
+              };
+            });
+          }
+        } else {
+          // 处理其他类型（raw, text, xml 等）
+          const contentType = Object.keys(content)[0] || 'text/plain';
+          const bodyContent = content[contentType];
+          
+          if (bodyContent?.schema) {
+            reqBodyType = 'raw';
+            reqBodyOther = JSON.stringify(bodyContent.schema, null, 2);
+          } else if (bodyContent?.example) {
+            reqBodyType = 'raw';
+            reqBodyOther = typeof bodyContent.example === 'string' 
+              ? bodyContent.example 
+              : JSON.stringify(bodyContent.example, null, 2);
+          }
         }
       }
 
       let resBody = '{}';
       const responses = operation.responses || {};
-      const successResponse = responses['200'] || responses['201'] || responses['default'];
+      // 尝试多个成功状态码
+      const successResponse = responses['200'] || responses['201'] || responses['202'] || 
+                             responses['204'] || responses['default'] || Object.values(responses)[0];
       if (successResponse) {
         const content = successResponse.content || {};
         if (content['application/json']) {
-          resBody = JSON.stringify(content['application/json'].schema || {}, null, 2);
+          const schema = content['application/json'].schema || {};
+          resBody = JSON.stringify(schema, null, 2);
+        } else if (content['application/xml']) {
+          const schema = content['application/xml'].schema || {};
+          resBody = JSON.stringify(schema, null, 2);
+        } else if (successResponse.schema) {
+          // OpenAPI 2.0 格式
+          resBody = JSON.stringify(successResponse.schema, null, 2);
         }
       }
 
@@ -220,14 +263,22 @@ export class SwaggerImporter {
         if (!q || typeof q !== 'object') {
           return null;
         }
-        return {
+        const queryItem = {
           name: String(q.name || ''),
           type: String(q.type || 'string'),
           required: Boolean(q.required || false),
-          default: String(q.default || ''),
+          default: String(q.default !== undefined ? q.default : ''),
           desc: String(q.desc || q.description || ''),
-          example: String(q.example || ''),
+          example: String(q.example !== undefined ? q.example : ''),
         };
+        // 确保 default 和 example 值不为 undefined 或 null
+        if (queryItem.default === 'undefined' || queryItem.default === 'null') {
+          queryItem.default = '';
+        }
+        if (queryItem.example === 'undefined' || queryItem.example === 'null') {
+          queryItem.example = '';
+        }
+        return queryItem;
       }).filter((q) => q !== null);
 
       // 如果 headers 是字符串，尝试解析
@@ -262,6 +313,8 @@ export class SwaggerImporter {
         req_headers: safeHeaders,
         req_body_type: reqBodyType,
         req_body: reqBody,
+        req_body_form: reqBodyForm,
+        req_body_other: reqBodyOther,
         res_body: resBody,
         res_body_type: 'json',
         status: 'developing',
@@ -274,7 +327,7 @@ export class SwaggerImporter {
         // 合并模式：更新现有接口
         Object.assign(existing, interfaceData);
         await existing.save();
-        results.imported++;
+        results.updated++;
       } else if (existing && mode === 'good') {
         // 智能模式：合并更新，保留现有数据
         Object.assign(existing, {
@@ -285,7 +338,7 @@ export class SwaggerImporter {
           res_body: existing.res_body || interfaceData.res_body,
         });
         await existing.save();
-        results.imported++;
+        results.updated++;
       } else {
         if (existing && mode === 'normal') {
           results.skipped++;
