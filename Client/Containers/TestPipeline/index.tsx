@@ -19,6 +19,7 @@ import {
   Empty,
   Upload,
   Radio,
+  Spin,
 } from 'antd';
 import {
   PlusOutlined,
@@ -320,6 +321,7 @@ interface TestTask {
   project_id: string;
   test_cases: TestCase[];
   environment_id?: string;
+  common_headers?: Record<string, any>;
   enabled: boolean;
   created_at: string;
   updated_at: string;
@@ -563,6 +565,7 @@ const TestPipeline: React.FC = () => {
   const [dataFormat, setDataFormat] = useState<'json' | 'keyvalue'>('json');
   const [pathParamsFormat, setPathParamsFormat] = useState<'json' | 'keyvalue'>('json');
   const [queryParamsFormat, setQueryParamsFormat] = useState<'json' | 'keyvalue'>('json');
+  const [commonHeadersFormat, setCommonHeadersFormat] = useState<'json' | 'keyvalue'>('json');
 
   useEffect(() => {
     if (user) {
@@ -674,12 +677,24 @@ const TestPipeline: React.FC = () => {
     
     setEditingTask(null);
     form.resetFields();
+    // 获取当前用户的 token
+    const currentToken = localStorage.getItem('token') || '';
+    
     form.setFieldsValue({
       project_id: selectedProjectId,
       environment_id: undefined, // 明确设置为 undefined，让用户选择
       enabled: true,
       test_cases: [],
+      common_headers: JSON.stringify({
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': currentToken ? `Bearer ${currentToken}` : 'Bearer token',
+        'User-Agent': 'ApiAdmin/1.0',
+      }, null, 2),
     });
+    
+    // 重置格式为 JSON
+    setCommonHeadersFormat('json');
     
     // 确保环境列表已加载，不显示警告（测试环境是可选的）
     if (environments.length === 0) {
@@ -703,6 +718,53 @@ const TestPipeline: React.FC = () => {
       }
     }
     
+    // 处理 common_headers：转换为 JSON 字符串格式
+    let commonHeadersValue = '{}';
+    if (task.common_headers) {
+      if (typeof task.common_headers === 'string') {
+        try {
+          // 如果是字符串，尝试解析为 JSON
+          const parsed = JSON.parse(task.common_headers);
+          // 如果 Authorization 是占位符，尝试用当前 token 替换
+          const currentToken = localStorage.getItem('token') || '';
+          if (parsed.Authorization === 'Bearer token' || 
+              parsed.Authorization === 'Bearer <token>' ||
+              !parsed.Authorization ||
+              (typeof parsed.Authorization === 'string' && parsed.Authorization.includes('token'))) {
+            if (currentToken) {
+              parsed.Authorization = `Bearer ${currentToken}`;
+            }
+          }
+          commonHeadersValue = JSON.stringify(parsed, null, 2);
+        } catch {
+          // 如果解析失败，当作空对象
+          commonHeadersValue = '{}';
+        }
+      } else if (typeof task.common_headers === 'object') {
+        // 如果 Authorization 是占位符，尝试用当前 token 替换
+        const headers = { ...task.common_headers };
+        const currentToken = localStorage.getItem('token') || '';
+        if (headers.Authorization === 'Bearer token' || 
+            headers.Authorization === 'Bearer <token>' ||
+            !headers.Authorization ||
+            (typeof headers.Authorization === 'string' && headers.Authorization.includes('token'))) {
+          if (currentToken) {
+            headers.Authorization = `Bearer ${currentToken}`;
+          }
+        }
+        commonHeadersValue = JSON.stringify(headers, null, 2);
+      }
+    } else {
+      // 如果没有配置 common_headers，使用默认值并填充当前 token
+      const currentToken = localStorage.getItem('token') || '';
+      commonHeadersValue = JSON.stringify({
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': currentToken ? `Bearer ${currentToken}` : 'Bearer token',
+        'User-Agent': 'ApiAdmin/1.0',
+      }, null, 2);
+    }
+    
     form.setFieldsValue({
       name: task.name,
       description: task.description || '',
@@ -711,7 +773,11 @@ const TestPipeline: React.FC = () => {
         : (task.project_id as any)?._id?.toString() || task.project_id,
       environment_id: environmentId,
       enabled: task.enabled !== undefined ? task.enabled : true,
+      common_headers: commonHeadersValue,
     });
+    
+    // 重置格式为 JSON
+    setCommonHeadersFormat('json');
     
     // 确保环境列表已加载，不显示警告（测试环境是可选的）
     const projectId = typeof task.project_id === 'string' 
@@ -2136,6 +2202,99 @@ const TestPipeline: React.FC = () => {
           </Form.Item>
           <Form.Item name="enabled" valuePropName="checked" label="启用">
             <Switch />
+          </Form.Item>
+          <Divider>通用配置</Divider>
+          <Form.Item 
+            name="common_headers" 
+            label={
+              <Space>
+                <span>通用Headers</span>
+                <span style={{ color: '#8c8c8c', fontSize: '12px' }}>
+                  (将应用到所有测试用例，可被测试用例的自定义Headers覆盖)
+                </span>
+                <Radio.Group 
+                  size="small" 
+                  value={commonHeadersFormat} 
+                  onChange={(e) => {
+                    const newFormat = e.target.value;
+                    const currentValue = form.getFieldValue('common_headers') || '';
+                    
+                    if (newFormat === 'keyvalue') {
+                      // 从 JSON 转换为 key=value
+                      try {
+                        const obj = JSON.parse(currentValue || '{}');
+                        form.setFieldValue('common_headers', objectToKeyValue(obj));
+                      } catch {
+                        // 如果解析失败，保持原值
+                      }
+                    } else {
+                      // 从 key=value 转换为 JSON
+                      try {
+                        const obj = keyValueToObject(currentValue);
+                        form.setFieldValue('common_headers', JSON.stringify(obj, null, 2));
+                      } catch {
+                        // 如果转换失败，保持原值
+                      }
+                    }
+                    setCommonHeadersFormat(newFormat);
+                  }}
+                >
+                  <Radio.Button value="json">JSON</Radio.Button>
+                  <Radio.Button value="keyvalue">Key=Value</Radio.Button>
+                </Radio.Group>
+                <Button 
+                  type="link" 
+                  size="small" 
+                  style={{ padding: 0, height: 'auto' }}
+                  onClick={() => {
+                    // 获取当前用户的 token
+                    const currentToken = localStorage.getItem('token') || '';
+                    const headersWithToken = {
+                      ...EXAMPLE_HEADERS,
+                      'Authorization': currentToken ? `Bearer ${currentToken}` : 'Bearer token',
+                    };
+                    const example = commonHeadersFormat === 'json' 
+                      ? JSON.stringify(headersWithToken, null, 2)
+                      : objectToKeyValue(headersWithToken);
+                    form.setFieldsValue({
+                      common_headers: example,
+                    });
+                    if (currentToken) {
+                      messageApi.success('已自动填充当前登录用户的 Token');
+                    } else {
+                      messageApi.warning('未检测到登录 Token，请先登录');
+                    }
+                  }}
+                >
+                  使用当前Token
+                </Button>
+                <Button 
+                  type="link" 
+                  size="small" 
+                  style={{ padding: 0, height: 'auto' }}
+                  onClick={() => {
+                    const example = commonHeadersFormat === 'json' 
+                      ? JSON.stringify(EXAMPLE_HEADERS, null, 2)
+                      : objectToKeyValue(EXAMPLE_HEADERS);
+                    form.setFieldsValue({
+                      common_headers: example,
+                    });
+                  }}
+                >
+                  示例
+                </Button>
+              </Space>
+            }
+            tooltip="这些Headers将应用到所有测试用例，如果测试用例有自己的Headers，会合并使用（测试用例的Headers优先级更高）"
+          >
+            <TextArea 
+              rows={4} 
+              placeholder={
+                commonHeadersFormat === 'json' 
+                  ? '{"Authorization": "Bearer token", "Content-Type": "application/json"}' 
+                  : 'Authorization=Bearer token\nContent-Type=application/json'
+              } 
+            />
           </Form.Item>
         </Form>
       </Modal>

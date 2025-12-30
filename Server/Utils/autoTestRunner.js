@@ -326,12 +326,53 @@ export class AutoTestRunner {
             path = `/${path}`;
           }
 
+          // 提取路径中的所有参数占位符
+          const pathParamNames = [];
+          const pathParamRegex = /\{(\w+)\}/g;
+          let match;
+          while ((match = pathParamRegex.exec(path)) !== null) {
+            if (!pathParamNames.includes(match[1])) {
+              pathParamNames.push(match[1]);
+            }
+          }
+          
           // 替换路径参数
           const pathParams = this.resolveVariables(testCase.path_params || {}, envVars);
+          
+          // 对于未设置的路径参数，尝试从环境变量中获取
+          for (const paramName of pathParamNames) {
+            if (!pathParams[paramName]) {
+              // 尝试从环境变量中获取
+              const envValue = envVars[paramName] || envVars[paramName.toLowerCase()];
+              if (envValue !== undefined) {
+                pathParams[paramName] = String(envValue);
+                logger.debug({ paramName, value: envValue }, 'Using path param from environment variable');
+              } else {
+                // 如果仍然没有值，记录警告
+                logger.warn({ 
+                  paramName, 
+                  path, 
+                  availableEnvVars: Object.keys(envVars),
+                  testCasePathParams: Object.keys(testCase.path_params || {})
+                }, `Path parameter ${paramName} not found in path_params or environment variables`);
+              }
+            }
+          }
+          
           Object.keys(pathParams).forEach((key) => {
             path = path.replace(`{${key}}`, pathParams[key]);
             path = path.replace(`:${key}`, pathParams[key]);
           });
+          
+          // 检查是否还有未替换的参数
+          const remainingParams = path.match(/\{(\w+)\}/g);
+          if (remainingParams && remainingParams.length > 0) {
+            logger.warn({ 
+              remainingParams, 
+              path, 
+              pathParams 
+            }, 'Some path parameters were not replaced');
+          }
 
           // 构建查询参数
           const queryParams = this.resolveVariables(testCase.query_params || {}, envVars);
@@ -361,9 +402,23 @@ export class AutoTestRunner {
           // 先处理环境变量和自定义请求头，准备移除占位符
           const resolvedCustomHeaders = this.resolveVariables(customHeaders, envVars);
           
-          // 合并请求头：环境变量头 -> 自定义头（自定义头优先级更高）
+          // 获取任务的通用 headers
+          let commonHeaders = task.common_headers || {};
+          // 如果 common_headers 是字符串，尝试解析为对象
+          if (typeof commonHeaders === 'string') {
+            try {
+              commonHeaders = JSON.parse(commonHeaders);
+            } catch (e) {
+              logger.warn({ taskId: task._id, testCaseIndex: i, error: e.message }, 'Failed to parse task common_headers as JSON');
+              commonHeaders = {};
+            }
+          }
+          const resolvedCommonHeaders = this.resolveVariables(commonHeaders, envVars);
+          
+          // 合并请求头：环境变量头 -> 通用头 -> 自定义头（自定义头优先级最高）
           const headers = {
             ...envHeaders,
+            ...resolvedCommonHeaders,
             ...resolvedCustomHeaders,
           };
 
@@ -376,7 +431,7 @@ export class AutoTestRunner {
             }
           }
           
-          // 移除占位符 Authorization 头（不区分大小写）
+          // 处理 Authorization 头（不区分大小写）
           // 检查所有可能的 Authorization 头键名
           const authHeaderKeys = Object.keys(headers).filter(key => 
             key.toLowerCase() === 'authorization'
@@ -409,6 +464,77 @@ export class AutoTestRunner {
                 removedHeader: key,
                 removedValue: authValue 
               }, 'Removed placeholder Authorization header');
+              
+              // 尝试从环境变量中获取认证令牌
+              let tokenFromEnv = envVars.token || envVars.authToken || envVars.AUTH_TOKEN || envVars.TOKEN;
+              
+              // 如果环境变量中没有，尝试从通用 headers 中获取
+              if (!tokenFromEnv && resolvedCommonHeaders && resolvedCommonHeaders['Authorization']) {
+                const commonAuth = resolvedCommonHeaders['Authorization'];
+                const commonAuthStr = String(commonAuth || '');
+                // 检查通用 headers 中的 Authorization 是否是有效的 token（不是占位符）
+                if (commonAuthStr && 
+                    commonAuthStr !== 'Bearer token' && 
+                    commonAuthStr !== 'Bearer <token>' &&
+                    !commonAuthStr.toLowerCase().includes('token') &&
+                    commonAuthStr.trim() !== '') {
+                  tokenFromEnv = commonAuthStr.replace(/^Bearer\s+/i, '');
+                }
+              }
+              
+              if (tokenFromEnv) {
+                headers['Authorization'] = tokenFromEnv.startsWith('Bearer ') 
+                  ? tokenFromEnv 
+                  : `Bearer ${tokenFromEnv}`;
+                logger.debug({ 
+                  taskId: task._id,
+                  testCaseIndex: i,
+                  source: tokenFromEnv === (envVars.token || envVars.authToken || envVars.AUTH_TOKEN || envVars.TOKEN) 
+                    ? 'environment variable' 
+                    : 'common headers'
+                }, 'Using authentication token');
+              } else {
+                logger.warn({ 
+                  taskId: task._id,
+                  testCaseIndex: i,
+                  availableEnvVars: Object.keys(envVars),
+                  availableHeaders: Object.keys(envHeaders),
+                  hasCommonHeaders: !!resolvedCommonHeaders && Object.keys(resolvedCommonHeaders).length > 0,
+                  commonHeadersAuth: resolvedCommonHeaders?.['Authorization'] ? 'present' : 'missing'
+                }, 'No authentication token found');
+              }
+            }
+          }
+          
+          // 如果没有 Authorization 头，尝试从环境变量或通用 headers 中添加
+          if (!headers['Authorization'] && !headers['authorization']) {
+            let tokenFromEnv = envVars.token || envVars.authToken || envVars.AUTH_TOKEN || envVars.TOKEN;
+            
+            // 如果环境变量中没有，尝试从通用 headers 中获取
+            if (!tokenFromEnv && resolvedCommonHeaders && resolvedCommonHeaders['Authorization']) {
+              const commonAuth = resolvedCommonHeaders['Authorization'];
+              const commonAuthStr = String(commonAuth || '');
+              // 检查通用 headers 中的 Authorization 是否是有效的 token（不是占位符）
+              if (commonAuthStr && 
+                  commonAuthStr !== 'Bearer token' && 
+                  commonAuthStr !== 'Bearer <token>' &&
+                  !commonAuthStr.toLowerCase().includes('token') &&
+                  commonAuthStr.trim() !== '') {
+                tokenFromEnv = commonAuthStr.replace(/^Bearer\s+/i, '');
+              }
+            }
+            
+            if (tokenFromEnv) {
+              headers['Authorization'] = tokenFromEnv.startsWith('Bearer ') 
+                ? tokenFromEnv 
+                : `Bearer ${tokenFromEnv}`;
+              logger.debug({ 
+                taskId: task._id,
+                testCaseIndex: i,
+                source: tokenFromEnv === (envVars.token || envVars.authToken || envVars.AUTH_TOKEN || envVars.TOKEN) 
+                  ? 'environment variable' 
+                  : 'common headers'
+              }, 'Added authentication token');
             }
           }
 
@@ -819,6 +945,18 @@ export class AutoTestRunner {
       throw new Error(`Interface not found: ${interfaceIdStr}`);
     }
 
+    // 如果接口数据没有 populate project_id，尝试获取
+    if (!interfaceData.project_id && interfaceIdStr) {
+      try {
+        const populatedInterface = await Interface.findById(interfaceIdStr).populate('project_id', '_id');
+        if (populatedInterface && populatedInterface.project_id) {
+          interfaceData.project_id = populatedInterface.project_id;
+        }
+      } catch (e) {
+        logger.warn({ error: e.message, interfaceId: interfaceIdStr }, 'Failed to populate project_id for interface');
+      }
+    }
+
     // 构建请求
     const method = interfaceData.method?.toUpperCase() || 'GET';
     let path = interfaceData.path || '';
@@ -828,12 +966,161 @@ export class AutoTestRunner {
       path = `/${path}`;
     }
 
+    // 提取路径中的所有参数占位符
+    const pathParamNames = [];
+    const pathParamRegex = /\{(\w+)\}/g;
+    let match;
+    while ((match = pathParamRegex.exec(path)) !== null) {
+      if (!pathParamNames.includes(match[1])) {
+        pathParamNames.push(match[1]);
+      }
+    }
+    
     // 替换路径参数
     const pathParams = this.resolveVariables(testCase.path_params || {}, envVars);
+    
+    // 尝试从任务或接口数据中获取项目ID（如果路径参数需要projectId）
+    let projectId = null;
+    if (task.project_id) {
+      if (typeof task.project_id === 'object' && task.project_id._id) {
+        projectId = task.project_id._id.toString();
+      } else {
+        projectId = task.project_id.toString();
+      }
+    } else if (interfaceData.project_id) {
+      if (typeof interfaceData.project_id === 'object' && interfaceData.project_id._id) {
+        projectId = interfaceData.project_id._id.toString();
+      } else {
+        projectId = interfaceData.project_id.toString();
+      }
+    }
+    
+    // 对于未设置的路径参数，尝试从多个来源获取
+    for (const paramName of pathParamNames) {
+      // 检查参数是否存在且有效（不为空字符串）
+      if (!pathParams[paramName] || pathParams[paramName] === '' || pathParams[paramName] === null || pathParams[paramName] === undefined) {
+        let paramValue = null;
+        let source = '';
+        
+        // 1. 尝试从环境变量中获取（支持多种命名方式）
+        paramValue = envVars[paramName] || 
+                    envVars[paramName.toLowerCase()] || 
+                    envVars[paramName.toUpperCase()] ||
+                    envVars[`${paramName}Id`] ||
+                    envVars[`${paramName.toLowerCase()}Id`] ||
+                    envVars[`${paramName}_id`] ||
+                    envVars[`${paramName.toLowerCase()}_id`];
+        
+        if (paramValue !== undefined && paramValue !== null && paramValue !== '') {
+          source = 'environment variable';
+        }
+        
+        // 2. 如果是 projectId 且还没有值，尝试从任务或接口中获取
+        if (!paramValue && (paramName === 'projectId' || paramName === 'project_id' || paramName.toLowerCase() === 'projectid') && projectId) {
+          paramValue = projectId;
+          source = 'task/interface project_id';
+        }
+        
+        if (paramValue !== undefined && paramValue !== null && paramValue !== '') {
+          pathParams[paramName] = String(paramValue);
+          logger.info({ 
+            taskId: task._id?.toString(),
+            testCaseIndex,
+            paramName, 
+            value: String(paramValue).substring(0, 50),
+            source: source
+          }, `Using path param ${paramName} from ${source}`);
+        } else {
+          // 如果仍然没有值，记录错误
+          logger.error({ 
+            taskId: task._id?.toString(),
+            testCaseIndex,
+            paramName, 
+            path, 
+            availableEnvVars: Object.keys(envVars),
+            testCasePathParams: Object.keys(testCase.path_params || {}),
+            pathParams: pathParams,
+            hasProjectId: !!projectId,
+            projectId: projectId ? projectId.substring(0, 50) : null
+          }, `Path parameter ${paramName} not found in path_params or environment variables - request will fail`);
+        }
+      } else {
+        logger.debug({ 
+          taskId: task._id?.toString(),
+          testCaseIndex,
+          paramName,
+          value: String(pathParams[paramName]).substring(0, 50),
+          source: 'test case path_params'
+        }, 'Using path param from test case');
+      }
+    }
+    
     Object.keys(pathParams).forEach((key) => {
-      path = path.replace(`{${key}}`, pathParams[key]);
-      path = path.replace(`:${key}`, pathParams[key]);
+      const value = pathParams[key];
+      if (value !== undefined && value !== null && value !== '') {
+        path = path.replace(new RegExp(`\\{${key}\\}`, 'g'), String(value));
+        path = path.replace(new RegExp(`:${key}`, 'g'), String(value));
+      }
     });
+    
+    // 检查是否还有未替换的参数
+    const remainingParams = path.match(/\{(\w+)\}/g);
+    if (remainingParams && remainingParams.length > 0) {
+      logger.error({ 
+        remainingParams, 
+        path, 
+        pathParams,
+        pathParamNames,
+        availableEnvVars: Object.keys(envVars)
+      }, 'Some path parameters were not replaced - this will cause request to fail');
+      
+      // 尝试从环境变量或任务数据中获取缺失的参数（支持多种命名方式）
+      for (const paramMatch of remainingParams) {
+        const paramName = paramMatch.replace(/[{}]/g, '');
+        let paramValue = null;
+        let source = '';
+        
+        // 1. 尝试从环境变量中获取
+        paramValue = envVars[paramName] || 
+                    envVars[paramName.toLowerCase()] || 
+                    envVars[paramName.toUpperCase()] ||
+                    envVars[`${paramName}Id`] ||
+                    envVars[`${paramName.toLowerCase()}Id`] ||
+                    envVars[`${paramName}_id`] ||
+                    envVars[`${paramName.toLowerCase()}_id`];
+        
+        if (paramValue !== undefined && paramValue !== null && paramValue !== '') {
+          source = 'environment variable (fallback)';
+        }
+        
+        // 2. 如果是 projectId 且还没有值，尝试从任务或接口中获取
+        if (!paramValue && (paramName === 'projectId' || paramName === 'project_id' || paramName.toLowerCase() === 'projectid') && projectId) {
+          paramValue = projectId;
+          source = 'task/interface project_id (fallback)';
+        }
+        
+        if (paramValue !== undefined && paramValue !== null && paramValue !== '') {
+          path = path.replace(new RegExp(`\\{${paramName}\\}`, 'g'), String(paramValue));
+          pathParams[paramName] = String(paramValue);
+          logger.info({ 
+            taskId: task._id?.toString(),
+            testCaseIndex,
+            paramName, 
+            value: String(paramValue).substring(0, 50),
+            source: source
+          }, `Replaced missing path parameter ${paramName} from ${source}`);
+        } else {
+          logger.error({ 
+            taskId: task._id?.toString(),
+            testCaseIndex,
+            paramName,
+            availableEnvVars: Object.keys(envVars),
+            hasProjectId: !!projectId,
+            projectId: projectId ? projectId.substring(0, 50) : null
+          }, `Cannot find value for path parameter ${paramName} - URL will contain placeholder`);
+        }
+      }
+    }
 
     // 构建查询参数
     const queryParams = this.resolveVariables(testCase.query_params || {}, envVars);
@@ -859,10 +1146,43 @@ export class AutoTestRunner {
     }
 
     const resolvedCustomHeaders = this.resolveVariables(customHeaders, envVars);
+    
+    // 获取任务的通用 headers
+    let commonHeaders = task.common_headers || {};
+    // 如果 common_headers 是字符串，尝试解析为对象
+    if (typeof commonHeaders === 'string') {
+      try {
+        commonHeaders = JSON.parse(commonHeaders);
+      } catch (e) {
+        logger.warn({ taskId: task._id, error: e.message }, 'Failed to parse task common_headers as JSON');
+        commonHeaders = {};
+      }
+    }
+    const resolvedCommonHeaders = this.resolveVariables(commonHeaders, envVars);
+    
+    // 合并请求头：环境变量头 -> 通用头 -> 自定义头（自定义头优先级最高）
     const headers = {
       ...envHeaders,
+      ...resolvedCommonHeaders,
       ...resolvedCustomHeaders,
     };
+    
+    // 调试日志：记录 headers 合并情况
+    logger.info({ 
+      taskId: task._id?.toString(),
+      testCaseIndex,
+      hasCommonHeaders: !!task.common_headers && Object.keys(commonHeaders).length > 0,
+      commonHeadersKeys: Object.keys(commonHeaders),
+      commonHeadersAuth: resolvedCommonHeaders?.['Authorization'] ? 
+        String(resolvedCommonHeaders['Authorization']).substring(0, 50) + '...' : 'none',
+      hasCustomHeaders: !!testCase.custom_headers && Object.keys(customHeaders).length > 0,
+      customHeadersKeys: Object.keys(customHeaders),
+      envHeadersKeys: Object.keys(envHeaders),
+      mergedHeaders: Object.keys(headers),
+      hasAuthHeader: !!(headers['Authorization'] || headers['authorization']),
+      authHeaderValue: headers['Authorization'] || headers['authorization'] ? 
+        String(headers['Authorization'] || headers['authorization']).substring(0, 50) + '...' : 'none'
+    }, 'Headers merged for single test case');
 
     // 对于需要 body 的请求方法，设置 Content-Type
     // GET、HEAD、OPTIONS 等请求不需要 Content-Type
@@ -873,7 +1193,7 @@ export class AutoTestRunner {
       }
     }
 
-    // 移除占位符 Authorization 头
+    // 处理 Authorization 头
     const authHeaderKeys = Object.keys(headers).filter(key => 
       key.toLowerCase() === 'authorization'
     );
@@ -894,6 +1214,118 @@ export class AutoTestRunner {
       
       if (shouldRemove) {
         delete headers[key];
+        // 尝试从环境变量中获取认证令牌
+        let tokenFromEnv = envVars.token || envVars.authToken || envVars.AUTH_TOKEN || envVars.TOKEN;
+        
+        // 如果环境变量中没有，尝试从通用 headers 中获取
+        if (!tokenFromEnv && resolvedCommonHeaders && resolvedCommonHeaders['Authorization']) {
+          const commonAuth = resolvedCommonHeaders['Authorization'];
+          const commonAuthStr = String(commonAuth || '').trim();
+          // 检查通用 headers 中的 Authorization 是否是有效的 token（不是占位符）
+          // 排除常见的占位符值
+          const isPlaceholder = (
+            !commonAuthStr ||
+            commonAuthStr === 'Bearer token' ||
+            commonAuthStr === 'Bearer <token>' ||
+            commonAuthStr === 'token' ||
+            commonAuthStr.toLowerCase() === 'bearer token' ||
+            commonAuthStr.toLowerCase().trim() === 'bearer' ||
+            (commonAuthStr.toLowerCase().startsWith('bearer') && commonAuthStr.toLowerCase().trim() === 'bearer token')
+          );
+          
+          if (!isPlaceholder && commonAuthStr.length > 10) {
+            // 提取 token（移除 Bearer 前缀）
+            tokenFromEnv = commonAuthStr.replace(/^Bearer\s+/i, '').trim();
+            logger.debug({ 
+              taskId: task._id?.toString(),
+              testCaseIndex,
+              source: 'common headers',
+              hasToken: !!tokenFromEnv
+            }, 'Found token in common headers');
+          }
+        }
+        
+        if (tokenFromEnv) {
+          headers['Authorization'] = tokenFromEnv.startsWith('Bearer ') 
+            ? tokenFromEnv 
+            : `Bearer ${tokenFromEnv}`;
+          logger.debug({ 
+            source: tokenFromEnv === (envVars.token || envVars.authToken || envVars.AUTH_TOKEN || envVars.TOKEN) 
+              ? 'environment variable' 
+              : 'common headers'
+          }, 'Using authentication token');
+        } else {
+          logger.warn({ 
+            availableEnvVars: Object.keys(envVars),
+            availableHeaders: Object.keys(envHeaders),
+            hasCommonHeaders: !!resolvedCommonHeaders && Object.keys(resolvedCommonHeaders).length > 0,
+            commonHeadersAuth: resolvedCommonHeaders?.['Authorization'] ? 'present' : 'missing'
+          }, 'No authentication token found');
+        }
+      }
+    }
+    
+    // 如果没有 Authorization 头，尝试从环境变量或通用 headers 中添加
+    if (!headers['Authorization'] && !headers['authorization']) {
+      let tokenFromEnv = envVars.token || envVars.authToken || envVars.AUTH_TOKEN || envVars.TOKEN;
+      
+      // 如果环境变量中没有，尝试从通用 headers 中获取
+      if (!tokenFromEnv && resolvedCommonHeaders && resolvedCommonHeaders['Authorization']) {
+        const commonAuth = resolvedCommonHeaders['Authorization'];
+        const commonAuthStr = String(commonAuth || '').trim();
+        // 检查通用 headers 中的 Authorization 是否是有效的 token（不是占位符）
+        // 排除常见的占位符值
+        const isPlaceholder = (
+          !commonAuthStr ||
+          commonAuthStr === 'Bearer token' ||
+          commonAuthStr === 'Bearer <token>' ||
+          commonAuthStr === 'token' ||
+          commonAuthStr.toLowerCase() === 'bearer token' ||
+          commonAuthStr.toLowerCase().trim() === 'bearer' ||
+          (commonAuthStr.toLowerCase().startsWith('bearer') && commonAuthStr.toLowerCase().trim() === 'bearer token')
+        );
+        
+        if (!isPlaceholder && commonAuthStr.length > 10) {
+          // 提取 token（移除 Bearer 前缀）
+          tokenFromEnv = commonAuthStr.replace(/^Bearer\s+/i, '').trim();
+          logger.info({ 
+            taskId: task._id?.toString(),
+            testCaseIndex,
+            source: 'common headers',
+            hasToken: !!tokenFromEnv,
+            tokenLength: tokenFromEnv ? tokenFromEnv.length : 0
+          }, 'Found token in common headers');
+        } else {
+          logger.warn({ 
+            taskId: task._id?.toString(),
+            testCaseIndex,
+            commonAuthStr: commonAuthStr.substring(0, 50),
+            isPlaceholder,
+            length: commonAuthStr.length
+          }, 'Common headers Authorization is placeholder or invalid');
+        }
+      }
+      
+      if (tokenFromEnv) {
+        headers['Authorization'] = tokenFromEnv.startsWith('Bearer ') 
+          ? tokenFromEnv 
+          : `Bearer ${tokenFromEnv}`;
+        logger.info({ 
+          taskId: task._id?.toString(),
+          testCaseIndex,
+          source: tokenFromEnv === (envVars.token || envVars.authToken || envVars.AUTH_TOKEN || envVars.TOKEN) 
+            ? 'environment variable' 
+            : 'common headers',
+          tokenLength: tokenFromEnv.length
+        }, 'Added authentication token to headers');
+      } else {
+        logger.error({ 
+          taskId: task._id?.toString(),
+          testCaseIndex,
+          hasCommonHeaders: !!resolvedCommonHeaders && Object.keys(resolvedCommonHeaders).length > 0,
+          commonHeadersAuth: resolvedCommonHeaders?.['Authorization'] ? 'present' : 'missing',
+          availableEnvVars: Object.keys(envVars)
+        }, 'No authentication token found - request will fail with 401');
       }
     }
 
@@ -903,6 +1335,22 @@ export class AutoTestRunner {
     }
 
     const url = path ? `${baseUrl}${path}` : baseUrl;
+
+    // 最终日志：记录将要发送的请求信息
+    logger.info({ 
+      taskId: task._id?.toString(),
+      testCaseIndex,
+      method,
+      url,
+      originalPath: interfaceData.path,
+      pathParams: pathParams,
+      hasHeaders: !!headers && Object.keys(headers).length > 0,
+      headerKeys: headers ? Object.keys(headers) : [],
+      hasAuthHeader: !!(headers['Authorization'] || headers['authorization']),
+      authHeaderValue: headers['Authorization'] || headers['authorization'] ? 
+        (String(headers['Authorization'] || headers['authorization']).substring(0, 30) + '...') : 'none',
+      hasUnreplacedParams: url.includes('{') || url.includes('}')
+    }, 'Final request configuration before sending');
 
     const request = {
       method,

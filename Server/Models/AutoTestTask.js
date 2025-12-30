@@ -59,6 +59,10 @@ const autoTestTaskSchema = new mongoose.Schema(
       ref: 'TestEnvironment',
       default: null,
     },
+    common_headers: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
     schedule: {
       enabled: {
         type: Boolean,
