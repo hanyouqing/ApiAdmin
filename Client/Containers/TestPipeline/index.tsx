@@ -19,7 +19,6 @@ import {
   Empty,
   Upload,
   Radio,
-  Spin,
 } from 'antd';
 import {
   PlusOutlined,
@@ -532,6 +531,7 @@ const TestPipeline: React.FC = () => {
   const [interfaces, setInterfaces] = useState<any[]>([]);
   const [environments, setEnvironments] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [viewingTaskLoading, setViewingTaskLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [caseModalVisible, setCaseModalVisible] = useState(false);
   const [resultModalVisible, setResultModalVisible] = useState(false);
@@ -1850,6 +1850,7 @@ const TestPipeline: React.FC = () => {
   };
 
   const handleViewTask = async (task: TestTask) => {
+    setViewingTaskLoading(true);
     try {
       const response = await api.get(`/auto-test/tasks/${task._id}`);
       const taskData = response.data?.data;
@@ -1898,6 +1899,8 @@ const TestPipeline: React.FC = () => {
     } catch (error: any) {
       console.error('获取任务详情失败:', error);
       messageApi.error(error.response?.data?.message || '获取任务详情失败');
+    } finally {
+      setViewingTaskLoading(false);
     }
   };
 
@@ -2012,7 +2015,12 @@ const TestPipeline: React.FC = () => {
           <Button type="link" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
             编辑
           </Button>
-          <Button type="link" onClick={() => handleViewTask(record)}>
+          <Button 
+            type="link" 
+            onClick={() => handleViewTask(record)}
+            loading={viewingTaskLoading && selectedTask?._id === record._id}
+            icon={!viewingTaskLoading || selectedTask?._id !== record._id ? <EyeOutlined /> : undefined}
+          >
             查看
           </Button>
           <Button type="link" icon={<ExportOutlined />} onClick={() => handleExport(record)}>
@@ -2097,6 +2105,7 @@ const TestPipeline: React.FC = () => {
         <Card
           data-test-task-card
           title={selectedTask.name}
+          loading={viewingTaskLoading}
           extra={
             <Space>
               <Button

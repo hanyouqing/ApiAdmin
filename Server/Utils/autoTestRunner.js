@@ -145,8 +145,13 @@ export class AutoTestRunner {
         }
         
         const interfaceData = interfaceIdStr ? interfaceMap.get(interfaceIdStr) : null;
+        // 优先使用 title，如果没有则使用 method + path 的组合，最后才使用 'Unknown Interface'
         const interfaceName = interfaceData 
-          ? (interfaceData.title || interfaceData.path || 'Unknown Interface')
+          ? (interfaceData.title || 
+             (interfaceData.method && interfaceData.path 
+               ? `${interfaceData.method} ${interfaceData.path}`.trim()
+               : interfaceData.path) ||
+             'Unknown Interface')
           : 'Interface Not Found';
         const method = interfaceData?.method?.toUpperCase() || 'GET';
         let path = interfaceData?.path || '';
@@ -312,7 +317,37 @@ export class AutoTestRunner {
           }
 
           // 更新接口名称（可能已更新）
-          resultItem.interface_name = interfaceData.title || interfaceData.path || 'Unknown Interface';
+          // 只有在接口名称未设置或者是占位符时才更新
+          // 优先使用 title，如果没有则使用 method + path 的组合，最后才使用 'Unknown Interface'
+          if (!resultItem.interface_name || 
+              resultItem.interface_name === 'Unknown Interface' || 
+              resultItem.interface_name === 'Interface Not Found' ||
+              resultItem.interface_name === '未知接口') {
+            const interfaceName = interfaceData.title || 
+                                 (interfaceData.method && interfaceData.path 
+                                   ? `${interfaceData.method} ${interfaceData.path}`.trim()
+                                   : interfaceData.path) ||
+                                 'Unknown Interface';
+            resultItem.interface_name = interfaceName;
+            
+            // 记录接口名称设置情况，用于调试
+            if (interfaceName === 'Unknown Interface') {
+              logger.warn({ 
+                taskId: task._id,
+                testCaseIndex: i,
+                interfaceId: interfaceIdStr,
+                interfaceData: {
+                  _id: interfaceData._id,
+                  title: interfaceData.title,
+                  path: interfaceData.path,
+                  method: interfaceData.method,
+                  hasTitle: !!interfaceData.title,
+                  hasPath: !!interfaceData.path,
+                  hasMethod: !!interfaceData.method
+                }
+              }, 'Interface name set to Unknown Interface - interface data may be incomplete');
+            }
+          }
           resultItem.status = 'running';
           resultItem.started_at = new Date();
           await result.save();
