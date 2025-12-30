@@ -1,5 +1,5 @@
 import React from 'react';
-import { Layout, Menu } from 'antd';
+import { Layout, Menu, Spin } from 'antd';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useSelector } from 'react-redux';
@@ -28,6 +28,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
   const location = useLocation();
   const { t } = useTranslation();
   const user = useSelector((state: RootState) => state.user.user);
+  const testPipelineRunning = useSelector((state: RootState) => state.ui.testPipelineRunning);
   
   // 根据当前路径确定打开的菜单项
   const getOpenKeys = () => {
@@ -44,17 +45,20 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
     setOpenKeys(getOpenKeys());
   }, [location.pathname]);
 
-  // 调试：记录用户信息和角色
+  // 调试：记录用户信息和角色（仅在开发环境）
   React.useEffect(() => {
-    if (user) {
-      console.log('Sidebar - User info:', {
-        userId: user._id,
-        username: user.username,
-        role: user.role,
-        isSuperAdmin: user.role === 'super_admin',
-      });
-    } else {
-      console.warn('Sidebar - User is null or undefined');
+    if (process.env.NODE_ENV === 'development') {
+      if (user) {
+        console.log('Sidebar - User info:', {
+          userId: user._id,
+          username: user.username,
+          role: user.role,
+          isSuperAdmin: user.role === 'super_admin',
+        });
+      } else {
+        // 用户未登录时，这是正常情况，不需要警告
+        // console.warn('Sidebar - User is null or undefined');
+      }
     }
   }, [user]);
   
@@ -135,7 +139,19 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
     {
       key: '/test-pipeline',
       icon: <ExperimentOutlined />,
-      label: t('sidebar.testPipeline'),
+      label: (
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {testPipelineRunning && (
+            <Spin 
+              size="small" 
+              style={{ 
+                display: 'inline-block',
+              }}
+            />
+          )}
+          {t('sidebar.testPipeline')}
+        </span>
+      ),
     },
     // 系统管理菜单：只有超级管理员可见
     ...(isSuperAdmin

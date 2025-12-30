@@ -253,19 +253,40 @@ class SSOController extends BaseController {
         return;
       }
 
-      // TODO: 根据 provider.type 实现不同的认证流程
-      // SAML: 重定向到 entryPoint
-      // OAuth2/OIDC: 重定向到 authorizationURL
-      // LDAP: 返回登录表单
-      // CAS: 重定向到 CAS URL
+      const {
+        initiateSAMLAuth,
+        initiateOAuth2Auth,
+        initiateCASAuth,
+      } = await import('../Utils/ssoService.js');
 
-      // 临时实现：返回配置信息（实际应该重定向）
-      ctx.body = SSOController.success({
-        providerId,
-        type: provider.type,
-        config: provider.config,
-        redirectUrl: redirectUrl || '/',
-      }, '请实现具体的 SSO 认证流程');
+      let authResult;
+
+      switch (provider.type) {
+        case 'saml':
+          authResult = await initiateSAMLAuth(provider, redirectUrl);
+          break;
+        case 'oauth2':
+        case 'oidc':
+          authResult = await initiateOAuth2Auth(provider, redirectUrl);
+          break;
+        case 'cas':
+          authResult = await initiateCASAuth(provider, redirectUrl);
+          break;
+        case 'ldap':
+          ctx.status = 200;
+          ctx.body = SSOController.success({
+            type: 'ldap',
+            requiresForm: true,
+            providerId: provider._id.toString(),
+          }, 'LDAP 需要表单登录');
+          return;
+        default:
+          ctx.status = 400;
+          ctx.body = SSOController.error('不支持的 SSO 类型');
+          return;
+      }
+
+      ctx.redirect(authResult.redirectUrl);
     } catch (error) {
       logger.error({ error }, 'Initiate SSO auth error');
       ctx.status = 500;
@@ -280,7 +301,8 @@ class SSOController extends BaseController {
   static async handleCallback(ctx) {
     try {
       const { providerId } = ctx.params;
-      const { code, state, SAMLResponse, ticket } = ctx.query;
+      const { code, state, SAMLResponse, ticket, RelayState } = ctx.query;
+      const { username, password } = ctx.request.body || {};
 
       if (!validateObjectId(providerId)) {
         ctx.status = 400;
@@ -295,17 +317,85 @@ class SSOController extends BaseController {
         return;
       }
 
-      // TODO: 根据 provider.type 处理不同的回调
-      // OAuth2/OIDC: 使用 code 换取 token，获取用户信息
-      // SAML: 解析 SAMLResponse
-      // CAS: 使用 ticket 验证
+      const {
+        handleSAMLCallback,
+        handleOAuth2Callback,
+        handleCASCallback,
+        handleLDAPAuth,
+        processSSOAuthResult,
+      } = await import('../Utils/ssoService.js');
 
-      // 临时实现：返回回调信息（实际应该处理认证并生成 JWT）
-      ctx.body = SSOController.success({
-        providerId,
-        type: provider.type,
-        callbackData: { code, state, SAMLResponse, ticket },
-      }, '请实现具体的 SSO 回调处理');
+      const userAgent = ctx.headers['user-agent'] || '';
+      const ip = ctx.ip || ctx.request.ip || '';
+      const redirectUrl = ctx.query.redirect || '/';
+
+      let userInfo;
+
+      try {
+        switch (provider.type) {
+          case 'saml':
+            if (!SAMLResponse) {
+              throw new Error('SAML response is required');
+            }
+            userInfo = await handleSAMLCallback(provider, SAMLResponse, RelayState);
+            break;
+          case 'oauth2':
+          case 'oidc':
+            if (!code) {
+              throw new Error('OAuth2 authorization code is required');
+            }
+            userInfo = await handleOAuth2Callback(provider, code, state);
+            break;
+          case 'cas':
+            if (!ticket) {
+              throw new Error('CAS ticket is required');
+            }
+            userInfo = await handleCASCallback(provider, ticket);
+            break;
+          case 'ldap':
+            if (!username || !password) {
+              ctx.status = 400;
+              ctx.body = SSOController.error('LDAP 需要用户名和密码');
+              return;
+            }
+            userInfo = await handleLDAPAuth(provider, username, password);
+            break;
+          default:
+            ctx.status = 400;
+            ctx.body = SSOController.error('不支持的 SSO 类型');
+            return;
+        }
+
+        const { user, token } = await processSSOAuthResult(provider, userInfo, ip, userAgent);
+
+        ctx.cookies.set('token', token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          maxAge: 7 * 24 * 60 * 60 * 1000,
+          sameSite: 'lax',
+        });
+
+        ctx.redirect(redirectUrl);
+      } catch (error) {
+        logger.error({ error, providerId, type: provider.type }, 'SSO callback processing failed');
+
+        await logLogin({
+          username: username || '',
+          email: '',
+          loginType: 'sso',
+          provider: provider.type,
+          status: 'failed',
+          failureReason: error.message || 'SSO 认证失败',
+          ip,
+          userAgent,
+        });
+
+        const errorMessage = process.env.NODE_ENV === 'production'
+          ? 'SSO 认证失败'
+          : error.message || 'SSO 认证失败';
+
+        ctx.redirect(`${redirectUrl}?error=${encodeURIComponent(errorMessage)}`);
+      }
     } catch (error) {
       logger.error({ error }, 'Handle SSO callback error');
       ctx.status = 500;
@@ -313,6 +403,78 @@ class SSOController extends BaseController {
         process.env.NODE_ENV === 'production'
           ? '处理 SSO 回调失败'
           : error.message || '处理 SSO 回调失败'
+      );
+    }
+  }
+
+  static async handleLDAPLogin(ctx) {
+    try {
+      const { providerId } = ctx.params;
+      const { username, password } = ctx.request.body;
+
+      if (!validateObjectId(providerId)) {
+        ctx.status = 400;
+        ctx.body = SSOController.error('无效的 SSO 提供者 ID');
+        return;
+      }
+
+      if (!username || !password) {
+        ctx.status = 400;
+        ctx.body = SSOController.error('用户名和密码不能为空');
+        return;
+      }
+
+      const provider = await SSOProvider.findById(providerId);
+      if (!provider || !provider.enabled || provider.type !== 'ldap') {
+        ctx.status = 404;
+        ctx.body = SSOController.error('LDAP 提供者不存在或已禁用');
+        return;
+      }
+
+      const {
+        handleLDAPAuth,
+        processSSOAuthResult,
+      } = await import('../Utils/ssoService.js');
+
+      const userAgent = ctx.headers['user-agent'] || '';
+      const ip = ctx.ip || ctx.request.ip || '';
+
+      const userInfo = await handleLDAPAuth(provider, username, password);
+      const { user, token } = await processSSOAuthResult(provider, userInfo, ip, userAgent);
+
+      ctx.cookies.set('token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        sameSite: 'lax',
+      });
+
+      ctx.body = SSOController.success({
+        user,
+        token,
+      }, 'LDAP 登录成功');
+    } catch (error) {
+      logger.error({ error }, 'LDAP login error');
+
+      const userAgent = ctx.headers['user-agent'] || '';
+      const ip = ctx.ip || ctx.request.ip || '';
+
+      await logLogin({
+        username: ctx.request.body?.username || '',
+        email: '',
+        loginType: 'sso',
+        provider: 'ldap',
+        status: 'failed',
+        failureReason: error.message || 'LDAP 认证失败',
+        ip,
+        userAgent,
+      });
+
+      ctx.status = 401;
+      ctx.body = SSOController.error(
+        process.env.NODE_ENV === 'production'
+          ? 'LDAP 认证失败'
+          : error.message || 'LDAP 认证失败'
       );
     }
   }

@@ -106,16 +106,31 @@ export const authMiddleware = async (ctx, next) => {
       return;
     }
 
-    const user = await User.findById(decoded.userId);
-
-    if (!user) {
-      logger.warn({
+    let user;
+    try {
+      user = await User.findById(decoded.userId).lean();
+      
+      if (!user) {
+        logger.warn({
+          userId: decoded.userId,
+        }, 'User not found');
+        ctx.status = 401;
+        ctx.body = {
+          success: false,
+          message: '用户不存在',
+        };
+        return;
+      }
+    } catch (dbError) {
+      logger.error({
+        error: dbError,
+        stack: dbError.stack,
         userId: decoded.userId,
-      }, 'User not found');
-      ctx.status = 401;
+      }, 'Failed to fetch user from database');
+      ctx.status = 500;
       ctx.body = {
         success: false,
-        message: '用户不存在',
+        message: '认证服务暂时不可用',
       };
       return;
     }

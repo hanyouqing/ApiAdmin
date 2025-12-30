@@ -312,6 +312,15 @@ class UserController extends BaseController {
 
   static async getInfo(ctx) {
     try {
+      // 检查数据库连接
+      const mongoose = (await import('mongoose')).default;
+      if (mongoose.connection.readyState !== 1) {
+        logger.warn({ readyState: mongoose.connection.readyState }, 'Database not connected in getInfo');
+        ctx.status = 503;
+        ctx.body = UserController.error('数据库连接不可用，请稍后重试');
+        return;
+      }
+
       const user = ctx.state.user;
       if (!user) {
         ctx.status = 401;
@@ -319,74 +328,89 @@ class UserController extends BaseController {
         return;
       }
 
-      // 如果 user 是字符串 ID，需要从数据库查询
-      let userDoc = user;
-      if (typeof user === 'string' || (user._id && !user.email)) {
-        try {
-          userDoc = await User.findById(user._id || user);
-          if (!userDoc) {
-            ctx.status = 404;
-            ctx.body = UserController.error('用户不存在');
-            return;
-          }
-        } catch (dbError) {
-          logger.error({ error: dbError.message, userId: user._id || user }, 'Failed to fetch user from database');
-          ctx.status = 500;
-          ctx.body = UserController.error('获取用户信息失败');
-          return;
-        }
-      }
-
-      // 使用 toJSON() 方法，它会自动删除密码（在 User 模型中定义）
-      // 如果 toJSON 不可用，则使用 toObject() 并手动删除密码
+      // user 应该已经是 lean 对象（从 authMiddleware 来）
       let userObj;
       try {
-        if (typeof userDoc.toJSON === 'function') {
-          userObj = userDoc.toJSON();
-        } else if (typeof userDoc.toObject === 'function') {
-          userObj = userDoc.toObject();
-          delete userObj.password;
+        if (user && typeof user === 'object') {
+          // 如果已经是对象（lean 查询结果或普通对象），直接使用
+          userObj = { ...user };
+        } else if (typeof user === 'string') {
+          // 如果 user 是字符串 ID，需要从数据库查询
+          const userId = user;
+          if (!userId) {
+            ctx.status = 401;
+            ctx.body = UserController.error('用户ID无效');
+            return;
+          }
+          
+          try {
+            const userDoc = await User.findById(userId).lean();
+            if (!userDoc) {
+              ctx.status = 404;
+              ctx.body = UserController.error('用户不存在');
+              return;
+            }
+            userObj = { ...userDoc };
+          } catch (dbError) {
+            logger.error({ error: dbError, stack: dbError.stack, userId }, 'Failed to fetch user from database');
+            ctx.status = 500;
+            ctx.body = UserController.error('获取用户信息失败');
+            return;
+          }
         } else {
-          // 如果既不是 Mongoose 文档也不是普通对象，尝试转换为普通对象
-          userObj = { ...userDoc };
+          logger.warn({ userType: typeof user, hasId: !!user?._id }, 'Invalid user type in getInfo');
+          ctx.status = 401;
+          ctx.body = UserController.error('用户信息无效');
+          return;
+        }
+        
+        // 确保密码字段被删除
+        if (userObj && userObj.password !== undefined) {
           delete userObj.password;
-          // 确保 _id 被转换为字符串
-          if (userObj._id && typeof userObj._id.toString === 'function') {
+        }
+        
+        // 确保 _id 被转换为字符串（如果需要）
+        if (userObj && userObj._id) {
+          if (typeof userObj._id === 'object' && typeof userObj._id.toString === 'function') {
             userObj._id = userObj._id.toString();
           }
         }
+        
+        // 如果没有头像或头像为空，使用默认头像
+        if (!userObj.avatar || userObj.avatar === '') {
+          userObj.avatar = '/icons/icon-64x64.png';
+        }
       } catch (convertError) {
-        logger.error({ error: convertError.message }, 'Failed to convert user object');
-        // 尝试最基本的转换
-        userObj = {
-          _id: userDoc._id?.toString() || userDoc._id,
-          username: userDoc.username,
-          email: userDoc.email,
-          role: userDoc.role,
-          avatar: userDoc.avatar,
-        };
-      }
-      
-      // 确保密码字段被删除（双重保险）
-      if (userObj && userObj.password) {
-        delete userObj.password;
-      }
-      
-      // 如果没有头像或头像为空，使用默认头像
-      if (!userObj.avatar || userObj.avatar === '') {
-        userObj.avatar = '/icons/icon-64x64.png';
+        logger.error({ 
+          error: {
+            name: convertError?.name,
+            message: convertError?.message,
+            stack: convertError?.stack,
+          },
+          userType: typeof user,
+          hasId: !!user?._id,
+          userId: user?._id
+        }, 'Failed to process user object');
+        ctx.status = 500;
+        ctx.body = UserController.error(
+          process.env.NODE_ENV === 'production'
+            ? '获取用户信息失败'
+            : convertError.message || '获取用户信息失败'
+        );
+        return;
       }
       
       ctx.body = UserController.success(userObj);
     } catch (error) {
       logger.error({ 
-        error: error.message, 
-        stack: error.stack, 
+        error: {
+          name: error?.name,
+          message: error?.message,
+          stack: error?.stack,
+        },
         userId: ctx.state.user?._id,
         userType: typeof ctx.state.user,
-        hasToJSON: typeof ctx.state.user?.toJSON === 'function',
-        hasToObject: typeof ctx.state.user?.toObject === 'function',
-      }, 'User getInfo error');
+      }, 'Get user info error');
       ctx.status = 500;
       ctx.body = UserController.error(
         process.env.NODE_ENV === 'production' 

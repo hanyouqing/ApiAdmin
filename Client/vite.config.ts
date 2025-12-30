@@ -38,6 +38,8 @@ export default defineConfig(({ mode }) => {
   
   return {
     plugins: [react()],
+    // Configure public directory for static assets (favicon, icons, etc.)
+    publicDir: path.resolve(__dirname, '../Static'),
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

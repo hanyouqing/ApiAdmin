@@ -27,7 +27,6 @@ const thirdPartyAuthConfigSchema = new mongoose.Schema(
   }
 );
 
-thirdPartyAuthConfigSchema.index({ provider: 1 });
 thirdPartyAuthConfigSchema.index({ enabled: 1 });
 
 const ThirdPartyAuthConfig = mongoose.model('ThirdPartyAuthConfig', thirdPartyAuthConfigSchema);

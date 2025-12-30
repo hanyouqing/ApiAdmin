@@ -12,7 +12,7 @@ export class TestRunner {
     this.records = [];
   }
 
-  async runTestCase(testCase, environment = {}) {
+  async runTestCase(testCase, environment = {}, testCollection = null) {
     const startTime = Date.now();
     let result = {
       testCaseId: testCase._id,
@@ -48,6 +48,10 @@ export class TestRunner {
       const query = this.resolveVariables(testCase.request.query || {}, this.records);
       const body = this.resolveVariables(testCase.request.body || {}, this.records);
       const headers = this.resolveVariables(testCase.request.headers || {}, this.records);
+
+      if (testCollection) {
+        await executeBeforeTestHook(testCollection, testCase);
+      }
 
       result.request = {
         url,
@@ -110,6 +114,8 @@ export class TestRunner {
       };
       result.duration = Date.now() - startTime;
     }
+
+    await executeAfterTestHook(testCollection, testCase, result);
 
     return result;
   }

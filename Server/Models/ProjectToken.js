@@ -7,7 +7,6 @@ const projectTokenSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      index: true,
     },
     name: {
       type: String,
@@ -38,7 +37,6 @@ const projectTokenSchema = new mongoose.Schema(
 );
 
 projectTokenSchema.index({ projectId: 1 });
-projectTokenSchema.index({ token: 1 });
 
 projectTokenSchema.statics.generateToken = function () {
   return crypto.randomBytes(32).toString('hex');

@@ -12,6 +12,7 @@ export default defineConfig({
     environment: 'node',
     hookTimeout: 30000,
     testTimeout: 30000,
+    setupFiles: ['./tests/setup.js'], // Run setup before all tests
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

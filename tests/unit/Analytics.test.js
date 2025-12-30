@@ -13,10 +13,17 @@ function createMockCtx(params = {}, query = {}, body = {}, user = null) {
   return {
     params,
     query,
-    request: { body },
+    request: { 
+      body,
+      url: '/api/test',
+    },
     state: { user: user || { _id: new mongoose.Types.ObjectId(), role: 'guest' } },
     status: 200,
     body: null,
+    ip: '127.0.0.1',
+    headers: {
+      'user-agent': 'test-agent',
+    },
   };
 }
 
@@ -27,24 +34,16 @@ describe('AnalyticsController', () => {
   let testInterface;
 
   beforeEach(async () => {
-    if (mongoose.connection.readyState === 0) {
-      mongoose.set('bufferCommands', false);
-      await mongoose.connect(process.env.MONGODB_URL || 'mongodb://localhost:27017/apiadmin_test', {
-        serverSelectionTimeoutMS: 5000,
-      });
-    }
-    if (mongoose.connection.readyState !== 1) {
-      await new Promise((resolve) => {
-        if (mongoose.connection.readyState === 1) {
-          resolve();
-        } else {
-          mongoose.connection.once('connected', resolve);
-          setTimeout(() => resolve(), 5000);
-        }
-      });
-      if (mongoose.connection.readyState !== 1) {
-        throw new Error('MongoDB connection failed');
+    // Use test-helpers connection logic
+    const { connectTestDB, ensureConnection } = await import('./test-helpers.js');
+    try {
+      await connectTestDB();
+      await ensureConnection();
+    } catch (error) {
+      if (error.message?.includes('authentication')) {
+        throw new Error('MongoDB authentication required');
       }
+      throw error;
     }
     await TestResult.deleteMany({});
     await TestCase.deleteMany({});
@@ -157,12 +156,14 @@ describe('AnalyticsController', () => {
 
     it('should handle errors gracefully', async () => {
       const ctx = createMockCtx({ projectId: testProject._id.toString() }, {}, {}, testUser);
-      vi.spyOn(Project, 'findById').mockRejectedValueOnce(new Error('Database error'));
+      const findByIdSpy = vi.spyOn(Project, 'findById').mockRejectedValueOnce(new Error('Database error'));
 
       await AnalyticsController.getProjectHealth(ctx);
 
       expect(ctx.status).toBe(500);
       expect(ctx.body.success).toBe(false);
+      
+      findByIdSpy.mockRestore();
     });
   });
 
@@ -285,12 +286,14 @@ describe('AnalyticsController', () => {
 
     it('should handle errors gracefully', async () => {
       const ctx = createMockCtx({ id: testInterface._id.toString() }, {}, {}, testUser);
-      vi.spyOn(TestCase, 'find').mockRejectedValueOnce(new Error('Database error'));
+      const findSpy = vi.spyOn(TestCase, 'find').mockRejectedValueOnce(new Error('Database error'));
 
       await AnalyticsController.getInterfaceQuality(ctx);
 
       expect(ctx.status).toBe(500);
       expect(ctx.body.success).toBe(false);
+      
+      findSpy.mockRestore();
     });
   });
 });

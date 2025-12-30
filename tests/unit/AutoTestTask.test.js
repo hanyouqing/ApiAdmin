@@ -8,15 +8,23 @@ import Interface from '../../Server/Models/Interface.js';
 import Project from '../../Server/Models/Project.js';
 import Group from '../../Server/Models/Group.js';
 import User from '../../Server/Models/User.js';
+import OperationLog from '../../Server/Models/OperationLog.js';
 
 function createMockCtx(params = {}, query = {}, body = {}, user = null) {
   return {
     params,
     query,
-    request: { body },
+    request: { 
+      body,
+      url: '/api/test',
+    },
     state: { user: user || { _id: new mongoose.Types.ObjectId(), role: 'guest' } },
     status: 200,
     body: null,
+    ip: '127.0.0.1',
+    headers: {
+      'user-agent': 'test-agent',
+    },
   };
 }
 
@@ -28,8 +36,16 @@ describe('AutoTestTaskController', () => {
   let testEnvironment;
 
   beforeEach(async () => {
-    if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(process.env.MONGODB_URL || 'mongodb://localhost:27017/apiadmin_test');
+    // Use test-helpers connection logic
+    const { connectTestDB, ensureConnection } = await import('./test-helpers.js');
+    try {
+      await connectTestDB();
+      await ensureConnection();
+    } catch (error) {
+      if (error.message?.includes('authentication')) {
+        throw new Error('MongoDB authentication required');
+      }
+      throw error;
     }
     await AutoTestResult.deleteMany({});
     await AutoTestTask.deleteMany({});
@@ -38,6 +54,7 @@ describe('AutoTestTaskController', () => {
     await Project.deleteMany({});
     await Group.deleteMany({});
     await User.deleteMany({});
+    await OperationLog.deleteMany({});
 
     testUser = await User.create({
       username: 'testuser',
@@ -80,6 +97,7 @@ describe('AutoTestTaskController', () => {
     await Project.deleteMany({});
     await Group.deleteMany({});
     await User.deleteMany({});
+    await OperationLog.deleteMany({});
   });
 
   describe('createTask', () => {

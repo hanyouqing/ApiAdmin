@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "description": "A modern API management platform",
   "private": true,
+  "type": "module",
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=9.0.0"
@@ -52,12 +53,17 @@
     "mongoose": "^8.20.4",
     "prettier": "^3.4.2",
     "sharp": "^0.34.5",
-    "to-ico": "^1.1.5",
+    "to-ico": "^1.0.1",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.18.2",
     "vitest": "^2.1.8"
   },
   "overrides": {
-    "esbuild": "^0.25.0"
+    "esbuild": "^0.25.0",
+    "form-data": ">=2.5.4",
+    "jpeg-js": ">=0.4.4",
+    "minimist": ">=1.2.8",
+    "tough-cookie": ">=4.1.3",
+    "url-regex": "npm:url-regex-safe@^5.0.0"
   }
 }

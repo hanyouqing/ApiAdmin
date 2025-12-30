@@ -28,6 +28,10 @@ import AnalyticsController from './Controllers/Analytics.js';
 import AutoTestTaskController from './Controllers/AutoTestTask.js';
 import TestEnvironmentController from './Controllers/TestEnvironment.js';
 import PermissionController from './Controllers/Permission.js';
+import APIDesignController from './Controllers/APIDesign.js';
+import CollaborationController from './Controllers/Collaboration.js';
+import AIAssistantController from './Controllers/AIAssistant.js';
+import DocumentCenterController from './Controllers/DocumentCenter.js';
 import { projectTokenAuth } from './Middleware/projectTokenAuth.js';
 import { authMiddleware } from './Middleware/auth.js';
 import { apiRateLimiter, authRateLimiter, registerRateLimiter } from './Middleware/rateLimiter.js';
@@ -76,9 +80,11 @@ router.get('/api/health', async (ctx) => {
 router.get('/version', async (ctx) => {
   try {
     const versionInfo = getVersionInfoFormatted();
+    ctx.set('Content-Type', 'application/json');
     ctx.body = versionInfo;
   } catch (error) {
     ctx.status = 500;
+    ctx.set('Content-Type', 'application/json');
     ctx.body = {
       error: 'Failed to get version information',
       buildTime: 'unknown',
@@ -94,9 +100,11 @@ router.get('/version', async (ctx) => {
 router.get('/api/version', async (ctx) => {
   try {
     const versionInfo = getVersionInfoFormatted();
+    ctx.set('Content-Type', 'application/json');
     ctx.body = versionInfo;
   } catch (error) {
     ctx.status = 500;
+    ctx.set('Content-Type', 'application/json');
     ctx.body = {
       error: 'Failed to get version information',
       buildTime: 'unknown',
@@ -213,6 +221,7 @@ router.delete('/api/sso/providers/:id', apiRateLimiter, authMiddleware, SSOContr
 router.patch('/api/sso/providers/:id/enable', apiRateLimiter, authMiddleware, SSOController.enableProvider);
 router.get('/api/sso/auth/:providerId', SSOController.initiateAuth);
 router.get('/api/sso/auth/:providerId/callback', SSOController.handleCallback);
+router.post('/api/sso/auth/:providerId/ldap', SSOController.handleLDAPLogin);
 
 // 第三方登录路由
 router.get('/api/admin/auth/third-party/config', apiRateLimiter, authMiddleware, ThirdPartyAuthController.getConfig);
@@ -254,6 +263,7 @@ router.post('/api/email/send', apiRateLimiter, authMiddleware, EmailController.s
 
 // 插件系统路由
 router.get('/api/plugins', apiRateLimiter, authMiddleware, PluginController.listPlugins);
+router.get('/api/plugin/list', apiRateLimiter, authMiddleware, PluginController.listPlugins);
 router.get('/api/plugins/:id', apiRateLimiter, authMiddleware, PluginController.getPlugin);
 router.post('/api/plugins/install/local', apiRateLimiter, authMiddleware, PluginController.installLocal);
 router.post('/api/plugins/install/default', apiRateLimiter, authMiddleware, PluginController.installDefaultPlugins);
@@ -338,6 +348,7 @@ router.get('/api/auto-test/tasks/:id/history', apiRateLimiter, authMiddleware, A
 router.get('/api/auto-test/tasks/:id/export', apiRateLimiter, authMiddleware, AutoTestTaskController.exportTask);
 router.post('/api/auto-test/tasks/import', apiRateLimiter, authMiddleware, AutoTestTaskController.importTask);
 router.get('/api/auto-test/results/:resultId', apiRateLimiter, authMiddleware, AutoTestTaskController.getResult);
+router.post('/api/auto-test/results/:resultId/export', apiRateLimiter, authMiddleware, AutoTestTaskController.exportResult);
 
 // 测试环境路由
 router.get('/api/test/environments', apiRateLimiter, authMiddleware, TestEnvironmentController.listEnvironments);
@@ -366,6 +377,32 @@ router.get('/api/roles/permissions', apiRateLimiter, authMiddleware, PermissionC
 router.get('/api/roles/:role/permissions', apiRateLimiter, authMiddleware, PermissionController.getRolePermission);
 router.put('/api/roles/:role/permissions', apiRateLimiter, authMiddleware, PermissionController.updateRolePermission);
 router.post('/api/roles/permissions/init', apiRateLimiter, authMiddleware, PermissionController.initRolePermissions);
+
+// API 设计中心路由
+router.post('/api/design/openapi', apiRateLimiter, authMiddleware, APIDesignController.convertToOpenAPI);
+router.post('/api/design/graphql', apiRateLimiter, authMiddleware, APIDesignController.convertToGraphQL);
+router.post('/api/design/version', apiRateLimiter, authMiddleware, APIDesignController.createVersion);
+router.get('/api/design/versions', apiRateLimiter, authMiddleware, APIDesignController.listVersions);
+router.get('/api/design/compare', apiRateLimiter, authMiddleware, APIDesignController.compareVersions);
+router.post('/api/design/rollback', apiRateLimiter, authMiddleware, APIDesignController.rollbackVersion);
+
+// 实时协作路由
+router.post('/api/collaboration/join', apiRateLimiter, authMiddleware, CollaborationController.joinSession);
+router.post('/api/collaboration/leave', apiRateLimiter, authMiddleware, CollaborationController.leaveSession);
+router.get('/api/collaboration/session', apiRateLimiter, authMiddleware, CollaborationController.getSession);
+router.post('/api/collaboration/cursor', apiRateLimiter, authMiddleware, CollaborationController.updateCursor);
+
+// AI 辅助路由
+router.post('/api/ai/generate', apiRateLimiter, authMiddleware, AIAssistantController.generateInterface);
+router.get('/api/ai/suggestions', apiRateLimiter, authMiddleware, AIAssistantController.getDesignSuggestions);
+router.post('/api/ai/parameters', apiRateLimiter, authMiddleware, AIAssistantController.suggestParameters);
+
+// 交互式文档中心路由
+router.post('/api/document/generate', apiRateLimiter, authMiddleware, DocumentCenterController.generateDocument);
+router.post('/api/document/publish', apiRateLimiter, authMiddleware, DocumentCenterController.publishDocument);
+router.get('/api/document/published', apiRateLimiter, authMiddleware, DocumentCenterController.getPublishedDocument);
+router.get('/api/document/versions', apiRateLimiter, authMiddleware, DocumentCenterController.listDocumentVersions);
+router.get('/api/document/compare', apiRateLimiter, authMiddleware, DocumentCenterController.compareDocumentVersions);
 
 export default router;
 

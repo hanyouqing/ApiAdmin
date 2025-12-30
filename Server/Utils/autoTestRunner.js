@@ -363,10 +363,18 @@ export class AutoTestRunner {
           
           // 合并请求头：环境变量头 -> 自定义头（自定义头优先级更高）
           const headers = {
-            'Content-Type': 'application/json',
             ...envHeaders,
             ...resolvedCustomHeaders,
           };
+
+          // 对于需要 body 的请求方法，设置 Content-Type
+          // GET、HEAD、OPTIONS 等请求不需要 Content-Type
+          if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+            // 如果用户没有自定义 Content-Type，则设置默认值
+            if (!headers['Content-Type'] && !headers['content-type']) {
+              headers['Content-Type'] = 'application/json';
+            }
+          }
           
           // 移除占位符 Authorization 头（不区分大小写）
           // 检查所有可能的 Authorization 头键名
@@ -469,15 +477,23 @@ export class AutoTestRunner {
           let response;
 
           try {
-            response = await axios({
+            // 构建 axios 请求配置
+            const axiosConfig = {
               method,
               url,
               params: queryParams,
-              data: requestBody,
               headers,
               timeout: 30000,
               validateStatus: () => true, // 接受所有状态码
-            });
+            };
+
+            // 对于 GET、HEAD、OPTIONS 等请求，不应该发送 body
+            // 只有 POST、PUT、PATCH、DELETE 等需要 body 的方法才设置 data
+            if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) && requestBody !== null && requestBody !== undefined) {
+              axiosConfig.data = requestBody;
+            }
+
+            response = await axios(axiosConfig);
 
             const duration = Date.now() - startTime;
 
@@ -844,10 +860,18 @@ export class AutoTestRunner {
 
     const resolvedCustomHeaders = this.resolveVariables(customHeaders, envVars);
     const headers = {
-      'Content-Type': 'application/json',
       ...envHeaders,
       ...resolvedCustomHeaders,
     };
+
+    // 对于需要 body 的请求方法，设置 Content-Type
+    // GET、HEAD、OPTIONS 等请求不需要 Content-Type
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+      // 如果用户没有自定义 Content-Type，则设置默认值
+      if (!headers['Content-Type'] && !headers['content-type']) {
+        headers['Content-Type'] = 'application/json';
+      }
+    }
 
     // 移除占位符 Authorization 头
     const authHeaderKeys = Object.keys(headers).filter(key => 
@@ -894,15 +918,23 @@ export class AutoTestRunner {
     let error = null;
 
     try {
-      response = await axios({
+      // 构建 axios 请求配置
+      const axiosConfig = {
         method,
         url,
         params: queryParams,
-        data: requestBody,
         headers,
         timeout: 30000,
         validateStatus: () => true, // 接受所有状态码
-      });
+      };
+
+      // 对于 GET、HEAD、OPTIONS 等请求，不应该发送 body
+      // 只有 POST、PUT、PATCH、DELETE 等需要 body 的方法才设置 data
+      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) && requestBody !== null && requestBody !== undefined) {
+        axiosConfig.data = requestBody;
+      }
+
+      response = await axios(axiosConfig);
 
       const duration = Date.now() - startTime;
 

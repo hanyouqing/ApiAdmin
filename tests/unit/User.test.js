@@ -2,12 +2,13 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import mongoose from 'mongoose';
 import User from '../../Server/Models/User.js';
 import { validateEmail, validatePassword } from '../../Server/Utils/validation.js';
-import { connectTestDB } from './test-helpers.js';
+import { connectTestDB, ensureConnection } from './test-helpers.js';
 
 describe('User Model', () => {
   beforeEach(async () => {
     try {
       await connectTestDB();
+      await ensureConnection();
       await User.deleteMany({});
     } catch (error) {
       if (error.message?.includes('authentication')) {

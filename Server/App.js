@@ -31,6 +31,9 @@ import { logger } from './Utils/logger.js';
 import config, { reloadConfig } from './Utils/config.js';
 import { swaggerWhitelistMiddleware } from './Middleware/swaggerWhitelist.js';
 import { checkDependencies, waitForDependencies, isReady } from './Utils/dependencyChecker.js';
+import { pluginManager } from './Utils/pluginManager.js';
+import { registerPluginRoutes } from './Utils/pluginRouter.js';
+import { pluginHookMiddleware } from './Middleware/pluginHook.js';
 import './Models/index.js';
 
 // 现在 logger 已初始化，重新初始化环境变量加载器并启用文件监听
@@ -285,6 +288,7 @@ if (swaggerEnabled) {
   });
 }
 
+app.use(pluginHookMiddleware);
 app.use(router.routes()).use(router.allowedMethods());
 
 app.use(serve(path.join(__dirname, '../uploads'), { prefix: '/uploads' }));
@@ -870,12 +874,22 @@ async function startServer() {
     logger.info('🔌 Establishing MongoDB connection with production options...');
     await connectDB();
     
+    // 初始化插件系统
+    logger.info('🔌 Initializing plugin system...');
+    await pluginManager.init();
+    
+    // 注册插件路由
+    logger.info('🔌 Registering plugin routes...');
+    await registerPluginRoutes(router);
+    
     // 标记服务就绪
     serviceReady = true;
     
     // 启动 HTTP 服务器
-    app.listen(PORT, () => {
+    // 明确监听所有网络接口（IPv4 和 IPv6）
+    app.listen(PORT, '0.0.0.0', () => {
       logger.info(`🚀 Server running on port ${PORT} in ${config.NODE_ENV} mode`);
+      logger.info(`🌐 Server listening on http://0.0.0.0:${PORT} (accessible via http://localhost:${PORT})`);
       logger.info('✅ Service is ready to handle requests');
     });
   } catch (error) {

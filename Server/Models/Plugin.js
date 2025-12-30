@@ -57,6 +57,10 @@ const pluginSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.Mixed,
       default: {},
     },
+    entry: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
     routes: {
       type: [mongoose.Schema.Types.Mixed],
       default: [],
@@ -92,7 +96,6 @@ const pluginSchema = new mongoose.Schema(
 );
 
 pluginSchema.index({ category: 1, enabled: 1 });
-pluginSchema.index({ name: 1 });
 
 const Plugin = mongoose.model('Plugin', pluginSchema);
 

@@ -120,6 +120,15 @@ class AutoTestTaskController extends BaseController {
   // 获取任务列表
   static async listTasks(ctx) {
     try {
+      // 检查数据库连接
+      const mongoose = (await import('mongoose')).default;
+      if (mongoose.connection.readyState !== 1) {
+        logger.warn({ readyState: mongoose.connection.readyState }, 'Database not connected in listTasks');
+        ctx.status = 503;
+        ctx.body = AutoTestTaskController.success([]);
+        return;
+      }
+
       const { project_id, enabled } = ctx.query;
 
       const query = {};
@@ -130,15 +139,48 @@ class AutoTestTaskController extends BaseController {
         query.enabled = enabled === 'true' || enabled === true;
       }
 
-      const tasks = await AutoTestTask.find(query)
-        .populate('project_id', 'project_name')
-        .populate('environment_id', 'name base_url')
-        .populate('createdBy', 'username')
-        .sort({ createdAt: -1 });
+      let tasks = [];
+      try {
+        tasks = await AutoTestTask.find(query)
+          .populate({
+            path: 'project_id',
+            select: 'project_name',
+            options: { lean: true }
+          })
+          .populate({
+            path: 'environment_id',
+            select: 'name base_url',
+            options: { lean: true }
+          })
+          .populate({
+            path: 'createdBy',
+            select: 'username email',
+            options: { lean: true }
+          })
+          .sort({ createdAt: -1 })
+          .lean();
+      } catch (dbError) {
+        logger.error({ 
+          error: {
+            name: dbError?.name,
+            message: dbError?.message,
+            stack: dbError?.stack,
+          },
+          query
+        }, 'Failed to query auto test tasks from database');
+        // 如果查询失败，返回空数组而不是错误
+        ctx.body = AutoTestTaskController.success([]);
+        return;
+      }
+      
+      // 如果 tasks 为 null 或 undefined，设置为空数组
+      if (!tasks || !Array.isArray(tasks)) {
+        tasks = [];
+      }
 
       ctx.body = AutoTestTaskController.success(tasks);
     } catch (error) {
-      logger.error({ error }, 'List auto test tasks error');
+      logger.error({ error, stack: error.stack }, 'List auto test tasks error');
       ctx.status = 500;
       ctx.body = AutoTestTaskController.error(
         process.env.NODE_ENV === 'production'
@@ -703,6 +745,541 @@ class AutoTestTaskController extends BaseController {
           : error.message || '获取任务历史失败'
       );
     }
+  }
+
+  // 导出测试结果报告
+  static async exportResult(ctx) {
+    try {
+      const { resultId } = ctx.params;
+      const { format = 'html' } = ctx.request.body || ctx.query;
+
+      if (!validateObjectId(resultId)) {
+        ctx.status = 400;
+        ctx.body = AutoTestTaskController.error('无效的结果ID');
+        return;
+      }
+
+      const result = await AutoTestResult.findById(resultId)
+        .populate('task_id', 'name')
+        .populate('environment_id', 'name base_url')
+        .lean();
+
+      if (!result) {
+        ctx.status = 404;
+        ctx.body = AutoTestTaskController.error('测试结果不存在');
+        return;
+      }
+
+      // 手动 populate results 数组中的 interface_id
+      if (result && result.results && Array.isArray(result.results)) {
+        const Interface = (await import('../Models/Interface.js')).default;
+        for (let i = 0; i < result.results.length; i++) {
+          if (result.results[i].interface_id) {
+            try {
+              const interfaceDoc = await Interface.findById(result.results[i].interface_id)
+                .select('title path method')
+                .lean();
+              if (interfaceDoc) {
+                result.results[i].interface_id = interfaceDoc;
+              }
+            } catch (populateError) {
+              logger.warn({ 
+                interfaceId: result.results[i].interface_id,
+                error: populateError.message 
+              }, 'Failed to populate interface_id in result');
+            }
+          }
+        }
+      }
+
+      if (format === 'html') {
+        // 生成 HTML 报告
+        const html = AutoTestTaskController.generateHTMLReport(result);
+        ctx.set('Content-Type', 'text/html; charset=utf-8');
+        ctx.set('Content-Disposition', `attachment; filename="test-report-${resultId}.html"`);
+        ctx.body = html;
+      } else if (format === 'pdf') {
+        // 尝试使用 puppeteer 生成 PDF
+        try {
+          let puppeteer;
+          try {
+            puppeteer = await import('puppeteer');
+          } catch (importError) {
+            logger.error({ error: importError }, 'Failed to import puppeteer');
+            ctx.status = 400;
+            ctx.body = AutoTestTaskController.error('PDF 导出功能需要安装 puppeteer 依赖。请在 Server 目录下运行: npm install puppeteer');
+            return;
+          }
+
+          const html = AutoTestTaskController.generateHTMLReport(result);
+          
+          let browser;
+          try {
+            browser = await puppeteer.default.launch({
+              headless: true,
+              args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-accelerated-2d-canvas',
+                '--disable-gpu',
+              ],
+            });
+          } catch (launchError) {
+            logger.error({ error: launchError }, 'Failed to launch browser');
+            ctx.status = 500;
+            ctx.body = AutoTestTaskController.error(
+              `无法启动浏览器生成 PDF: ${launchError.message}。请确保系统已安装必要的依赖。`
+            );
+            return;
+          }
+          
+          try {
+            const page = await browser.newPage();
+            await page.setContent(html, { waitUntil: 'networkidle0', timeout: 30000 });
+            
+            const pdf = await page.pdf({
+              format: 'A4',
+              printBackground: true,
+              margin: {
+                top: '20mm',
+                right: '15mm',
+                bottom: '20mm',
+                left: '15mm',
+              },
+            });
+            
+            await browser.close();
+            
+            ctx.set('Content-Type', 'application/pdf');
+            ctx.set('Content-Disposition', `attachment; filename="test-report-${resultId}.pdf"`);
+            ctx.body = pdf;
+          } catch (pdfError) {
+            // 确保浏览器被关闭
+            try {
+              await browser.close();
+            } catch (closeError) {
+              logger.warn({ error: closeError }, 'Failed to close browser');
+            }
+            throw pdfError;
+          }
+        } catch (error) {
+          logger.error({ 
+            error: error.message,
+            stack: error.stack,
+            resultId 
+          }, 'PDF generation error');
+          ctx.status = 500;
+          const errorMessage = process.env.NODE_ENV === 'production'
+            ? 'PDF 生成失败，请检查服务器日志'
+            : `PDF 生成失败: ${error.message}。如果 puppeteer 未安装，请在 Server 目录下运行: npm install puppeteer`;
+          ctx.body = AutoTestTaskController.error(errorMessage);
+        }
+      } else {
+        ctx.status = 400;
+        ctx.body = AutoTestTaskController.error(`不支持的导出格式: ${format}`);
+      }
+    } catch (error) {
+      logger.error({ error }, 'Export test result error');
+      ctx.status = 500;
+      ctx.body = AutoTestTaskController.error(
+        process.env.NODE_ENV === 'production'
+          ? '导出失败'
+          : error.message || '导出失败'
+      );
+    }
+  }
+
+  // 生成 HTML 报告
+  static generateHTMLReport(result) {
+    const isAllPassed = result.summary.total > 0 && 
+                        result.summary.passed === result.summary.total && 
+                        result.summary.failed === 0 && 
+                        result.summary.error === 0;
+    const overallStatus = isAllPassed ? '成功' : '失败';
+    const overallStatusColor = isAllPassed ? '#52c41a' : '#ff4d4f';
+    const failedCount = result.summary.failed + result.summary.error;
+    
+    const formatDate = (dateStr) => {
+      if (!dateStr) return 'N/A';
+      const date = new Date(dateStr);
+      return date.toLocaleString('zh-CN', { 
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit', 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit' 
+      });
+    };
+
+    const formatJSON = (obj) => {
+      if (!obj) return 'N/A';
+      try {
+        return JSON.stringify(obj, null, 2);
+      } catch {
+        return String(obj);
+      }
+    };
+
+    const html = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>测试报告 - ${result._id}</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .header {
+      border-bottom: 2px solid #e8e8e8;
+      padding-bottom: 20px;
+      margin-bottom: 30px;
+    }
+    .header h1 {
+      font-size: 24px;
+      color: #262626;
+      margin-bottom: 10px;
+    }
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    .summary-item {
+      padding: 20px;
+      border-radius: 6px;
+      border: 1px solid #e8e8e8;
+      text-align: center;
+    }
+    .summary-item.result {
+      background: ${overallStatusColor}15;
+      border-color: ${overallStatusColor};
+    }
+    .summary-item.success {
+      background: #52c41a15;
+      border-color: #52c41a;
+    }
+    .summary-item.failed {
+      background: ${failedCount > 0 ? '#ff4d4f15' : '#52c41a15'};
+      border-color: ${failedCount > 0 ? '#ff4d4f' : '#52c41a'};
+    }
+    .summary-item .label {
+      font-size: 14px;
+      color: #8c8c8c;
+      margin-bottom: 8px;
+    }
+    .summary-item .value {
+      font-size: 28px;
+      font-weight: bold;
+      color: #262626;
+    }
+    .summary-item.result .value {
+      color: ${overallStatusColor};
+    }
+    .summary-item.success .value {
+      color: #52c41a;
+    }
+    .summary-item.failed .value {
+      color: ${failedCount > 0 ? '#ff4d4f' : '#52c41a'};
+    }
+    .info {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      margin-bottom: 30px;
+      padding: 15px;
+      background: #fafafa;
+      border-radius: 6px;
+    }
+    .info-item {
+      display: flex;
+      justify-content: space-between;
+    }
+    .info-item .label {
+      color: #8c8c8c;
+    }
+    .info-item .value {
+      font-weight: 500;
+    }
+    .test-cases {
+      margin-top: 30px;
+    }
+    .test-case {
+      border: 1px solid #e8e8e8;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .test-case-header {
+      padding: 15px 20px;
+      background: #fafafa;
+      border-bottom: 1px solid #e8e8e8;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    .test-case-header.passed {
+      background: #f6ffed;
+      border-bottom-color: #b7eb8f;
+    }
+    .test-case-header.failed {
+      background: #fff2e8;
+      border-bottom-color: #ffbb96;
+    }
+    .test-case-header.error {
+      background: #fff1f0;
+      border-bottom-color: #ffccc7;
+    }
+    .test-case-number {
+      display: inline-block;
+      width: 30px;
+      height: 30px;
+      line-height: 30px;
+      text-align: center;
+      background: #1890ff;
+      color: white;
+      border-radius: 4px;
+      font-weight: bold;
+    }
+    .test-case-status {
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .test-case-status.passed {
+      background: #52c41a;
+      color: white;
+    }
+    .test-case-status.failed {
+      background: #ff4d4f;
+      color: white;
+    }
+    .test-case-status.error {
+      background: #ff7875;
+      color: white;
+    }
+    .test-case-name {
+      font-weight: 500;
+      flex: 1;
+    }
+    .test-case-method {
+      color: #8c8c8c;
+      font-family: monospace;
+    }
+    .test-case-body {
+      padding: 20px;
+    }
+    .section {
+      margin-bottom: 20px;
+    }
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #e8e8e8;
+    }
+    .section-content {
+      background: #fafafa;
+      padding: 15px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    pre {
+      margin: 0;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .error-message {
+      color: #ff4d4f;
+      font-weight: 500;
+    }
+    .assertion-passed {
+      color: #52c41a;
+      font-weight: 500;
+    }
+    .assertion-failed {
+      color: #ff4d4f;
+      font-weight: 500;
+    }
+    @media print {
+      body {
+        background: white;
+        padding: 0;
+      }
+      .container {
+        box-shadow: none;
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>测试报告</h1>
+      <p style="color: #8c8c8c; margin-top: 5px;">报告ID: ${result._id}</p>
+    </div>
+    
+    <div class="summary">
+      <div class="summary-item result">
+        <div class="label">结果</div>
+        <div class="value">${overallStatus}</div>
+      </div>
+      <div class="summary-item success">
+        <div class="label">成功用例</div>
+        <div class="value">${result.summary.passed}</div>
+      </div>
+      <div class="summary-item failed">
+        <div class="label">失败用例</div>
+        <div class="value">${failedCount}</div>
+      </div>
+    </div>
+    
+    <div class="info">
+      <div class="info-item">
+        <span class="label">总用例数:</span>
+        <span class="value">${result.summary.total}</span>
+      </div>
+      <div class="info-item">
+        <span class="label">耗时:</span>
+        <span class="value">${result.duration}ms</span>
+      </div>
+      <div class="info-item">
+        <span class="label">开始时间:</span>
+        <span class="value">${formatDate(result.started_at)}</span>
+      </div>
+      <div class="info-item">
+        <span class="label">结束时间:</span>
+        <span class="value">${formatDate(result.completed_at || '')}</span>
+      </div>
+    </div>
+    
+    <div class="test-cases">
+      <h2 style="margin-bottom: 20px; font-size: 18px;">测试用例详情</h2>
+      ${(result.results || []).map((testCase, index) => {
+        const statusClass = testCase.status === 'passed' ? 'passed' : 
+                           testCase.status === 'failed' ? 'failed' : 'error';
+        const interfaceName = testCase.interface_name || 
+                              (testCase.interface_id?.title || testCase.interface_id?.path || '未知接口');
+        return `
+        <div class="test-case">
+          <div class="test-case-header ${statusClass}">
+            <span class="test-case-number">${index + 1}</span>
+            <span class="test-case-status ${statusClass}">${testCase.status === 'passed' ? '通过' : testCase.status === 'failed' ? '失败' : '错误'}</span>
+            <span class="test-case-name">${interfaceName}</span>
+            <span class="test-case-method">${testCase.request?.method || 'GET'} ${testCase.request?.url || ''}</span>
+          </div>
+          <div class="test-case-body">
+            <div class="section">
+              <div class="section-title">请求信息</div>
+              <div class="section-content">
+                <div style="margin-bottom: 10px;"><strong>URL:</strong> ${testCase.request?.url || 'N/A'}</div>
+                <div style="margin-bottom: 10px;"><strong>方法:</strong> ${testCase.request?.method || 'N/A'}</div>
+                ${testCase.request?.query && Object.keys(testCase.request.query).length > 0 ? `
+                <div style="margin-bottom: 10px;"><strong>查询参数:</strong></div>
+                <pre>${formatJSON(testCase.request.query)}</pre>
+                ` : ''}
+                ${testCase.request?.body ? `
+                <div style="margin-bottom: 10px;"><strong>请求体:</strong></div>
+                <pre>${formatJSON(testCase.request.body)}</pre>
+                ` : ''}
+                ${testCase.request?.headers && Object.keys(testCase.request.headers).length > 0 ? `
+                <div style="margin-bottom: 10px;"><strong>请求头:</strong></div>
+                <pre>${formatJSON(testCase.request.headers)}</pre>
+                ` : ''}
+              </div>
+            </div>
+            
+            ${testCase.response ? `
+            <div class="section">
+              <div class="section-title">响应信息</div>
+              <div class="section-content">
+                <div style="margin-bottom: 10px;"><strong>状态码:</strong> ${testCase.response.status_code || 'N/A'}</div>
+                <div style="margin-bottom: 10px;"><strong>耗时:</strong> ${testCase.response.duration || 0}ms</div>
+                ${testCase.response.headers && Object.keys(testCase.response.headers).length > 0 ? `
+                <div style="margin-bottom: 10px;"><strong>响应头:</strong></div>
+                <pre>${formatJSON(testCase.response.headers)}</pre>
+                ` : ''}
+                ${testCase.response.body ? `
+                <div style="margin-bottom: 10px;"><strong>响应体:</strong></div>
+                <pre>${formatJSON(testCase.response.body)}</pre>
+                ` : ''}
+              </div>
+            </div>
+            ` : ''}
+            
+            ${testCase.error ? `
+            <div class="section">
+              <div class="section-title">错误信息</div>
+              <div class="section-content">
+                <div class="error-message" style="margin-bottom: 10px;"><strong>错误:</strong> ${testCase.error.message || '未知错误'}</div>
+                ${testCase.error.code ? `<div style="margin-bottom: 10px;"><strong>错误码:</strong> ${testCase.error.code}</div>` : ''}
+                ${testCase.error.stack ? `
+                <div style="margin-bottom: 10px;"><strong>堆栈:</strong></div>
+                <pre>${testCase.error.stack}</pre>
+                ` : ''}
+              </div>
+            </div>
+            ` : ''}
+            
+            ${testCase.assertion_result ? `
+            <div class="section">
+              <div class="section-title">断言结果</div>
+              <div class="section-content">
+                <div class="${testCase.assertion_result.passed ? 'assertion-passed' : 'assertion-failed'}" style="margin-bottom: 10px;">
+                  <strong>状态:</strong> ${testCase.assertion_result.passed ? '通过' : '失败'}
+                </div>
+                ${testCase.assertion_result.message ? `
+                <div style="margin-bottom: 10px;"><strong>消息:</strong> ${testCase.assertion_result.message}</div>
+                ` : ''}
+                ${testCase.assertion_result.errors && testCase.assertion_result.errors.length > 0 ? `
+                <div style="margin-bottom: 10px;"><strong>错误列表:</strong></div>
+                <ul style="margin-left: 20px;">
+                  ${testCase.assertion_result.errors.map((err) => `<li class="error-message">${String(err).replace(/</g, '&lt;').replace(/>/g, '&gt;')}</li>`).join('')}
+                </ul>
+                ` : ''}
+              </div>
+            </div>
+            ` : ''}
+          </div>
+        </div>
+        `;
+      }).join('')}
+    </div>
+    
+    <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e8e8e8; text-align: center; color: #8c8c8c; font-size: 12px;">
+      <p>报告生成时间: ${formatDate(new Date().toISOString())}</p>
+      <p>ApiAdmin Test Pipeline Report</p>
+    </div>
+  </div>
+</body>
+</html>`;
+    return html;
   }
 
   // 导出测试流水线

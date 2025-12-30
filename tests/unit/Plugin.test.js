@@ -5,8 +5,15 @@ import User from '../../Server/Models/User.js';
 
 describe('Plugin Model', () => {
   beforeEach(async () => {
-    if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(process.env.MONGODB_URL || 'mongodb://localhost:27017/apiadmin_test');
+    const { connectTestDB, ensureConnection } = await import('./test-helpers.js');
+    try {
+      await connectTestDB();
+      await ensureConnection();
+    } catch (error) {
+      if (error.message?.includes('authentication')) {
+        throw new Error('MongoDB authentication required');
+      }
+      throw error;
     }
     await Plugin.deleteMany({});
     await User.deleteMany({});
@@ -74,8 +81,15 @@ describe('Plugin Controller', () => {
   let testUser;
 
   beforeEach(async () => {
-    if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(process.env.MONGODB_URL || 'mongodb://localhost:27017/apiadmin_test');
+    const { connectTestDB, ensureConnection } = await import('./test-helpers.js');
+    try {
+      await connectTestDB();
+      await ensureConnection();
+    } catch (error) {
+      if (error.message?.includes('authentication')) {
+        throw new Error('MongoDB authentication required');
+      }
+      throw error;
     }
     await Plugin.deleteMany({});
     await User.deleteMany({});

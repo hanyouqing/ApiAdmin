@@ -23,6 +23,8 @@ import PostmanImport from './Containers/Admin/PostmanImport';
 import TestPipeline from './Containers/TestPipeline';
 
 import { setGlobalAppInstance } from './Utils/messageInstance';
+import { pluginLoader } from './Utils/pluginLoader';
+import { api } from './Utils/api';
 
 const getAntdLocale = (locale: string) => {
   return locale === 'zh-CN' ? zhCN : enUS;
@@ -90,6 +92,37 @@ const AppContent: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 const Application: React.FC = () => {
   const locale = useSelector((state: RootState) => state.ui.locale);
+  const [pluginRoutes, setPluginRoutes] = useState<Array<{ path: string; component: React.ComponentType<any> }>>([]);
+
+  useEffect(() => {
+    const loadPlugins = async () => {
+      try {
+        // api.ts 的 baseURL 已经是 '/api'，所以这里只需要 'plugins'
+        const response = await api.get('/plugins', { params: { enabled: true } });
+        const plugins = response.data?.data || [];
+        
+        for (const plugin of plugins) {
+          if (plugin.manifest) {
+            try {
+              await pluginLoader.loadPlugin(plugin.manifest);
+            } catch (pluginError) {
+              // 单个插件加载失败不影响其他插件
+              console.warn(`Failed to load plugin ${plugin.name || plugin._id}:`, pluginError);
+            }
+          }
+        }
+        
+        setPluginRoutes(pluginLoader.getRoutes());
+      } catch (error) {
+        // 插件功能是可选的，静默处理错误，避免影响主应用
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Failed to load plugins (this is optional):', error);
+        }
+      }
+    };
+
+    loadPlugins();
+  }, []);
 
   return (
     <ConfigProvider locale={getAntdLocale(locale)} theme={antdTheme}>
@@ -122,6 +155,9 @@ const Application: React.FC = () => {
                         <Route path="/test-pipeline" element={<TestPipeline />} />
                         <Route path="/user/*" element={<User />} />
                         <Route path="/admin/*" element={<Admin />} />
+                        {pluginRoutes.map((route, index) => (
+                          <Route key={index} path={route.path} element={<route.component />} />
+                        ))}
                       </Routes>
                     </Layout>
                   </PrivateRoute>

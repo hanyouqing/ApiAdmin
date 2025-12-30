@@ -2,6 +2,7 @@ import Interface from '../Models/Interface.js';
 import Project from '../Models/Project.js';
 import { logger } from '../Utils/logger.js';
 import { executeMockScript } from '../Utils/mockScriptExecutor.js';
+import { executeBeforeMockHook, executeAfterMockHook } from './pluginHook.js';
 
 export const mockServer = async (ctx, next) => {
   if (!ctx.path.startsWith('/mock/')) {
@@ -60,6 +61,15 @@ export const mockServer = async (ctx, next) => {
     })
       .sort({ priority: -1, created_at: -1 });
 
+    const requestData = {
+      method: ctx.method,
+      url: ctx.url,
+      path: ctx.path,
+      query: ctx.query,
+      body: ctx.request.body,
+      headers: ctx.headers,
+    };
+
     if (expectation && matchesExpectation(ctx, expectation)) {
       responseData = expectation.response.body;
       statusCode = expectation.response.status_code;
@@ -71,20 +81,25 @@ export const mockServer = async (ctx, next) => {
       let parsedMockData = {};
 
       try {
-        if (interfaceData.res_body_type === 'json') {
-          const Mock = (await import('mockjs')).default;
-          const JSON5 = (await import('json5')).default;
-
-          if (project.enable_json5) {
-            parsedMockData = JSON5.parse(mockData);
-          } else {
-            parsedMockData = JSON.parse(mockData);
-          }
-
-          parsedMockData = Mock.mock(parsedMockData);
-          parsedMockData = replaceVariables(parsedMockData, ctx);
+        const beforeMockResult = await executeBeforeMockHook(interfaceData, requestData);
+        if (beforeMockResult && beforeMockResult.mockData) {
+          parsedMockData = beforeMockResult.mockData;
         } else {
-          parsedMockData = mockData;
+          if (interfaceData.res_body_type === 'json') {
+            const Mock = (await import('mockjs')).default;
+            const JSON5 = (await import('json5')).default;
+
+            if (project.enable_json5) {
+              parsedMockData = JSON5.parse(mockData);
+            } else {
+              parsedMockData = JSON.parse(mockData);
+            }
+
+            parsedMockData = Mock.mock(parsedMockData);
+            parsedMockData = replaceVariables(parsedMockData, ctx);
+          } else {
+            parsedMockData = mockData;
+          }
         }
 
         const scriptContext = {
@@ -127,10 +142,12 @@ export const mockServer = async (ctx, next) => {
           }
         }
 
+        const finalMockData = await executeAfterMockHook(interfaceData, requestData, parsedMockData);
+
         if (interfaceData.res_body_type === 'json') {
-          responseData = JSON.stringify(parsedMockData, null, 2);
+          responseData = JSON.stringify(finalMockData, null, 2);
         } else {
-          responseData = parsedMockData;
+          responseData = finalMockData;
         }
       } catch (error) {
         logger.error({ error, interfaceId: interfaceData._id }, 'Mock data generation error');

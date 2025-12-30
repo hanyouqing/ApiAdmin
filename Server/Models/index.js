@@ -26,4 +26,7 @@ import './ProjectMember.js';
 import './GroupMember.js';
 import './RolePermission.js';
 import './ThirdPartyAuthConfig.js';
+import './InterfaceVersion.js';
+import './CollaborationSession.js';
+import './DocumentVersion.js';
 

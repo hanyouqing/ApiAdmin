@@ -33,13 +33,15 @@ import {
   ExportOutlined,
   CopyOutlined,
   HolderOutlined,
+  DownloadOutlined,
 } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { api } from '../../Utils/api';
-import { useSelector } from 'react-redux';
-import type { RootState } from '../../Reducer/Create';
+import { useSelector, useDispatch } from 'react-redux';
+import type { RootState, AppDispatch } from '../../Reducer/Create';
+import { setTestPipelineRunning } from '../../Reducer/Modules/UI';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -521,6 +523,7 @@ assert.ok(typeof body === 'object', '响应体应为对象类型');
 const TestPipeline: React.FC = () => {
   const { t } = useTranslation();
   const { message: messageApi } = App.useApp();
+  const dispatch = useDispatch<AppDispatch>();
   const user = useSelector((state: RootState) => state.user.user);
   const [tasks, setTasks] = useState<TestTask[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
@@ -537,6 +540,15 @@ const TestPipeline: React.FC = () => {
   const [selectedResult, setSelectedResult] = useState<TestResult | null>(null);
   const [running, setRunning] = useState(false);
   const [runningCaseIndex, setRunningCaseIndex] = useState<number | null>(null);
+  
+  // 同步运行状态到 Redux store
+  React.useEffect(() => {
+    dispatch(setTestPipelineRunning(running));
+    // 组件卸载时重置状态
+    return () => {
+      dispatch(setTestPipelineRunning(false));
+    };
+  }, [running, dispatch]);
   const [form] = Form.useForm();
   const [caseForm] = Form.useForm();
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
@@ -1257,6 +1269,7 @@ const TestPipeline: React.FC = () => {
     }
 
     setRunning(true);
+    dispatch(setTestPipelineRunning(true));
     try {
       const response = await api.post(`/auto-test/tasks/${taskToRun._id}/run`);
       // 兼容两种字段名格式
@@ -1273,18 +1286,22 @@ const TestPipeline: React.FC = () => {
               setSelectedResult(result);
               setResultModalVisible(true);
               setRunning(false);
+              dispatch(setTestPipelineRunning(false));
             } else {
               setRunning(false);
+              dispatch(setTestPipelineRunning(false));
               messageApi.error('获取测试结果失败：结果数据为空');
             }
           } catch (error: any) {
             setRunning(false);
+            dispatch(setTestPipelineRunning(false));
             messageApi.error(error.response?.data?.message || '获取测试结果失败');
           }
         };
         pollResult();
       } else {
         setRunning(false);
+        dispatch(setTestPipelineRunning(false));
         // 提供更详细的错误信息
         const errorMsg = response.data?.message || '启动测试失败：未返回结果ID';
         messageApi.error(errorMsg);
@@ -1292,17 +1309,528 @@ const TestPipeline: React.FC = () => {
       }
     } catch (error: any) {
       setRunning(false);
+      dispatch(setTestPipelineRunning(false));
       const errorMsg = error.response?.data?.message || error.message || '运行测试失败';
       messageApi.error(errorMsg);
       console.error('运行测试异常：', error);
     }
   };
 
+  // 生成 HTML 报告
+  const generateHTMLReport = (result: TestResult): string => {
+    const isAllPassed = result.summary.total > 0 && 
+                        result.summary.passed === result.summary.total && 
+                        result.summary.failed === 0 && 
+                        result.summary.error === 0;
+    const overallStatus = isAllPassed ? '成功' : '失败';
+    const overallStatusColor = isAllPassed ? '#52c41a' : '#ff4d4f';
+    const failedCount = result.summary.failed + result.summary.error;
+    
+    const formatDate = (dateStr: string) => {
+      if (!dateStr) return 'N/A';
+      const date = new Date(dateStr);
+      return date.toLocaleString('zh-CN', { 
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit', 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit' 
+      });
+    };
+
+    const formatJSON = (obj: any) => {
+      if (!obj) return 'N/A';
+      try {
+        return JSON.stringify(obj, null, 2);
+      } catch {
+        return String(obj);
+      }
+    };
+
+    const html = `
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>测试报告 - ${result._id}</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .header {
+      border-bottom: 2px solid #e8e8e8;
+      padding-bottom: 20px;
+      margin-bottom: 30px;
+    }
+    .header h1 {
+      font-size: 24px;
+      color: #262626;
+      margin-bottom: 10px;
+    }
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    .summary-item {
+      padding: 20px;
+      border-radius: 6px;
+      border: 1px solid #e8e8e8;
+      text-align: center;
+    }
+    .summary-item.result {
+      background: ${overallStatusColor}15;
+      border-color: ${overallStatusColor};
+    }
+    .summary-item.success {
+      background: #52c41a15;
+      border-color: #52c41a;
+    }
+    .summary-item.failed {
+      background: ${failedCount > 0 ? '#ff4d4f15' : '#52c41a15'};
+      border-color: ${failedCount > 0 ? '#ff4d4f' : '#52c41a'};
+    }
+    .summary-item .label {
+      font-size: 14px;
+      color: #8c8c8c;
+      margin-bottom: 8px;
+    }
+    .summary-item .value {
+      font-size: 28px;
+      font-weight: bold;
+      color: #262626;
+    }
+    .summary-item.result .value {
+      color: ${overallStatusColor};
+    }
+    .summary-item.success .value {
+      color: #52c41a;
+    }
+    .summary-item.failed .value {
+      color: ${failedCount > 0 ? '#ff4d4f' : '#52c41a'};
+    }
+    .info {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      margin-bottom: 30px;
+      padding: 15px;
+      background: #fafafa;
+      border-radius: 6px;
+    }
+    .info-item {
+      display: flex;
+      justify-content: space-between;
+    }
+    .info-item .label {
+      color: #8c8c8c;
+    }
+    .info-item .value {
+      font-weight: 500;
+    }
+    .test-cases {
+      margin-top: 30px;
+    }
+    .test-case {
+      border: 1px solid #e8e8e8;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .test-case-header {
+      padding: 15px 20px;
+      background: #fafafa;
+      border-bottom: 1px solid #e8e8e8;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    .test-case-header.passed {
+      background: #f6ffed;
+      border-bottom-color: #b7eb8f;
+    }
+    .test-case-header.failed {
+      background: #fff2e8;
+      border-bottom-color: #ffbb96;
+    }
+    .test-case-header.error {
+      background: #fff1f0;
+      border-bottom-color: #ffccc7;
+    }
+    .test-case-number {
+      display: inline-block;
+      width: 30px;
+      height: 30px;
+      line-height: 30px;
+      text-align: center;
+      background: #1890ff;
+      color: white;
+      border-radius: 4px;
+      font-weight: bold;
+    }
+    .test-case-status {
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .test-case-status.passed {
+      background: #52c41a;
+      color: white;
+    }
+    .test-case-status.failed {
+      background: #ff4d4f;
+      color: white;
+    }
+    .test-case-status.error {
+      background: #ff7875;
+      color: white;
+    }
+    .test-case-name {
+      font-weight: 500;
+      flex: 1;
+    }
+    .test-case-method {
+      color: #8c8c8c;
+      font-family: monospace;
+    }
+    .test-case-body {
+      padding: 20px;
+    }
+    .section {
+      margin-bottom: 20px;
+    }
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #e8e8e8;
+    }
+    .section-content {
+      background: #fafafa;
+      padding: 15px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    pre {
+      margin: 0;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .error-message {
+      color: #ff4d4f;
+      font-weight: 500;
+    }
+    .assertion-passed {
+      color: #52c41a;
+      font-weight: 500;
+    }
+    .assertion-failed {
+      color: #ff4d4f;
+      font-weight: 500;
+    }
+    @media print {
+      body {
+        background: white;
+        padding: 0;
+      }
+      .container {
+        box-shadow: none;
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>测试报告</h1>
+      <p style="color: #8c8c8c; margin-top: 5px;">报告ID: ${result._id}</p>
+    </div>
+    
+    <div class="summary">
+      <div class="summary-item result">
+        <div class="label">结果</div>
+        <div class="value">${overallStatus}</div>
+      </div>
+      <div class="summary-item success">
+        <div class="label">成功用例</div>
+        <div class="value">${result.summary.passed}</div>
+      </div>
+      <div class="summary-item failed">
+        <div class="label">失败用例</div>
+        <div class="value">${failedCount}</div>
+      </div>
+    </div>
+    
+    <div class="info">
+      <div class="info-item">
+        <span class="label">总用例数:</span>
+        <span class="value">${result.summary.total}</span>
+      </div>
+      <div class="info-item">
+        <span class="label">耗时:</span>
+        <span class="value">${result.duration}ms</span>
+      </div>
+      <div class="info-item">
+        <span class="label">开始时间:</span>
+        <span class="value">${formatDate(result.started_at)}</span>
+      </div>
+      <div class="info-item">
+        <span class="label">结束时间:</span>
+        <span class="value">${formatDate(result.completed_at || '')}</span>
+      </div>
+    </div>
+    
+    <div class="test-cases">
+      <h2 style="margin-bottom: 20px; font-size: 18px;">测试用例详情</h2>
+      ${(result.results || []).map((testCase, index) => {
+        const statusClass = testCase.status === 'passed' ? 'passed' : 
+                           testCase.status === 'failed' ? 'failed' : 'error';
+        const interfaceName = testCase.interface_name || 
+                              (testCase.interface_id?.title || testCase.interface_id?.path || '未知接口');
+        return `
+        <div class="test-case">
+          <div class="test-case-header ${statusClass}">
+            <span class="test-case-number">${index + 1}</span>
+            <span class="test-case-status ${statusClass}">${testCase.status === 'passed' ? '通过' : testCase.status === 'failed' ? '失败' : '错误'}</span>
+            <span class="test-case-name">${interfaceName}</span>
+            <span class="test-case-method">${testCase.request?.method || 'GET'} ${testCase.request?.url || ''}</span>
+          </div>
+          <div class="test-case-body">
+            <div class="section">
+              <div class="section-title">请求信息</div>
+              <div class="section-content">
+                <div style="margin-bottom: 10px;"><strong>URL:</strong> ${testCase.request?.url || 'N/A'}</div>
+                <div style="margin-bottom: 10px;"><strong>方法:</strong> ${testCase.request?.method || 'N/A'}</div>
+                ${testCase.request?.query && Object.keys(testCase.request.query).length > 0 ? `
+                <div style="margin-bottom: 10px;"><strong>查询参数:</strong></div>
+                <pre>${formatJSON(testCase.request.query)}</pre>
+                ` : ''}
+                ${testCase.request?.body ? `
+                <div style="margin-bottom: 10px;"><strong>请求体:</strong></div>
+                <pre>${formatJSON(testCase.request.body)}</pre>
+                ` : ''}
+                ${testCase.request?.headers && Object.keys(testCase.request.headers).length > 0 ? `
+                <div style="margin-bottom: 10px;"><strong>请求头:</strong></div>
+                <pre>${formatJSON(testCase.request.headers)}</pre>
+                ` : ''}
+              </div>
+            </div>
+            
+            ${testCase.response ? `
+            <div class="section">
+              <div class="section-title">响应信息</div>
+              <div class="section-content">
+                <div style="margin-bottom: 10px;"><strong>状态码:</strong> ${testCase.response.status_code || 'N/A'}</div>
+                <div style="margin-bottom: 10px;"><strong>耗时:</strong> ${testCase.response.duration || 0}ms</div>
+                ${testCase.response.headers && Object.keys(testCase.response.headers).length > 0 ? `
+                <div style="margin-bottom: 10px;"><strong>响应头:</strong></div>
+                <pre>${formatJSON(testCase.response.headers)}</pre>
+                ` : ''}
+                ${testCase.response.body ? `
+                <div style="margin-bottom: 10px;"><strong>响应体:</strong></div>
+                <pre>${formatJSON(testCase.response.body)}</pre>
+                ` : ''}
+              </div>
+            </div>
+            ` : ''}
+            
+            ${testCase.error ? `
+            <div class="section">
+              <div class="section-title">错误信息</div>
+              <div class="section-content">
+                <div class="error-message" style="margin-bottom: 10px;"><strong>错误:</strong> ${testCase.error.message || '未知错误'}</div>
+                ${testCase.error.code ? `<div style="margin-bottom: 10px;"><strong>错误码:</strong> ${testCase.error.code}</div>` : ''}
+                ${testCase.error.stack ? `
+                <div style="margin-bottom: 10px;"><strong>堆栈:</strong></div>
+                <pre>${testCase.error.stack}</pre>
+                ` : ''}
+              </div>
+            </div>
+            ` : ''}
+            
+            ${testCase.assertion_result ? `
+            <div class="section">
+              <div class="section-title">断言结果</div>
+              <div class="section-content">
+                <div class="${testCase.assertion_result.passed ? 'assertion-passed' : 'assertion-failed'}" style="margin-bottom: 10px;">
+                  <strong>状态:</strong> ${testCase.assertion_result.passed ? '通过' : '失败'}
+                </div>
+                ${testCase.assertion_result.message ? `
+                <div style="margin-bottom: 10px;"><strong>消息:</strong> ${testCase.assertion_result.message}</div>
+                ` : ''}
+                ${testCase.assertion_result.errors && testCase.assertion_result.errors.length > 0 ? `
+                <div style="margin-bottom: 10px;"><strong>错误列表:</strong></div>
+                <ul style="margin-left: 20px;">
+                  ${testCase.assertion_result.errors.map((err: string) => `<li class="error-message">${String(err).replace(/</g, '&lt;').replace(/>/g, '&gt;')}</li>`).join('')}
+                </ul>
+                ` : ''}
+              </div>
+            </div>
+            ` : ''}
+          </div>
+        </div>
+        `;
+      }).join('')}
+    </div>
+    
+    <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e8e8e8; text-align: center; color: #8c8c8c; font-size: 12px;">
+      <p>报告生成时间: ${formatDate(new Date().toISOString())}</p>
+      <p>ApiAdmin Test Pipeline Report</p>
+    </div>
+  </div>
+</body>
+</html>
+    `;
+    return html;
+  };
+
+  // 下载 HTML 报告
+  const handleDownloadHTMLReport = () => {
+    if (!selectedResult) return;
+    
+    try {
+      const html = generateHTMLReport(selectedResult);
+      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `test-report-${selectedResult._id}-${new Date().getTime()}.html`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      messageApi.success('HTML 报告下载成功');
+    } catch (error: any) {
+      console.error('生成 HTML 报告失败:', error);
+      messageApi.error('生成 HTML 报告失败');
+    }
+  };
+
+  // 下载 PDF 报告（通过后端生成）
+  const handleDownloadPDFReport = async () => {
+    if (!selectedResult) return;
+    
+    try {
+      const response = await api.post(`/auto-test/results/${selectedResult._id}/export`, {
+        format: 'pdf'
+      }, {
+        responseType: 'blob',
+      });
+      
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `test-report-${selectedResult._id}-${new Date().getTime()}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      messageApi.success('PDF 报告下载成功');
+    } catch (error: any) {
+      console.error('生成 PDF 报告失败:', error);
+      // 尝试从响应中获取错误信息
+      let errorMessage = '生成 PDF 报告失败';
+      if (error.response) {
+        if (error.response.data) {
+          // 如果是 blob 响应，尝试读取为文本
+          if (error.response.data instanceof Blob) {
+            try {
+              const text = await error.response.data.text();
+              const json = JSON.parse(text);
+              errorMessage = json.message || json.error || errorMessage;
+            } catch {
+              errorMessage = error.response.statusText || errorMessage;
+            }
+          } else if (typeof error.response.data === 'object') {
+            errorMessage = error.response.data.message || error.response.data.error || errorMessage;
+          } else if (typeof error.response.data === 'string') {
+            errorMessage = error.response.data;
+          }
+        } else {
+          errorMessage = error.response.statusText || errorMessage;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      messageApi.error(errorMessage);
+    }
+  };
+
   const handleViewTask = async (task: TestTask) => {
     try {
       const response = await api.get(`/auto-test/tasks/${task._id}`);
-      setSelectedTask(response.data.data);
+      const taskData = response.data?.data;
+      
+      if (!taskData) {
+        messageApi.error('获取任务详情失败：返回数据为空');
+        return;
+      }
+      
+      // 确保 test_cases 字段存在
+      if (!taskData.test_cases) {
+        taskData.test_cases = [];
+      }
+      
+      setSelectedTask(taskData);
+      
+      // 获取项目ID（可能是字符串或对象）
+      const taskProjectId = typeof taskData.project_id === 'string' 
+        ? taskData.project_id 
+        : taskData.project_id?._id || taskData.project_id;
+      
+      // 如果任务的项目ID与当前选择的项目ID不同，需要加载对应的接口数据
+      if (taskProjectId && taskProjectId !== selectedProjectId) {
+        // 加载该项目的接口数据
+        try {
+          const interfacesResponse = await api.get('/interface/list', {
+            params: { project_id: taskProjectId },
+          });
+          setInterfaces(interfacesResponse.data?.data || []);
+        } catch (error: any) {
+          console.error('获取接口列表失败:', error);
+          // 不显示错误消息，因为可能只是接口数据加载失败，不影响查看任务
+        }
+      } else if (taskProjectId && taskProjectId === selectedProjectId && interfaces.length === 0) {
+        // 如果项目ID相同但接口数据未加载，则加载接口数据
+        fetchInterfaces();
+      }
+      
+      // 延迟滚动到测试用例列表，确保DOM已更新
+      setTimeout(() => {
+        const taskCard = document.querySelector('[data-test-task-card]');
+        if (taskCard) {
+          taskCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
     } catch (error: any) {
+      console.error('获取任务详情失败:', error);
       messageApi.error(error.response?.data?.message || '获取任务详情失败');
     }
   };
@@ -1501,6 +2029,7 @@ const TestPipeline: React.FC = () => {
 
       {selectedTask && (
         <Card
+          data-test-task-card
           title={selectedTask.name}
           extra={
             <Space>
@@ -1922,39 +2451,81 @@ const TestPipeline: React.FC = () => {
           setResultModalVisible(false);
           setSelectedResult(null);
         }}
-        footer={null}
+        footer={
+          selectedResult ? (
+            <Space>
+              <Button
+                icon={<DownloadOutlined />}
+                onClick={handleDownloadHTMLReport}
+              >
+                下载 HTML 报告
+              </Button>
+              <Button
+                type="primary"
+                icon={<DownloadOutlined />}
+                onClick={handleDownloadPDFReport}
+                style={{ color: '#ffffff' }}
+              >
+                下载 PDF 报告
+              </Button>
+            </Space>
+          ) : null
+        }
         width={1200}
       >
-        {selectedResult && (
-          <div>
-            <Descriptions bordered column={2} style={{ marginBottom: 16 }}>
-              <Descriptions.Item label="状态">
-                <Tag color={selectedResult.status === 'passed' ? 'green' : selectedResult.status === 'failed' ? 'red' : 'orange'}>
-                  {selectedResult.status === 'passed' ? '通过' : selectedResult.status === 'failed' ? '失败' : selectedResult.status === 'error' ? '错误' : '运行中'}
-                </Tag>
-              </Descriptions.Item>
-              <Descriptions.Item label="总用例数">{selectedResult.summary.total}</Descriptions.Item>
-              <Descriptions.Item label="通过">{selectedResult.summary.passed}</Descriptions.Item>
-              <Descriptions.Item label="失败">{selectedResult.summary.failed}</Descriptions.Item>
-              <Descriptions.Item label="错误">{selectedResult.summary.error}</Descriptions.Item>
-              <Descriptions.Item label="耗时">{selectedResult.duration}ms</Descriptions.Item>
-            </Descriptions>
-            <Divider>测试用例结果</Divider>
-            <Collapse
-              items={selectedResult.results.map((result, index) => ({
-                key: index,
-                label: (
-                  <Space>
-                    <Tag>{index + 1}</Tag>
-                    <Tag color={result.status === 'passed' ? 'green' : result.status === 'failed' ? 'red' : 'orange'}>
-                      {result.status === 'passed' ? '通过' : result.status === 'failed' ? '失败' : '错误'}
-                    </Tag>
-                    <Text strong>{result.interface_name}</Text>
-                    <Text type="secondary">{result.request.method} {result.request.url}</Text>
-                  </Space>
-                ),
-                children: (
-                  <div style={{ width: '100%', maxWidth: '100%', overflow: 'hidden' }}>
+        {selectedResult && (() => {
+          // 计算总体结果：仅全部成功为成功
+          const isAllPassed = selectedResult.summary.total > 0 && 
+                              selectedResult.summary.passed === selectedResult.summary.total && 
+                              selectedResult.summary.failed === 0 && 
+                              selectedResult.summary.error === 0;
+          const overallStatus = isAllPassed ? '成功' : '失败';
+          const overallStatusColor = isAllPassed ? 'green' : 'red';
+          
+          // 计算失败用例数（包括 failed 和 error）
+          const failedCount = selectedResult.summary.failed + selectedResult.summary.error;
+          
+          return (
+            <div>
+              <Descriptions bordered column={3} style={{ marginBottom: 16 }}>
+                <Descriptions.Item label="结果">
+                  <Tag color={overallStatusColor} style={{ fontSize: '14px', padding: '4px 12px' }}>
+                    {overallStatus}
+                  </Tag>
+                </Descriptions.Item>
+                <Descriptions.Item label="成功用例">
+                  <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#52c41a' }}>
+                    {selectedResult.summary.passed} 个
+                  </span>
+                </Descriptions.Item>
+                <Descriptions.Item label="失败用例">
+                  <span style={{ fontSize: '14px', fontWeight: 'bold', color: failedCount > 0 ? '#ff4d4f' : '#52c41a' }}>
+                    {failedCount} 个
+                  </span>
+                </Descriptions.Item>
+                <Descriptions.Item label="总用例数" span={1}>
+                  {selectedResult.summary.total}
+                </Descriptions.Item>
+                <Descriptions.Item label="耗时" span={2}>
+                  {selectedResult.duration}ms
+                </Descriptions.Item>
+              </Descriptions>
+              <Divider>测试用例结果</Divider>
+              <Collapse
+                items={selectedResult.results.map((result, index) => ({
+                  key: index,
+                  label: (
+                    <Space>
+                      <Tag>{index + 1}</Tag>
+                      <Tag color={result.status === 'passed' ? 'green' : result.status === 'failed' ? 'red' : 'orange'}>
+                        {result.status === 'passed' ? '通过' : result.status === 'failed' ? '失败' : '错误'}
+                      </Tag>
+                      <Text strong>{result.interface_name}</Text>
+                      <Text type="secondary">{result.request.method} {result.request.url}</Text>
+                    </Space>
+                  ),
+                  children: (
+                    <div style={{ width: '100%', maxWidth: '100%', overflow: 'hidden' }}>
                     <Descriptions bordered size="small" column={1} style={{ width: '100%' }}>
                       <Descriptions.Item label="请求URL">
                         <Typography.Text 
@@ -2222,8 +2793,8 @@ const TestPipeline: React.FC = () => {
                                   <Text 
                                     key={i} 
                                     type="danger" 
-                                    block
                                     style={{
+                                      display: 'block',
                                       wordBreak: 'break-word',
                                       wordWrap: 'break-word',
                                       maxWidth: '100%'
@@ -2240,11 +2811,12 @@ const TestPipeline: React.FC = () => {
                       <Descriptions.Item label="耗时">{result.duration}ms</Descriptions.Item>
                     </Descriptions>
                   </div>
-                ),
-              }))}
-            />
-          </div>
-        )}
+                  ),
+                }))}
+              />
+            </div>
+          );
+        })()}
       </Modal>
 
       <Modal

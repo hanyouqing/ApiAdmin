@@ -3,6 +3,12 @@ import { BaseController } from './Base.js';
 import { validateObjectId, sanitizeInput } from '../Utils/validation.js';
 import { logger } from '../Utils/logger.js';
 import { logOperation } from '../Utils/operationLogger.js';
+import {
+  executeInterfaceCreateHook,
+  executeInterfaceUpdateHook,
+  executeInterfaceDeleteHook,
+  executeInterfaceRunHook,
+} from '../Middleware/pluginHook.js';
 import mongoose from 'mongoose';
 
 const createActivity = async (projectId, userId, action, targetType, targetId, description, metadata = {}) => {
@@ -272,6 +278,8 @@ class InterfaceController extends BaseController {
       logger.info({ userId: user._id, interfaceId: interfaceData._id }, 'Interface created');
       await createActivity(interfaceData.project_id, user._id, 'interface.created', 'interface', interfaceData._id, `创建了接口 ${title}`, { interfaceName: title });
       
+      await executeInterfaceCreateHook(interfaceData, user);
+      
       // 记录操作日志
       await logOperation({
         type: 'interface',
@@ -366,11 +374,14 @@ class InterfaceController extends BaseController {
         }
       }
 
+      const oldData = { ...interfaceData.toObject() };
       Object.assign(interfaceData, updateData);
       await interfaceData.save();
 
       logger.info({ userId: user._id, interfaceId: interfaceData._id }, 'Interface updated');
       await createActivity(interfaceData.project_id, user._id, 'interface.updated', 'interface', interfaceData._id, `更新了接口 ${interfaceData.title}`, { interfaceName: interfaceData.title });
+      
+      await executeInterfaceUpdateHook(interfaceData, user, oldData);
       
       // 记录操作日志
       await logOperation({
@@ -438,6 +449,8 @@ class InterfaceController extends BaseController {
 
       const interfaceTitle = interfaceData.title;
       const projectId = interfaceData.project_id;
+      await executeInterfaceDeleteHook(_id, user);
+      
       await Interface.findByIdAndDelete(_id);
 
       logger.info({ userId: user._id, interfaceId: _id }, 'Interface deleted');
@@ -549,6 +562,20 @@ class InterfaceController extends BaseController {
 
         logger.info({ userId: user._id, interfaceId: _id, status: response.status }, 'Interface run completed');
         await createActivity(interfaceData.project_id, user._id, 'interface.run', 'interface', _id, `运行了接口 ${interfaceData.title}`, { interfaceName: interfaceData.title, status: response.status });
+
+        await executeInterfaceRunHook(interfaceData, {
+          url,
+          method: interfaceData.method,
+          query,
+          body,
+          headers,
+        }, {
+          status: response.status,
+          statusText: response.statusText,
+          headers: response.headers,
+          data: response.data,
+          duration,
+        });
 
         ctx.body = InterfaceController.success({
           request: {
