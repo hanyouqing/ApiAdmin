@@ -121,6 +121,13 @@ class AutoTestTaskController extends BaseController {
   // 获取任务列表
   static async listTasks(ctx) {
     try {
+      const user = ctx.state.user;
+      if (!user || !user._id) {
+        ctx.status = 401;
+        ctx.body = AutoTestTaskController.error('用户未认证');
+        return;
+      }
+
       // 检查数据库连接
       const mongoose = (await import('mongoose')).default;
       if (mongoose.connection.readyState !== 1) {
@@ -131,6 +138,14 @@ class AutoTestTaskController extends BaseController {
       }
 
       const { project_id, enabled } = ctx.query;
+
+      // 确保 user._id 是 ObjectId 类型
+      let userId = user._id;
+      if (userId && !(userId instanceof mongoose.Types.ObjectId)) {
+        if (mongoose.Types.ObjectId.isValid(userId)) {
+          userId = new mongoose.Types.ObjectId(userId);
+        }
+      }
 
       const query = {};
       if (project_id && validateObjectId(project_id)) {
@@ -145,7 +160,7 @@ class AutoTestTaskController extends BaseController {
         tasks = await AutoTestTask.find(query)
           .populate({
             path: 'project_id',
-            select: 'project_name',
+            select: 'project_name uid member',
             options: { lean: true }
           })
           .populate({
@@ -177,6 +192,31 @@ class AutoTestTaskController extends BaseController {
       // 如果 tasks 为 null 或 undefined，设置为空数组
       if (!tasks || !Array.isArray(tasks)) {
         tasks = [];
+      }
+
+      // 权限过滤：如果不是超级管理员，只返回用户有权限访问的任务
+      if (user.role !== 'super_admin') {
+        tasks = tasks.filter(task => {
+          // 如果任务是用户创建的，允许访问
+          if (task.createdBy && task.createdBy._id && task.createdBy._id.toString() === userId.toString()) {
+            return true;
+          }
+          
+          // 检查用户是否有权限访问项目
+          if (task.project_id) {
+            const project = task.project_id;
+            const isOwner = project.uid && project.uid.toString() === userId.toString();
+            const isMember = project.member && Array.isArray(project.member) && 
+              project.member.some(member => {
+                const memberId = member?._id?.toString() || member?.toString() || member;
+                return memberId === userId.toString();
+              });
+            return isOwner || isMember;
+          }
+          
+          // 如果没有项目信息，不允许访问
+          return false;
+        });
       }
 
       // 确保所有任务数据都是可序列化的普通对象
