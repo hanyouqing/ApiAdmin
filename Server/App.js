@@ -162,16 +162,51 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
 }));
 
-const corsOrigin = config.CORS_ORIGIN === '*' 
-  ? '*' 
-  : config.CORS_ORIGIN?.split(',').map(origin => origin.trim()) || '*';
+// 处理 CORS origin 配置
+// 如果配置为 '*'，直接使用
+// 如果配置为多个值（逗号分隔），转换为数组，@koa/cors 会自动处理
+// 如果配置为单个值，直接使用
+let corsOrigin = '*';
+if (config.CORS_ORIGIN && config.CORS_ORIGIN !== '*') {
+  const origins = config.CORS_ORIGIN.split(',').map(origin => origin.trim()).filter(origin => origin.length > 0);
+  if (origins.length === 1) {
+    corsOrigin = origins[0];
+  } else if (origins.length > 1) {
+    corsOrigin = origins;
+  }
+}
 
 app.use(
   cors({
-    origin: corsOrigin,
+    origin: (ctx) => {
+      // 动态处理 origin，确保只返回一个值，避免重复的 CORS 头
+      const requestOrigin = ctx.get('Origin');
+      
+      if (corsOrigin === '*') {
+        return '*';
+      }
+      
+      if (Array.isArray(corsOrigin)) {
+        // 如果请求的 origin 在允许列表中，返回该 origin（只返回一个值）
+        if (requestOrigin && corsOrigin.includes(requestOrigin)) {
+          return requestOrigin;
+        }
+        // 如果没有匹配的 origin，返回 false（拒绝请求）
+        return false;
+      }
+      
+      // 单个 origin 的情况
+      if (requestOrigin === corsOrigin) {
+        return corsOrigin;
+      }
+      
+      return false;
+    },
     credentials: true,
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    // 确保不会重复设置 CORS 头
+    keepHeadersOnError: false,
   })
 );
 

@@ -35,6 +35,10 @@ const SwaggerImport: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [previewData, setPreviewData] = useState<PreviewInterface[]>([]);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+  });
   
   // 使用 useWatch 监听 swagger_url 字段值，避免在 disabled 中直接调用 form.getFieldValue
   const swaggerUrl = useWatch('swagger_url', form);
@@ -62,35 +66,83 @@ const SwaggerImport: React.FC = () => {
       }
 
       // 尝试获取Swagger文档
-      const response = await fetch(url, {
+      // 如果 URL 不包含 .json，尝试自动添加
+      let fetchUrl = url;
+      if (!url.endsWith('.json') && !url.includes('/swagger.json') && !url.includes('/openapi.json')) {
+        // 如果 URL 以 /swagger 或 /swagger-ui 结尾，尝试添加 .json
+        if (url.endsWith('/swagger') || url.endsWith('/swagger-ui')) {
+          fetchUrl = url.replace(/\/swagger(-ui)?$/, '/swagger.json');
+        } else if (url.endsWith('/')) {
+          fetchUrl = url + 'swagger.json';
+        } else {
+          fetchUrl = url + '/swagger.json';
+        }
+      }
+
+      const response = await fetch(fetchUrl, {
         method: 'GET',
         headers: {
-          'Accept': 'application/json, application/yaml',
+          'Accept': 'application/json',
         },
       });
 
       if (!response.ok) {
+        // 如果第一次请求失败，且 URL 被修改过，尝试原始 URL
+        if (fetchUrl !== url) {
+          const originalResponse = await fetch(url, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+            },
+          });
+          if (originalResponse.ok) {
+            const contentType = originalResponse.headers.get('content-type') || '';
+            if (contentType.includes('application/json')) {
+              const data = await originalResponse.json();
+              const interfaces = parseSwaggerDoc(data);
+              setPreviewData(interfaces);
+              return;
+            }
+          }
+        }
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       const contentType = response.headers.get('content-type') || '';
       let data;
 
+      // 先获取文本内容，检查是否是 HTML
+      const text = await response.text();
+      
+      // 检查是否是 HTML 页面
+      if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+        throw new Error('服务器返回了 HTML 页面而不是 JSON。请确保 URL 指向 Swagger JSON 文件（例如：/swagger.json）');
+      }
+
       if (contentType.includes('application/json')) {
-        data = await response.json();
+        try {
+          data = JSON.parse(text);
+        } catch (parseError) {
+          throw new Error(`JSON 解析失败: ${parseError instanceof Error ? parseError.message : '未知错误'}`);
+        }
       } else if (contentType.includes('application/yaml') || contentType.includes('text/yaml')) {
         // 如果是YAML，需要解析（这里简化处理，实际可能需要yaml解析库）
-        await response.text();
         messageApi.warning(t('admin.swaggerImport.yamlNotSupported'));
         return;
       } else {
         // 尝试作为JSON解析
-        data = await response.json();
+        try {
+          data = JSON.parse(text);
+        } catch (parseError) {
+          throw new Error(`无法解析响应内容。请确保 URL 指向有效的 Swagger JSON 文件。错误: ${parseError instanceof Error ? parseError.message : '未知错误'}`);
+        }
       }
 
       // 解析Swagger文档，提取接口信息
       const interfaces = parseSwaggerDoc(data);
       setPreviewData(interfaces);
+      // 重置分页到第一页
+      setPagination({ current: 1, pageSize: pagination.pageSize });
     } catch (error: any) {
       messageApi.error(error.message || t('admin.swaggerImport.fetchFailed'));
       setPreviewData([]);
@@ -141,9 +193,12 @@ const SwaggerImport: React.FC = () => {
 
       const interfaces = parseSwaggerDoc(data);
       setPreviewData(interfaces);
+      // 重置分页到第一页
+      setPagination({ current: 1, pageSize: pagination.pageSize });
     } catch (error: any) {
       messageApi.error(error.message || t('admin.swaggerImport.parseFailed'));
       setPreviewData([]);
+      setPagination({ current: 1, pageSize: 10 });
     } finally {
       setLoading(false);
     }
@@ -164,13 +219,66 @@ const SwaggerImport: React.FC = () => {
       let swaggerData;
       if (swagger_url) {
         // 从URL获取
-        const response = await fetch(swagger_url, {
+        // 如果 URL 不包含 .json，尝试自动添加
+        let fetchUrl = swagger_url;
+        if (!swagger_url.endsWith('.json') && !swagger_url.includes('/swagger.json') && !swagger_url.includes('/openapi.json')) {
+          // 如果 URL 以 /swagger 或 /swagger-ui 结尾，尝试添加 .json
+          if (swagger_url.endsWith('/swagger') || swagger_url.endsWith('/swagger-ui')) {
+            fetchUrl = swagger_url.replace(/\/swagger(-ui)?$/, '/swagger.json');
+          } else if (swagger_url.endsWith('/')) {
+            fetchUrl = swagger_url + 'swagger.json';
+          } else {
+            fetchUrl = swagger_url + '/swagger.json';
+          }
+        }
+
+        const response = await fetch(fetchUrl, {
           method: 'GET',
           headers: {
             'Accept': 'application/json',
           },
         });
-        swaggerData = await response.json();
+
+        if (!response.ok) {
+          // 如果第一次请求失败，且 URL 被修改过，尝试原始 URL
+          if (fetchUrl !== swagger_url) {
+            const originalResponse = await fetch(swagger_url, {
+              method: 'GET',
+              headers: {
+                'Accept': 'application/json',
+              },
+            });
+            if (originalResponse.ok) {
+              const contentType = originalResponse.headers.get('content-type') || '';
+              if (contentType.includes('application/json')) {
+                const text = await originalResponse.text();
+                if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+                  throw new Error('服务器返回了 HTML 页面而不是 JSON。请使用 /swagger.json 端点');
+                }
+                swaggerData = JSON.parse(text);
+              } else {
+                throw new Error(`HTTP ${originalResponse.status}: ${originalResponse.statusText}`);
+              }
+            } else {
+              throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+          } else {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+        } else {
+          const text = await response.text();
+          
+          // 检查是否是 HTML 页面
+          if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+            throw new Error('服务器返回了 HTML 页面而不是 JSON。请确保 URL 指向 Swagger JSON 文件（例如：/swagger.json）');
+          }
+
+          try {
+            swaggerData = JSON.parse(text);
+          } catch (parseError) {
+            throw new Error(`JSON 解析失败: ${parseError instanceof Error ? parseError.message : '未知错误'}`);
+          }
+        }
       } else {
         // 从预览数据重新构建（这里简化处理）
         messageApi.warning(t('admin.swaggerImport.pleaseProvideUrl'));
@@ -303,7 +411,26 @@ const SwaggerImport: React.FC = () => {
                 columns={previewColumns}
                 dataSource={previewData}
                 rowKey={(record) => `${record.method}-${record.path}`}
-                pagination={{ pageSize: 10 }}
+                pagination={{
+                  current: pagination.current,
+                  pageSize: pagination.pageSize,
+                  total: previewData.length,
+                  showSizeChanger: true,
+                  showTotal: (total) => `共 ${total} 条`,
+                  pageSizeOptions: ['10', '20', '50', '100'],
+                  onChange: (page, pageSize) => {
+                    setPagination({
+                      current: page,
+                      pageSize: pageSize || 10,
+                    });
+                  },
+                  onShowSizeChange: (_current, size) => {
+                    setPagination({
+                      current: 1,
+                      pageSize: size,
+                    });
+                  },
+                }}
                 size="small"
               />
             </Form.Item>
@@ -374,6 +501,7 @@ const SwaggerImport: React.FC = () => {
                   form.resetFields();
                   setPreviewData([]);
                   setImportResult(null);
+                  setPagination({ current: 1, pageSize: 10 });
                 }}
                 htmlType="button"
               >

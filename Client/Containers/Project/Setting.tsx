@@ -86,8 +86,75 @@ const Setting: React.FC = () => {
     if (importFormat === 'swagger' && swaggerUrl) {
       setImporting(true);
       try {
-        const response = await fetch(swaggerUrl);
-        const data = await response.json();
+        // 如果 URL 不包含 .json，尝试自动添加
+        let fetchUrl = swaggerUrl;
+        if (!swaggerUrl.endsWith('.json') && !swaggerUrl.includes('/swagger.json') && !swaggerUrl.includes('/openapi.json')) {
+          // 如果 URL 以 /swagger 或 /swagger-ui 结尾，尝试添加 .json
+          if (swaggerUrl.endsWith('/swagger') || swaggerUrl.endsWith('/swagger-ui')) {
+            fetchUrl = swaggerUrl.replace(/\/swagger(-ui)?$/, '/swagger.json');
+          } else if (swaggerUrl.endsWith('/')) {
+            fetchUrl = swaggerUrl + 'swagger.json';
+          } else {
+            fetchUrl = swaggerUrl + '/swagger.json';
+          }
+        }
+
+        const response = await fetch(fetchUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          // 如果第一次请求失败，且 URL 被修改过，尝试原始 URL
+          if (fetchUrl !== swaggerUrl) {
+            const originalResponse = await fetch(swaggerUrl, {
+              method: 'GET',
+              headers: {
+                'Accept': 'application/json',
+              },
+            });
+            if (originalResponse.ok) {
+              const contentType = originalResponse.headers.get('content-type') || '';
+              if (contentType.includes('application/json')) {
+                const text = await originalResponse.text();
+                if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+                  throw new Error('服务器返回了 HTML 页面而不是 JSON。请使用 /swagger.json 端点');
+                }
+                const data = JSON.parse(text);
+                await api.post('/import', {
+                  project_id: projectId,
+                  format: importFormat,
+                  mode: importMode,
+                  data,
+                });
+                messageApi.success(t('importExport.importSuccess'));
+                setImportModalVisible(false);
+                setSwaggerUrl('');
+                dispatch(fetchProjectDetail(projectId));
+                return;
+              }
+            }
+          }
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const contentType = response.headers.get('content-type') || '';
+        const text = await response.text();
+        
+        // 检查是否是 HTML 页面
+        if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+          throw new Error('服务器返回了 HTML 页面而不是 JSON。请确保 URL 指向 Swagger JSON 文件（例如：/swagger.json）');
+        }
+
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (parseError) {
+          throw new Error(`JSON 解析失败: ${parseError instanceof Error ? parseError.message : '未知错误'}`);
+        }
+
         await api.post('/import', {
           project_id: projectId,
           format: importFormat,
