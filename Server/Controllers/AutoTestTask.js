@@ -17,7 +17,7 @@ class AutoTestTaskController extends BaseController {
   static async createTask(ctx) {
     try {
       const user = ctx.state.user;
-      let { name, description, project_id, test_cases, environment_id, schedule, notification } = ctx.request.body;
+      let { name, description, project_id, test_cases, environment_id, base_url, schedule, notification } = ctx.request.body;
 
       if (!name || !project_id) {
         ctx.status = 400;
@@ -77,6 +77,7 @@ class AutoTestTaskController extends BaseController {
         project_id,
         test_cases: test_cases || [],
         environment_id: environment_id || null,
+        base_url: base_url ? base_url.trim() : '',
         schedule: schedule || { enabled: false },
         notification: notification || { enabled: false },
         enabled: true,
@@ -178,9 +179,75 @@ class AutoTestTaskController extends BaseController {
         tasks = [];
       }
 
-      ctx.body = AutoTestTaskController.success(tasks);
+      // 确保所有任务数据都是可序列化的普通对象
+      // 使用 JSON.parse(JSON.stringify()) 来深度序列化，移除所有 Mongoose 特有的属性和方法
+      let serializedTasks = [];
+      try {
+        serializedTasks = JSON.parse(JSON.stringify(tasks));
+      } catch (serializeError) {
+        logger.error({ 
+          error: serializeError.message,
+          stack: serializeError.stack,
+          taskCount: tasks.length
+        }, 'Failed to serialize tasks, trying manual serialization');
+        
+        // 如果 JSON 序列化失败，尝试手动序列化
+        serializedTasks = tasks.map((task) => {
+          try {
+            // 如果 task 是 Mongoose 文档，转换为普通对象
+            if (task && typeof task.toObject === 'function') {
+              return task.toObject({ virtuals: false });
+            }
+            // 如果已经是普通对象，创建一个新的纯对象
+            const taskObj = {};
+            Object.keys(task).forEach((key) => {
+              if (key !== '__v' && key !== '_id' || key === '_id') {
+                const value = task[key];
+                if (value && typeof value === 'object' && !Array.isArray(value) && typeof value.toObject === 'function') {
+                  taskObj[key] = value.toObject({ virtuals: false });
+                } else if (value && typeof value === 'object' && value.constructor && value.constructor.name === 'ObjectId') {
+                  taskObj[key] = value.toString();
+                } else {
+                  taskObj[key] = value;
+                }
+              }
+            });
+            // 确保 _id 是字符串
+            if (taskObj._id && typeof taskObj._id === 'object') {
+              taskObj._id = taskObj._id.toString();
+            }
+            return taskObj;
+          } catch (itemError) {
+            logger.warn({ error: itemError.message, taskId: task?._id }, 'Failed to serialize task item');
+            // 返回一个最小化的对象，至少包含 _id
+            return { _id: task?._id?.toString() || null, name: task?.name || 'Unknown' };
+          }
+        });
+      }
+
+      // 确保响应体可以被正确序列化
+      try {
+        // 测试序列化
+        JSON.stringify(serializedTasks);
+        ctx.body = AutoTestTaskController.success(serializedTasks);
+      } catch (testSerializeError) {
+        logger.error({ 
+          error: testSerializeError.message,
+          stack: testSerializeError.stack,
+          taskCount: serializedTasks.length
+        }, 'Response body serialization test failed');
+        
+        // 如果测试序列化失败，返回空数组
+        ctx.body = AutoTestTaskController.success([]);
+      }
     } catch (error) {
-      logger.error({ error, stack: error.stack }, 'List auto test tasks error');
+      logger.error({ 
+        error: {
+          name: error?.name,
+          message: error?.message,
+          stack: error?.stack,
+        }
+      }, 'List auto test tasks error');
       ctx.status = 500;
       ctx.body = AutoTestTaskController.error(
         process.env.NODE_ENV === 'production'
@@ -228,7 +295,7 @@ class AutoTestTaskController extends BaseController {
   static async updateTask(ctx) {
     try {
       const { id } = ctx.params;
-      const { name, description, test_cases, environment_id, schedule, notification, enabled } = ctx.request.body;
+      const { name, description, test_cases, environment_id, base_url, schedule, notification, enabled } = ctx.request.body;
 
       if (!validateObjectId(id)) {
         ctx.status = 400;
@@ -250,15 +317,44 @@ class AutoTestTaskController extends BaseController {
         task.description = sanitizeInput(description);
       }
       if (test_cases !== undefined) {
-        // 验证接口ID
-        for (const testCase of test_cases) {
-          if (!validateObjectId(testCase.interface_id)) {
+        // 验证接口ID并清理数据
+        const cleanedTestCases = [];
+        for (let i = 0; i < test_cases.length; i++) {
+          const testCase = test_cases[i];
+          
+          // 确保 interface_id 是有效的 ObjectId
+          if (!testCase.interface_id) {
             ctx.status = 400;
-            ctx.body = AutoTestTaskController.error(`无效的接口ID: ${testCase.interface_id}`);
+            ctx.body = AutoTestTaskController.error(`测试用例 ${i + 1} 缺少接口ID`);
             return;
           }
+          
+          // 处理 interface_id 可能是对象的情况
+          const interfaceId = typeof testCase.interface_id === 'string' 
+            ? testCase.interface_id 
+            : (testCase.interface_id?._id || testCase.interface_id)?.toString();
+          
+          if (!validateObjectId(interfaceId)) {
+            ctx.status = 400;
+            ctx.body = AutoTestTaskController.error(`测试用例 ${i + 1} 的接口ID无效: ${interfaceId}`);
+            return;
+          }
+          
+          // 清理并验证测试用例数据
+          const cleanedCase = {
+            interface_id: interfaceId,
+            order: typeof testCase.order === 'number' ? testCase.order : i,
+            enabled: testCase.enabled !== undefined ? Boolean(testCase.enabled) : true,
+            custom_headers: testCase.custom_headers && typeof testCase.custom_headers === 'object' ? testCase.custom_headers : {},
+            custom_data: testCase.custom_data && typeof testCase.custom_data === 'object' ? testCase.custom_data : {},
+            path_params: testCase.path_params && typeof testCase.path_params === 'object' ? testCase.path_params : {},
+            query_params: testCase.query_params && typeof testCase.query_params === 'object' ? testCase.query_params : {},
+            assertion_script: typeof testCase.assertion_script === 'string' ? testCase.assertion_script : '',
+          };
+          
+          cleanedTestCases.push(cleanedCase);
         }
-        task.test_cases = test_cases;
+        task.test_cases = cleanedTestCases;
       }
       // 处理 environment_id：支持 null、undefined、空字符串
       if (environment_id !== undefined) {
@@ -284,6 +380,9 @@ class AutoTestTaskController extends BaseController {
           task.environment_id = null;
         }
       }
+      if (base_url !== undefined) {
+        task.base_url = typeof base_url === 'string' ? base_url.trim() : '';
+      }
       if (schedule !== undefined) {
         task.schedule = schedule;
       }
@@ -294,7 +393,44 @@ class AutoTestTaskController extends BaseController {
         task.enabled = enabled;
       }
 
-      await task.save();
+      // 在保存前，确保 task 是 Mongoose 文档
+      if (!task || !task.save) {
+        ctx.status = 500;
+        ctx.body = AutoTestTaskController.error('任务对象无效');
+        return;
+      }
+
+      try {
+        await task.save();
+      } catch (saveError) {
+        logger.error({ error: saveError, taskId: id, taskData: { 
+          test_cases_count: task.test_cases?.length,
+          test_cases: task.test_cases?.map((tc, i) => ({
+            index: i,
+            interface_id: tc.interface_id,
+            interface_id_type: typeof tc.interface_id,
+            order: tc.order,
+            enabled: tc.enabled,
+          }))
+        }}, 'Failed to save auto test task');
+        
+        // 提取详细的错误信息
+        let errorMessage = saveError.message || '更新自动测试任务失败';
+        if (saveError.name === 'ValidationError') {
+          const validationErrors = Object.values(saveError.errors || {}).map((e) => e.message).join(', ');
+          errorMessage = `验证失败: ${validationErrors}`;
+        } else if (saveError.name === 'CastError') {
+          errorMessage = `类型转换失败: ${saveError.message}`;
+        }
+        
+        ctx.status = 500;
+        ctx.body = AutoTestTaskController.error(
+          process.env.NODE_ENV === 'production'
+            ? '更新自动测试任务失败'
+            : errorMessage
+        );
+        return;
+      }
 
       logger.info({ taskId: task._id }, 'Auto test task updated');
 
@@ -321,7 +457,7 @@ class AutoTestTaskController extends BaseController {
 
       ctx.body = AutoTestTaskController.success(task, '自动测试任务更新成功');
     } catch (error) {
-      logger.error({ error }, 'Update auto test task error');
+      logger.error({ error, errorStack: error.stack }, 'Update auto test task error');
       ctx.status = 500;
       ctx.body = AutoTestTaskController.error(
         process.env.NODE_ENV === 'production'

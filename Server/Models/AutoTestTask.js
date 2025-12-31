@@ -63,6 +63,11 @@ const autoTestTaskSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.Mixed,
       default: {},
     },
+    base_url: {
+      type: String,
+      default: '',
+      trim: true,
+    },
     schedule: {
       enabled: {
         type: Boolean,

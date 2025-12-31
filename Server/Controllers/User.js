@@ -380,6 +380,59 @@ class UserController extends BaseController {
         if (!userObj.avatar || userObj.avatar === '') {
           userObj.avatar = '/icons/icon-64x64.png';
         }
+        
+        // 确保 userObj 是完全可序列化的普通对象
+        // 移除任何 Mongoose 特有的属性或方法
+        let serializedUser;
+        try {
+          serializedUser = JSON.parse(JSON.stringify(userObj));
+        } catch (serializeError) {
+          logger.error({ 
+            error: serializeError.message,
+            stack: serializeError.stack,
+            userId: userObj?._id
+          }, 'Failed to serialize user object, trying manual serialization');
+          
+          // 如果 JSON 序列化失败，尝试手动序列化
+          serializedUser = {};
+          Object.keys(userObj).forEach((key) => {
+            if (key !== '__v' && key !== 'password') {
+              const value = userObj[key];
+              if (value && typeof value === 'object' && !Array.isArray(value) && typeof value.toObject === 'function') {
+                serializedUser[key] = value.toObject({ virtuals: false });
+              } else if (value && typeof value === 'object' && value.constructor && value.constructor.name === 'ObjectId') {
+                serializedUser[key] = value.toString();
+              } else {
+                serializedUser[key] = value;
+              }
+            }
+          });
+          // 确保 _id 是字符串
+          if (serializedUser._id && typeof serializedUser._id === 'object') {
+            serializedUser._id = serializedUser._id.toString();
+          }
+        }
+        
+        // 确保响应体可以被正确序列化
+        try {
+          // 测试序列化
+          JSON.stringify(serializedUser);
+          ctx.body = UserController.success(serializedUser);
+        } catch (testSerializeError) {
+          logger.error({ 
+            error: testSerializeError.message,
+            stack: testSerializeError.stack,
+            userId: serializedUser?._id
+          }, 'Response body serialization test failed');
+          
+          // 如果测试序列化失败，返回最小化的用户对象
+          ctx.body = UserController.success({
+            _id: serializedUser?._id?.toString() || user?._id?.toString() || null,
+            username: serializedUser?.username || user?.username || '',
+            email: serializedUser?.email || user?.email || '',
+            avatar: '/icons/icon-64x64.png',
+          });
+        }
       } catch (convertError) {
         logger.error({ 
           error: {
@@ -399,8 +452,6 @@ class UserController extends BaseController {
         );
         return;
       }
-      
-      ctx.body = UserController.success(userObj);
     } catch (error) {
       logger.error({ 
         error: {

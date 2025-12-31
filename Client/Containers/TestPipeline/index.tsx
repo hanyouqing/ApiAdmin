@@ -320,6 +320,7 @@ interface TestTask {
   project_id: string;
   test_cases: TestCase[];
   environment_id?: string;
+  base_url?: string;
   common_headers?: Record<string, any>;
   enabled: boolean;
   created_at: string;
@@ -718,6 +719,9 @@ const TestPipeline: React.FC = () => {
       }
     }
     
+    // 处理 base_url
+    const baseUrl = task.base_url || '';
+    
     // 处理 common_headers：转换为 JSON 字符串格式
     let commonHeadersValue = '{}';
     if (task.common_headers) {
@@ -772,6 +776,7 @@ const TestPipeline: React.FC = () => {
         ? task.project_id 
         : (task.project_id as any)?._id?.toString() || task.project_id,
       environment_id: environmentId,
+      base_url: baseUrl,
       enabled: task.enabled !== undefined ? task.enabled : true,
       common_headers: commonHeadersValue,
     });
@@ -819,9 +824,13 @@ const TestPipeline: React.FC = () => {
         }
       }
       
+      // 处理 base_url
+      const baseUrl = values.base_url ? String(values.base_url).trim() : '';
+      
       const submitData = {
         ...values,
         environment_id: environmentId,
+        base_url: baseUrl,
       };
       
       console.log('提交数据:', submitData); // 调试日志
@@ -1010,16 +1019,32 @@ const TestPipeline: React.FC = () => {
       }
 
       // 重新排序并清理数据
-      const cleanedCases = updatedCases.map((tc, i) => ({
-        interface_id: typeof tc.interface_id === 'string' ? tc.interface_id : (tc.interface_id?._id || tc.interface_id)?.toString() || tc.interface_id,
-        order: i,
-        enabled: tc.enabled !== undefined ? tc.enabled : true,
-        custom_headers: tc.custom_headers || {},
-        custom_data: tc.custom_data || {},
-        path_params: tc.path_params || {},
-        query_params: tc.query_params || {},
-        assertion_script: tc.assertion_script || '',
-      }));
+      const cleanedCases = updatedCases.map((tc: any, i: number) => {
+        // 确保 interface_id 是字符串格式的 ObjectId
+        let interfaceId: string;
+        if (typeof tc.interface_id === 'string') {
+          interfaceId = tc.interface_id;
+        } else if (tc.interface_id?._id) {
+          interfaceId = typeof tc.interface_id._id === 'string' ? tc.interface_id._id : tc.interface_id._id.toString();
+        } else if (tc.interface_id) {
+          interfaceId = typeof tc.interface_id === 'string' ? tc.interface_id : String(tc.interface_id);
+        } else {
+          messageApi.error(`测试用例 ${i + 1} 缺少接口ID`);
+          throw new Error(`测试用例 ${i + 1} 缺少接口ID`);
+        }
+
+        // 确保所有字段都是正确的类型
+        return {
+          interface_id: interfaceId,
+          order: typeof tc.order === 'number' ? tc.order : i,
+          enabled: tc.enabled !== undefined ? Boolean(tc.enabled) : true,
+          custom_headers: tc.custom_headers && typeof tc.custom_headers === 'object' && !Array.isArray(tc.custom_headers) ? tc.custom_headers : {},
+          custom_data: tc.custom_data && typeof tc.custom_data === 'object' && !Array.isArray(tc.custom_data) ? tc.custom_data : {},
+          path_params: tc.path_params && typeof tc.path_params === 'object' && !Array.isArray(tc.path_params) ? tc.path_params : {},
+          query_params: tc.query_params && typeof tc.query_params === 'object' && !Array.isArray(tc.query_params) ? tc.query_params : {},
+          assertion_script: typeof tc.assertion_script === 'string' ? tc.assertion_script : '',
+        };
+      });
 
       await api.put(`/auto-test/tasks/${selectedTask._id}`, {
         test_cases: cleanedCases,
@@ -2006,7 +2031,7 @@ const TestPipeline: React.FC = () => {
             icon={<PlayCircleOutlined />}
             onClick={() => handleRunTest(record)}
             loading={running && selectedTask?._id === record._id}
-            disabled={!record.test_cases || record.test_cases.length === 0 || !record.enabled}
+            disabled={!record.test_cases || record.test_cases.length === 0 || !record.enabled || (running && selectedTask?._id === record._id)}
             size="small"
             style={{ color: '#ffffff' }}
           >
@@ -2113,7 +2138,7 @@ const TestPipeline: React.FC = () => {
                 icon={<PlayCircleOutlined />}
                 onClick={() => handleRunTest()}
                 loading={running}
-                disabled={!selectedTask.test_cases || selectedTask.test_cases.length === 0 || !selectedTask.enabled}
+                disabled={!selectedTask.test_cases || selectedTask.test_cases.length === 0 || !selectedTask.enabled || running}
                 style={{ color: '#ffffff' }}
               >
                 一键测试
@@ -2208,6 +2233,19 @@ const TestPipeline: React.FC = () => {
                 </Option>
               ))}
             </Select>
+          </Form.Item>
+          <Form.Item 
+            name="base_url" 
+            label={
+              <Space>
+                <span>Base URL</span>
+                <span style={{ color: '#8c8c8c', fontSize: '12px' }}>
+                  (当测试环境未配置base_url时使用，例如: http://localhost:3000)
+                </span>
+              </Space>
+            }
+          >
+            <Input placeholder="http://localhost:3000" />
           </Form.Item>
           <Form.Item name="enabled" valuePropName="checked" label="启用">
             <Switch />

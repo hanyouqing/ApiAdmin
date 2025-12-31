@@ -340,24 +340,39 @@ export class SwaggerImporter {
         .map((q) => {
           // 如果 q 仍然是字符串，再次尝试解析
           if (typeof q === 'string') {
+            logger.warn({ path, method, qPreview: q.substring(0, 200) }, 'safeQuery element is still a string, attempting to parse');
             try {
               const parsed = JSON.parse(q);
               if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
                 q = parsed;
+              } else if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'object') {
+                // 如果解析结果是数组，使用第一个对象
+                q = parsed[0];
               } else {
-                return null;
+                // 尝试使用 parseArrayString
+                const parsedArray = this.parseArrayString(q, 'req_query_item_final', path, method);
+                if (Array.isArray(parsedArray) && parsedArray.length > 0) {
+                  q = parsedArray[0];
+                } else {
+                  return null;
+                }
               }
             } catch (e) {
+              // 如果不是 JSON，尝试使用 parseArrayString
               const parsedArray = this.parseArrayString(q, 'req_query_item_final', path, method);
               if (Array.isArray(parsedArray) && parsedArray.length > 0) {
                 q = parsedArray[0];
               } else {
+                logger.warn({ path, method, error: e.message, qPreview: q.substring(0, 100) }, 'Failed to parse safeQuery element as string');
                 return null;
               }
             }
           }
-          // 确保 q 是对象
-          if (!q || typeof q !== 'object' || Array.isArray(q)) {
+          // 确保 q 是对象，不是字符串或数组
+          if (!q || typeof q !== 'object' || Array.isArray(q) || typeof q === 'string') {
+            if (typeof q === 'string') {
+              logger.error({ path, method, qPreview: q.substring(0, 100) }, 'Query element is still a string after parsing, filtering out');
+            }
             return null;
           }
           const queryItem = {
@@ -377,7 +392,7 @@ export class SwaggerImporter {
           }
           return queryItem;
         })
-        .filter((q) => q !== null && typeof q === 'object' && !Array.isArray(q));
+        .filter((q) => q !== null && typeof q === 'object' && !Array.isArray(q) && typeof q !== 'string');
 
       // 如果 headers 是字符串，尝试解析
       let safeHeaders = [];
@@ -410,27 +425,31 @@ export class SwaggerImporter {
           .map((q) => {
             // 如果元素仍然是字符串，尝试解析
             if (typeof q === 'string') {
-              logger.warn({ path, method, qLength: q.length }, 'safeQuery element is still a string, attempting final parse');
+              logger.error({ path, method, qPreview: q.substring(0, 200) }, 'safeQuery element is still a string, attempting final parse');
               try {
                 const parsed = this.parseArrayString(q, 'req_query_element_final', path, method);
                 if (Array.isArray(parsed) && parsed.length > 0) {
+                  logger.info({ path, method, parsedCount: parsed.length }, 'Successfully parsed safeQuery string element');
                   return parsed[0];
                 }
               } catch (e) {
-                logger.warn({ path, method, error: e.message }, 'Failed to parse safeQuery element');
+                logger.error({ path, method, error: e.message, qPreview: q.substring(0, 100) }, 'Failed to parse safeQuery element');
               }
               return null;
             }
-            // 确保是对象
-            if (q && typeof q === 'object' && !Array.isArray(q)) {
+            // 确保是对象，不是字符串或数组
+            if (q && typeof q === 'object' && !Array.isArray(q) && typeof q !== 'string') {
               return q;
+            }
+            if (typeof q === 'string') {
+              logger.error({ path, method, qPreview: q.substring(0, 100) }, 'Query element is still a string after processing, filtering out');
             }
             return null;
           })
-          .filter((q) => q !== null && typeof q === 'object' && !Array.isArray(q));
+          .filter((q) => q !== null && typeof q === 'object' && !Array.isArray(q) && typeof q !== 'string');
       } else if (typeof safeQuery === 'string') {
         // 如果仍然是字符串，最后一次尝试解析
-        logger.warn({ path, method, safeQueryLength: safeQuery.length }, 'safeQuery is still a string, attempting final parse');
+        logger.error({ path, method, safeQueryPreview: safeQuery.substring(0, 200) }, 'safeQuery is still a string, attempting final parse');
         finalQuery = this.parseArrayString(safeQuery, 'req_query_final', path, method);
       } else {
         logger.warn({ path, method, safeQueryType: typeof safeQuery }, 'safeQuery is neither array nor string, using empty array');
@@ -482,20 +501,79 @@ export class SwaggerImporter {
       }
       
       // 最终验证：确保 finalQuery 和 finalReqBodyForm 是数组，且每个元素都是对象
-      // 再次检查，防止字符串元素
-      const validatedQuery = Array.isArray(finalQuery) 
-        ? finalQuery.filter((q) => q && typeof q === 'object' && !Array.isArray(q) && typeof q !== 'string')
-        : [];
-      const validatedReqBodyForm = Array.isArray(finalReqBodyForm)
-        ? finalReqBodyForm.filter((f) => f && typeof f === 'object' && !Array.isArray(f) && typeof f !== 'string')
-        : [];
+      // 再次检查，防止字符串元素，并尝试解析任何剩余的字符串
+      let validatedQuery = [];
+      if (Array.isArray(finalQuery)) {
+        validatedQuery = finalQuery
+          .map((q) => {
+            // 如果元素仍然是字符串，最后一次尝试解析
+            if (typeof q === 'string') {
+              logger.error({ path, method, qPreview: q.substring(0, 200) }, 'finalQuery element is still a string in final validation, attempting parse');
+              try {
+                const parsed = this.parseArrayString(q, 'req_query_final_validation', path, method);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                  logger.info({ path, method, parsedCount: parsed.length }, 'Successfully parsed finalQuery string element');
+                  return parsed[0];
+                }
+              } catch (e) {
+                logger.error({ path, method, error: e.message, qPreview: q.substring(0, 100) }, 'Failed to parse finalQuery element in final validation');
+              }
+              return null;
+            }
+            // 确保是对象
+            if (q && typeof q === 'object' && !Array.isArray(q) && typeof q !== 'string') {
+              return q;
+            }
+            return null;
+          })
+          .filter((q) => q !== null && typeof q === 'object' && !Array.isArray(q) && typeof q !== 'string');
+      }
+      
+      let validatedReqBodyForm = [];
+      if (Array.isArray(finalReqBodyForm)) {
+        validatedReqBodyForm = finalReqBodyForm
+          .map((f) => {
+            // 如果元素仍然是字符串，最后一次尝试解析
+            if (typeof f === 'string') {
+              logger.error({ path, method, fPreview: f.substring(0, 200) }, 'finalReqBodyForm element is still a string in final validation, attempting parse');
+              try {
+                const parsed = this.parseArrayString(f, 'req_body_form_final_validation', path, method);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                  logger.info({ path, method, parsedCount: parsed.length }, 'Successfully parsed finalReqBodyForm string element');
+                  return parsed[0];
+                }
+              } catch (e) {
+                logger.error({ path, method, error: e.message, fPreview: f.substring(0, 100) }, 'Failed to parse finalReqBodyForm element in final validation');
+              }
+              return null;
+            }
+            // 确保是对象
+            if (f && typeof f === 'object' && !Array.isArray(f) && typeof f !== 'string') {
+              return f;
+            }
+            return null;
+          })
+          .filter((f) => f !== null && typeof f === 'object' && !Array.isArray(f) && typeof f !== 'string');
+      }
 
-      // 如果验证后数组为空但原始数据不为空，记录警告
+      // 如果验证后数组为空但原始数据不为空，记录错误
       if (validatedQuery.length === 0 && finalQuery.length > 0) {
-        logger.warn({ path, method, finalQueryType: typeof finalQuery[0] }, 'All query parameters were filtered out, check data format');
+        logger.error({ 
+          path, 
+          method, 
+          finalQueryLength: finalQuery.length,
+          firstElementType: typeof finalQuery[0],
+          firstElementPreview: typeof finalQuery[0] === 'string' ? finalQuery[0].substring(0, 200) : String(finalQuery[0])
+        }, 'All query parameters were filtered out, check data format');
       }
       if (validatedReqBodyForm.length === 0 && finalReqBodyForm.length > 0) {
-        logger.warn({ path, method, finalReqBodyFormType: typeof finalReqBodyForm[0] }, 'All req_body_form parameters were filtered out, check data format');
+        logger.error({ 
+          path, 
+          method, 
+          finalReqBodyFormLength: finalReqBodyForm.length,
+          firstElementType: typeof finalReqBodyForm[0],
+          firstElementPreview: typeof finalReqBodyForm[0] === 'string' ? finalReqBodyForm[0].substring(0, 200) : String(finalReqBodyForm[0])
+        }, 'All req_body_form parameters were filtered out, check data format');
       }
 
       const interfaceData = {
@@ -608,14 +686,25 @@ export class SwaggerImporter {
           
           // 移除字符串拼接标记，然后尝试 JSON 解析
           // 不使用 new Function() 以避免 CSP 违规
+          // 首先尝试更精确的清理：移除所有 ' + ' 和 " + " 模式
+          // 注意：错误信息显示的模式是 "[\n' + ' {\n' + " name: 'project_id',\n" + ...
+          // 这意味着需要移除 ' + ' 和 " + " 模式，但保留引号内的内容
           let cleaned = str
-            .replace(/' \+ '/g, '')
-            .replace(/" \+ "/g, '')
-            .replace(/' \+ "/g, '')
-            .replace(/" \+ '/g, '')
-            .replace(/\n/g, ' ')
-            .replace(/\s+/g, ' ')
+            .replace(/' \+ '/g, '')  // 移除 ' + '
+            .replace(/" \+ "/g, '')  // 移除 " + "
+            .replace(/' \+ "/g, '')  // 移除 ' + "
+            .replace(/" \+ '/g, '')  // 移除 " + '
+            .replace(/\s*\+\s*/g, '')  // 移除所有剩余的加号和周围空格
+            .replace(/\n/g, ' ')  // 将换行符替换为空格
+            .replace(/\s+/g, ' ')  // 将多个空格合并为一个
             .trim();
+          
+          // 如果清理后仍然包含混合引号，统一使用双引号
+          if (cleaned.includes("'") && cleaned.includes('"')) {
+            // 统一使用双引号，但需要小心处理已经用双引号包裹的字符串
+            // 先处理单引号字符串，转换为双引号
+            cleaned = cleaned.replace(/'([^']*)'/g, '"$1"');
+          }
           
           logger.debug({ path, method, field: fieldName, cleanedLength: cleaned.length }, 'Cleaned JavaScript code string');
           
@@ -647,11 +736,12 @@ export class SwaggerImporter {
               return [];
             } catch (parseError2) {
               // 如果 JSON 解析仍然失败，尝试手动提取对象
-              logger.debug({ path, method, field: fieldName }, 'Attempting manual object extraction');
+              logger.debug({ path, method, field: fieldName, cleanedPreview: cleaned.substring(0, 300) }, 'Attempting manual object extraction');
               
               // 使用更智能的正则表达式提取对象
               // 匹配 { key: value, key: value } 格式，支持多行和嵌套
               // 改进的正则表达式，更好地匹配对象结构
+              // 注意：cleaned 可能包含多个对象，需要分别提取
               const objectPattern = /\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g;
               const parsedObjects = [];
               let match;
@@ -674,6 +764,7 @@ export class SwaggerImporter {
                     const obj = {};
                     // 改进的键值对匹配，更好地处理各种格式
                     // 匹配 name: 'value' 或 name: "value" 或 name: value
+                    // 注意：需要处理值可能包含逗号的情况
                     const pairs = objStr.match(/(\w+)\s*:\s*(?:['"]([^'"]*)['"]|([^,'"}]+))/g);
                     if (pairs) {
                       for (const pair of pairs) {
@@ -708,10 +799,13 @@ export class SwaggerImporter {
               
               // 如果仍然没有提取到对象，尝试更宽松的匹配
               // 直接匹配 name: value 模式，不依赖对象边界
+              // 但需要按对象分组（通过检测连续的键值对）
               const allPairs = cleaned.match(/(\w+)\s*:\s*(?:['"]([^'"]*)['"]|([^,'"\s}]+))/g);
               if (allPairs && allPairs.length > 0) {
                 // 尝试将匹配到的键值对分组为对象
-                const tempObj = {};
+                // 假设每 5-7 个键值对组成一个对象（name, type, required, default, desc, example）
+                const objects = [];
+                let currentObj = {};
                 for (const pair of allPairs) {
                   const pairMatch = pair.match(/(\w+)\s*:\s*(?:['"]([^'"]*)['"]|([^,'"\s}]+))/);
                   if (pairMatch) {
@@ -721,12 +815,29 @@ export class SwaggerImporter {
                     if (value === 'true') value = true;
                     else if (value === 'false') value = false;
                     else if (/^\d+$/.test(value)) value = parseInt(value, 10);
-                    tempObj[key] = value;
+                    currentObj[key] = value;
+                    
+                    // 如果当前对象包含足够的字段，将其添加到数组并开始新对象
+                    if (Object.keys(currentObj).length >= 3 && (key === 'example' || key === 'desc' || key === 'default')) {
+                      objects.push(currentObj);
+                      currentObj = {};
+                    }
                   }
                 }
-                if (Object.keys(tempObj).length > 0) {
+                // 添加最后一个对象（如果有）
+                if (Object.keys(currentObj).length > 0) {
+                  objects.push(currentObj);
+                }
+                
+                if (objects.length > 0) {
+                  logger.info({ path, method, field: fieldName, count: objects.length }, 'Successfully extracted objects from all pairs');
+                  return objects;
+                }
+                
+                // 如果分组失败，至少返回一个包含所有键值对的对象
+                if (Object.keys(currentObj).length > 0) {
                   logger.info({ path, method, field: fieldName }, 'Successfully extracted single object from all pairs');
-                  return [tempObj];
+                  return [currentObj];
                 }
               }
               

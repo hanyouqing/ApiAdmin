@@ -30,7 +30,19 @@ export class AutoTestRunner {
       // 准备环境变量
       const envVars = environment?.variables || {};
       const envHeaders = environment?.headers || {};
-      let baseUrl = (environment?.base_url || '').trim();
+      // 优先使用环境的 base_url，如果没有则使用任务的 base_url，如果都为空则使用主机地址
+      let baseUrl = (environment?.base_url || task?.base_url || '').trim();
+      
+      // 如果 base_url 为空，使用主机地址作为默认值
+      if (!baseUrl) {
+        const config = (await import('./config.js')).default;
+        // 优先使用 APP_URL，如果没有则使用 localhost:PORT
+        baseUrl = config.APP_URL || `http://localhost:${config.PORT || 3000}`;
+        logger.info({ 
+          taskId: task._id,
+          defaultBaseUrl: baseUrl
+        }, 'Using default host address as base_url');
+      }
       
       // 记录环境信息用于调试
       logger.info({ 
@@ -57,18 +69,6 @@ export class AutoTestRunner {
         if (baseUrl.endsWith('/')) {
           baseUrl = baseUrl.slice(0, -1);
         }
-      }
-      
-      // 如果没有配置baseUrl，记录错误
-      if (!baseUrl) {
-        const errorMsg = environment 
-          ? `测试环境 "${environment.name}" 未配置 base_url`
-          : '未配置测试环境，请在测试流水线中选择测试环境或在环境管理中创建默认环境';
-        logger.error({ 
-          taskId: task._id,
-          environmentId: environment?._id,
-          environmentName: environment?.name
-        }, errorMsg);
       }
 
       // 按顺序执行测试用例
@@ -574,41 +574,30 @@ export class AutoTestRunner {
           }
 
           // 构建完整URL
-          // 如果 baseUrl 为空，记录错误并标记测试用例为失败
+          // 如果 baseUrl 为空，使用主机地址作为默认值
           let url;
-          if (baseUrl) {
-            // 如果 path 为空，使用 baseUrl（会导致 404，但至少可以测试连接）
-            url = path ? `${baseUrl}${path}` : baseUrl;
-            
-            // 如果 path 为空，记录警告
-            if (!path) {
-              logger.warn({ 
-                taskId: task._id, 
-                interfaceId: interfaceData._id,
-                interfaceName: interfaceData.title || interfaceData.path,
-                baseUrl: baseUrl,
-                url: url,
-              }, 'Interface path is empty, using baseUrl only');
-            }
-          } else {
-            // 如果没有 baseUrl，标记为错误
-            logger.error({ 
+          if (!baseUrl) {
+            const config = (await import('./config.js')).default;
+            baseUrl = config.APP_URL || `http://localhost:${config.PORT || 3000}`;
+            logger.info({ 
+              taskId: task._id, 
+              interfaceId: interfaceData._id,
+              defaultBaseUrl: baseUrl
+            }, 'Using default host address as base_url');
+          }
+          
+          // 如果 path 为空，使用 baseUrl（会导致 404，但至少可以测试连接）
+          url = path ? `${baseUrl}${path}` : baseUrl;
+          
+          // 如果 path 为空，记录警告
+          if (!path) {
+            logger.warn({ 
               taskId: task._id, 
               interfaceId: interfaceData._id,
               interfaceName: interfaceData.title || interfaceData.path,
-              path: path
-            }, 'No base URL configured for test environment. Cannot build request URL.');
-            
-            resultItem.status = 'error';
-            resultItem.error = {
-              message: '测试环境未配置base_url，无法构建请求URL。请在环境管理中配置测试环境的基础URL。',
-              stack: '',
-              code: 'NO_BASE_URL',
-            };
-            resultItem.completed_at = new Date();
-            result.summary.error++;
-            await result.save();
-            continue;
+              baseUrl: baseUrl,
+              url: url,
+            }, 'Interface path is empty, using baseUrl only');
           }
           
           // 记录构建的URL和请求头用于调试
@@ -955,10 +944,26 @@ export class AutoTestRunner {
     // 准备环境变量
     const envVars = environment?.variables || {};
     const envHeaders = environment?.headers || {};
-    let baseUrl = (environment?.base_url || '').trim();
+    // 优先使用环境的 base_url，如果没有则使用任务的 base_url，如果都为空则使用主机地址
+    let baseUrl = (environment?.base_url || task?.base_url || '').trim();
+
+    // 如果 base_url 为空，使用主机地址作为默认值
+    if (!baseUrl) {
+      const config = (await import('./config.js')).default;
+      // 优先使用 APP_URL，如果没有则使用 localhost:PORT
+      baseUrl = config.APP_URL || `http://localhost:${config.PORT || 3000}`;
+      logger.info({ 
+        taskId: task._id?.toString(),
+        testCaseIndex,
+        defaultBaseUrl: baseUrl
+      }, 'Using default host address as base_url');
+    }
 
     // 规范化 baseUrl
     if (baseUrl) {
+      if (!baseUrl.match(/^https?:\/\//)) {
+        baseUrl = `http://${baseUrl}`;
+      }
       baseUrl = baseUrl.replace(/\/+$/, '');
     }
 
@@ -1365,8 +1370,15 @@ export class AutoTestRunner {
     }
 
     // 构建完整URL
+    // 如果 base_url 仍然为空（理论上不应该发生，因为上面已经设置了默认值），使用主机地址
     if (!baseUrl) {
-      throw new Error('测试环境未配置base_url，无法构建请求URL');
+      const config = (await import('./config.js')).default;
+      baseUrl = config.APP_URL || `http://localhost:${config.PORT || 3000}`;
+      logger.warn({ 
+        taskId: task._id?.toString(),
+        testCaseIndex,
+        defaultBaseUrl: baseUrl
+      }, 'Base URL was empty, using default host address');
     }
 
     const url = path ? `${baseUrl}${path}` : baseUrl;
