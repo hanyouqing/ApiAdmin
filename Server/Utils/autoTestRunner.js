@@ -31,7 +31,12 @@ export class AutoTestRunner {
       const envVars = environment?.variables || {};
       const envHeaders = environment?.headers || {};
       // 优先使用环境的 base_url，如果没有则使用任务的 base_url，如果都为空则使用主机地址
-      let baseUrl = (environment?.base_url || task?.base_url || '').trim();
+      // 优先级：task.base_url > environment.base_url
+      // 因为任务的 base_url 是针对特定流水线的配置，应该优先于环境变量的通用配置
+      // 处理 Mongoose 文档：使用 .get() 方法或直接访问属性
+      const taskBaseUrl = task?.base_url || (task?.get ? task.get('base_url') : null) || '';
+      const envBaseUrl = environment?.base_url || (environment?.get ? environment.get('base_url') : null) || '';
+      let baseUrl = (taskBaseUrl || envBaseUrl || '').trim();
       
       // 如果 base_url 为空，使用主机地址作为默认值
       if (!baseUrl) {
@@ -50,6 +55,8 @@ export class AutoTestRunner {
         environmentId: environment?._id,
         environmentName: environment?.name,
         hasEnvironment: !!environment,
+        taskBaseUrl: taskBaseUrl || '(empty)',
+        environmentBaseUrl: envBaseUrl || '(empty)',
         rawBaseUrl: baseUrl || '(empty)',
         environmentData: environment ? {
           _id: environment._id,
@@ -112,7 +119,10 @@ export class AutoTestRunner {
         const validIds = interfaceIdsToQuery.filter(id => mongoose.Types.ObjectId.isValid(id));
         
         if (validIds.length > 0) {
-          const interfaces = await Interface.find({ _id: { $in: validIds } });
+          // 使用 populate 获取 project_id，以便后续路径参数解析
+          const interfaces = await Interface.find({ _id: { $in: validIds } })
+            .populate('project_id', '_id')
+            .lean();
           for (const iface of interfaces) {
             interfaceMap.set(iface._id.toString(), iface);
           }
@@ -290,6 +300,18 @@ export class AutoTestRunner {
             interfaceData = interfaceMap.get(interfaceIdStr);
           }
           
+          // 如果接口数据没有 populate project_id，尝试获取
+          if (interfaceData && !interfaceData.project_id && interfaceIdStr) {
+            try {
+              const populatedInterface = await Interface.findById(interfaceIdStr).populate('project_id', '_id').lean();
+              if (populatedInterface && populatedInterface.project_id) {
+                interfaceData.project_id = populatedInterface.project_id;
+              }
+            } catch (e) {
+              logger.warn({ error: e.message, interfaceId: interfaceIdStr }, 'Failed to populate project_id for interface');
+            }
+          }
+          
           if (!interfaceData) {
             const errorUrl = resultItem.request.url || baseUrl || 'unknown';
             logger.error({ 
@@ -370,43 +392,150 @@ export class AutoTestRunner {
               pathParamNames.push(match[1]);
             }
           }
-          
+
           // 替换路径参数
           const pathParams = this.resolveVariables(testCase.path_params || {}, envVars);
           
-          // 对于未设置的路径参数，尝试从环境变量中获取
-          for (const paramName of pathParamNames) {
-            if (!pathParams[paramName]) {
-              // 尝试从环境变量中获取
-              const envValue = envVars[paramName] || envVars[paramName.toLowerCase()];
-              if (envValue !== undefined) {
-                pathParams[paramName] = String(envValue);
-                logger.debug({ paramName, value: envValue }, 'Using path param from environment variable');
-              } else {
-                // 如果仍然没有值，记录警告
-                logger.warn({ 
-                  paramName, 
-                  path, 
-                  availableEnvVars: Object.keys(envVars),
-                  testCasePathParams: Object.keys(testCase.path_params || {})
-                }, `Path parameter ${paramName} not found in path_params or environment variables`);
-              }
+          // 尝试从任务或接口数据中获取项目ID（如果路径参数需要projectId）
+          let projectId = null;
+          if (task.project_id) {
+            if (typeof task.project_id === 'object' && task.project_id._id) {
+              projectId = task.project_id._id.toString();
+            } else {
+              projectId = task.project_id.toString();
+            }
+          } else if (interfaceData.project_id) {
+            if (typeof interfaceData.project_id === 'object' && interfaceData.project_id._id) {
+              projectId = interfaceData.project_id._id.toString();
+            } else {
+              projectId = interfaceData.project_id.toString();
             }
           }
           
+          // 对于未设置的路径参数，尝试从多个来源获取
+          for (const paramName of pathParamNames) {
+            // 检查参数是否存在且有效（不为空字符串）
+            if (!pathParams[paramName] || pathParams[paramName] === '' || pathParams[paramName] === null || pathParams[paramName] === undefined) {
+              let paramValue = null;
+              let source = '';
+              
+              // 1. 尝试从环境变量中获取（支持多种命名方式）
+              paramValue = envVars[paramName] || 
+                          envVars[paramName.toLowerCase()] || 
+                          envVars[paramName.toUpperCase()] ||
+                          envVars[`${paramName}Id`] ||
+                          envVars[`${paramName.toLowerCase()}Id`] ||
+                          envVars[`${paramName}_id`] ||
+                          envVars[`${paramName.toLowerCase()}_id`];
+              
+              if (paramValue !== undefined && paramValue !== null && paramValue !== '') {
+                source = 'environment variable';
+              }
+              
+              // 2. 如果是 projectId 且还没有值，尝试从任务或接口中获取
+              if (!paramValue && (paramName === 'projectId' || paramName === 'project_id' || paramName.toLowerCase() === 'projectid') && projectId) {
+                paramValue = projectId;
+                source = 'task/interface project_id';
+              }
+              
+              if (paramValue !== undefined && paramValue !== null && paramValue !== '') {
+                pathParams[paramName] = String(paramValue);
+                logger.info({ 
+                  taskId: task._id,
+                  testCaseIndex: i,
+                  paramName, 
+                  value: String(paramValue).substring(0, 50),
+                  source: source
+                }, `Using path param ${paramName} from ${source}`);
+              } else {
+                // 如果仍然没有值，记录错误
+                logger.error({ 
+                  taskId: task._id,
+                  testCaseIndex: i,
+                  paramName, 
+                  path, 
+                  availableEnvVars: Object.keys(envVars),
+                  testCasePathParams: Object.keys(testCase.path_params || {}),
+                  pathParams: pathParams,
+                  hasProjectId: !!projectId,
+                  projectId: projectId ? projectId.substring(0, 50) : null
+                }, `Path parameter ${paramName} not found in path_params or environment variables - request will fail`);
+              }
+            } else {
+              logger.debug({ 
+                taskId: task._id,
+                testCaseIndex: i,
+                paramName,
+                value: String(pathParams[paramName]).substring(0, 50),
+                source: 'test case path_params'
+              }, 'Using path param from test case');
+            }
+          }
+          
+          // 使用全局替换确保所有匹配的参数都被替换
           Object.keys(pathParams).forEach((key) => {
-            path = path.replace(`{${key}}`, pathParams[key]);
-            path = path.replace(`:${key}`, pathParams[key]);
+            const value = pathParams[key];
+            if (value !== undefined && value !== null && value !== '') {
+              path = path.replace(new RegExp(`\\{${key}\\}`, 'g'), String(value));
+              path = path.replace(new RegExp(`:${key}`, 'g'), String(value));
+            }
           });
           
           // 检查是否还有未替换的参数
           const remainingParams = path.match(/\{(\w+)\}/g);
           if (remainingParams && remainingParams.length > 0) {
             logger.warn({ 
+              taskId: task._id,
+              testCaseIndex: i,
               remainingParams, 
               path, 
-              pathParams 
+              pathParams,
+              hasProjectId: !!projectId,
+              projectId: projectId ? projectId.substring(0, 50) : null
             }, 'Some path parameters were not replaced');
+            
+            // 尝试从环境变量或任务数据中获取缺失的参数（支持多种命名方式）
+            for (const paramMatch of remainingParams) {
+              const paramName = paramMatch.replace(/[{}]/g, '');
+              let paramValue = null;
+              
+              // 1. 尝试从环境变量中获取（支持多种命名方式）
+              paramValue = envVars[paramName] || 
+                          envVars[paramName.toLowerCase()] || 
+                          envVars[paramName.toUpperCase()] ||
+                          envVars[`${paramName}Id`] ||
+                          envVars[`${paramName.toLowerCase()}Id`] ||
+                          envVars[`${paramName}_id`] ||
+                          envVars[`${paramName.toLowerCase()}_id`];
+              
+              // 2. 如果是 projectId 且还没有值，尝试从任务或接口中获取
+              if (!paramValue && (paramName === 'projectId' || paramName === 'project_id' || paramName.toLowerCase() === 'projectid') && projectId) {
+                paramValue = projectId;
+              }
+              
+              if (paramValue !== undefined && paramValue !== null && paramValue !== '') {
+                path = path.replace(new RegExp(`\\{${paramName}\\}`, 'g'), String(paramValue));
+                pathParams[paramName] = String(paramValue);
+                logger.info({ 
+                  taskId: task._id,
+                  testCaseIndex: i,
+                  paramName, 
+                  value: String(paramValue).substring(0, 50),
+                  source: paramValue === projectId ? 'task/interface project_id (fallback)' : 'environment variable (fallback)'
+                }, `Using path param ${paramName} from fallback source`);
+              } else {
+                logger.error({ 
+                  taskId: task._id,
+                  testCaseIndex: i,
+                  paramName, 
+                  path, 
+                  availableEnvVars: Object.keys(envVars),
+                  testCasePathParams: Object.keys(testCase.path_params || {}),
+                  hasProjectId: !!projectId,
+                  projectId: projectId ? projectId.substring(0, 50) : null
+                }, `Cannot find value for path parameter ${paramName} - URL will contain placeholder`);
+              }
+            }
           }
 
           // 构建查询参数
@@ -586,25 +715,27 @@ export class AutoTestRunner {
             }, 'Using default host address as base_url');
           }
           
-          // 如果 path 为空，使用 baseUrl（会导致 404，但至少可以测试连接）
-          url = path ? `${baseUrl}${path}` : baseUrl;
-          
-          // 如果 path 为空，记录警告
-          if (!path) {
-            logger.warn({ 
-              taskId: task._id, 
-              interfaceId: interfaceData._id,
-              interfaceName: interfaceData.title || interfaceData.path,
-              baseUrl: baseUrl,
-              url: url,
-            }, 'Interface path is empty, using baseUrl only');
+            // 如果 path 为空，使用 baseUrl（会导致 404，但至少可以测试连接）
+            url = path ? `${baseUrl}${path}` : baseUrl;
+            
+            // 如果 path 为空，记录警告
+            if (!path) {
+              logger.warn({ 
+                taskId: task._id, 
+                interfaceId: interfaceData._id,
+                interfaceName: interfaceData.title || interfaceData.path,
+                baseUrl: baseUrl,
+                url: url,
+              }, 'Interface path is empty, using baseUrl only');
           }
           
           // 记录构建的URL和请求头用于调试
-          logger.debug({ 
+          logger.info({ 
             taskId: task._id, 
             interfaceId: interfaceData._id,
-            baseUrl: baseUrl,
+            taskBaseUrl: task?.base_url || '(empty)',
+            environmentBaseUrl: environment?.base_url || '(empty)',
+            currentBaseUrl: baseUrl,
             path: path,
             finalUrl: url,
             headers: headers,
@@ -944,8 +1075,12 @@ export class AutoTestRunner {
     // 准备环境变量
     const envVars = environment?.variables || {};
     const envHeaders = environment?.headers || {};
-    // 优先使用环境的 base_url，如果没有则使用任务的 base_url，如果都为空则使用主机地址
-    let baseUrl = (environment?.base_url || task?.base_url || '').trim();
+    // 优先级：task.base_url > environment.base_url
+    // 因为任务的 base_url 是针对特定流水线的配置，应该优先于环境变量的通用配置
+    // 处理 Mongoose 文档：使用 .get() 方法或直接访问属性
+    const taskBaseUrl = task?.base_url || (task?.get ? task.get('base_url') : null) || '';
+    const envBaseUrl = environment?.base_url || (environment?.get ? environment.get('base_url') : null) || '';
+    let baseUrl = (taskBaseUrl || envBaseUrl || '').trim();
 
     // 如果 base_url 为空，使用主机地址作为默认值
     if (!baseUrl) {
@@ -1015,7 +1150,7 @@ export class AutoTestRunner {
         pathParamNames.push(match[1]);
       }
     }
-    
+
     // 替换路径参数
     const pathParams = this.resolveVariables(testCase.path_params || {}, envVars);
     

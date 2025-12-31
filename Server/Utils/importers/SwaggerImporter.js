@@ -576,6 +576,45 @@ export class SwaggerImporter {
         }, 'All req_body_form parameters were filtered out, check data format');
       }
 
+      // 最终安全检查：确保 validatedQuery 和 validatedReqBodyForm 不包含字符串元素
+      // 如果 validatedQuery 本身是字符串，尝试解析
+      if (typeof validatedQuery === 'string') {
+        logger.error({ path, method, validatedQueryPreview: validatedQuery.substring(0, 200) }, 'validatedQuery is a string, attempting final parse');
+        validatedQuery = this.parseArrayString(validatedQuery, 'req_query_absolute_final', path, method);
+      }
+      // 确保 validatedQuery 是数组，且每个元素都是对象
+      if (!Array.isArray(validatedQuery)) {
+        logger.error({ path, method, validatedQueryType: typeof validatedQuery }, 'validatedQuery is not an array, using empty array');
+        validatedQuery = [];
+      }
+      // 再次过滤，确保没有字符串元素
+      validatedQuery = validatedQuery.filter((q) => {
+        if (typeof q === 'string') {
+          logger.error({ path, method, qPreview: q.substring(0, 200) }, 'Found string element in validatedQuery, attempting final parse');
+          const parsed = this.parseArrayString(q, 'req_query_element_absolute_final', path, method);
+          return Array.isArray(parsed) && parsed.length > 0 ? parsed[0] : null;
+        }
+        return q && typeof q === 'object' && !Array.isArray(q);
+      }).filter((q) => q !== null && typeof q === 'object' && !Array.isArray(q));
+
+      // 同样处理 validatedReqBodyForm
+      if (typeof validatedReqBodyForm === 'string') {
+        logger.error({ path, method, validatedReqBodyFormPreview: validatedReqBodyForm.substring(0, 200) }, 'validatedReqBodyForm is a string, attempting final parse');
+        validatedReqBodyForm = this.parseArrayString(validatedReqBodyForm, 'req_body_form_absolute_final', path, method);
+      }
+      if (!Array.isArray(validatedReqBodyForm)) {
+        logger.error({ path, method, validatedReqBodyFormType: typeof validatedReqBodyForm }, 'validatedReqBodyForm is not an array, using empty array');
+        validatedReqBodyForm = [];
+      }
+      validatedReqBodyForm = validatedReqBodyForm.filter((f) => {
+        if (typeof f === 'string') {
+          logger.error({ path, method, fPreview: f.substring(0, 200) }, 'Found string element in validatedReqBodyForm, attempting final parse');
+          const parsed = this.parseArrayString(f, 'req_body_form_element_absolute_final', path, method);
+          return Array.isArray(parsed) && parsed.length > 0 ? parsed[0] : null;
+        }
+        return f && typeof f === 'object' && !Array.isArray(f);
+      }).filter((f) => f !== null && typeof f === 'object' && !Array.isArray(f));
+
       const interfaceData = {
         project_id: projectId,
         catid: null,
@@ -700,10 +739,19 @@ export class SwaggerImporter {
             .trim();
           
           // 如果清理后仍然包含混合引号，统一使用双引号
-          if (cleaned.includes("'") && cleaned.includes('"')) {
-            // 统一使用双引号，但需要小心处理已经用双引号包裹的字符串
-            // 先处理单引号字符串，转换为双引号
-            cleaned = cleaned.replace(/'([^']*)'/g, '"$1"');
+          // 更智能的引号处理：先处理对象键，然后处理字符串值
+          if (cleaned.includes("'") || cleaned.includes('"')) {
+            // 先为对象键添加引号（如果还没有）
+            cleaned = cleaned.replace(/([{,]\s*)(\w+)\s*:/g, '$1"$2":');
+            
+            // 统一使用双引号：将单引号字符串转换为双引号字符串
+            // 需要小心处理：避免将已经用双引号包裹的字符串再次转换
+            // 使用更精确的正则表达式：匹配单引号字符串（不在双引号内）
+            cleaned = cleaned.replace(/'([^']*)'/g, (match, content) => {
+              // 如果内容包含双引号，需要转义
+              const escaped = content.replace(/"/g, '\\"');
+              return `"${escaped}"`;
+            });
           }
           
           logger.debug({ path, method, field: fieldName, cleanedLength: cleaned.length }, 'Cleaned JavaScript code string');
@@ -751,8 +799,12 @@ export class SwaggerImporter {
                 try {
                   // 尝试修复格式：为键添加引号，统一引号
                   let fixedObjStr = objStr
-                    .replace(/(\w+)\s*:/g, '"$1":')  // 为键添加引号
-                    .replace(/'/g, '"');  // 统一使用双引号
+                    .replace(/([{,]\s*)(\w+)\s*:/g, '$1"$2":')  // 为键添加引号
+                    .replace(/'([^']*)'/g, (match, content) => {
+                      // 转义内容中的双引号
+                      const escaped = content.replace(/"/g, '\\"');
+                      return `"${escaped}"`;
+                    });  // 统一使用双引号
                   
                   const obj = JSON.parse(fixedObjStr);
                   if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
