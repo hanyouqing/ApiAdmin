@@ -48,6 +48,8 @@
     "registerFailed": "注册失败",
     "emailRequired": "请输入邮箱",
     "emailInvalid": "请输入有效的邮箱地址",
+    "or": "或",
+    "loginWith": "使用",
     "passwordRequired": "请输入密码",
     "passwordTooShort": "密码至少需要6个字符",
     "confirmPasswordRequired": "请确认密码",

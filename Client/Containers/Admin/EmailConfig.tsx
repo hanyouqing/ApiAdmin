@@ -27,6 +27,7 @@ const EmailConfig: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [provider, setProvider] = useState<string>('');
   const [form] = Form.useForm();
+  const watchedProvider = Form.useWatch('provider', form);
 
   useEffect(() => {
     if (user?.role === 'super_admin') {
@@ -64,6 +65,9 @@ const EmailConfig: React.FC = () => {
         formData.region = data.aliyun.region || '';
         formData.accessKeyId = data.aliyun.accessKeyId || '';
         formData.accessKeySecret = data.aliyun.accessKeySecret || '';
+        formData.from = data.from?.email || '';
+      } else if (data.provider === 'resend' && data.resend) {
+        formData.apiKey = data.resend.apiKey || '';
         formData.from = data.from?.email || '';
       }
 
@@ -161,7 +165,7 @@ const EmailConfig: React.FC = () => {
   };
 
   const renderFormFields = () => {
-    const currentProvider = provider || form.getFieldValue('provider') || '';
+    const currentProvider = provider || watchedProvider || '';
 
     if (currentProvider === 'smtp') {
       return (

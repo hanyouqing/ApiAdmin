@@ -101,7 +101,7 @@ function generateToken() {
 class ThirdPartyAuthController extends BaseController {
   static get ControllerName() { return 'ThirdPartyAuthController'; }
 
-  // 获取所有第三方登录配置
+  // 获取所有第三方登录配置（需要认证，用于管理页面）
   static async getConfig(ctx) {
     try {
       const configs = await ThirdPartyAuthConfig.find({}).sort({ provider: 1 });
@@ -131,6 +131,34 @@ class ThirdPartyAuthController extends BaseController {
         process.env.NODE_ENV === 'production'
           ? '获取第三方登录配置失败'
           : error.message || '获取第三方登录配置失败'
+      );
+    }
+  }
+
+  // 获取已启用的第三方登录提供者（公开接口，用于登录页面）
+  static async getEnabledProviders(ctx) {
+    try {
+      const configs = await ThirdPartyAuthConfig.find({ enabled: true }).sort({ provider: 1 });
+
+      // 只返回已启用的提供者列表，不包含敏感信息
+      const providers = configs.map(cfg => ({
+        provider: cfg.provider,
+        name: cfg.provider === 'github' ? 'GitHub' :
+              cfg.provider === 'gitlab' ? 'GitLab' :
+              cfg.provider === 'google' ? 'Google' :
+              cfg.provider === 'wechat' ? '微信' :
+              cfg.provider === 'phone' ? '手机号' :
+              cfg.provider === 'email' ? '邮箱' : cfg.provider,
+      }));
+
+      ctx.body = ThirdPartyAuthController.success(providers);
+    } catch (error) {
+      logger.error({ error }, 'Get enabled third party auth providers error');
+      ctx.status = 500;
+      ctx.body = ThirdPartyAuthController.error(
+        process.env.NODE_ENV === 'production'
+          ? '获取第三方登录提供者失败'
+          : error.message || '获取第三方登录提供者失败'
       );
     }
   }
@@ -206,12 +234,22 @@ class ThirdPartyAuthController extends BaseController {
   static async githubAuth(ctx) {
     try {
       const { redirectUrl } = ctx.query;
-      const clientId = config.GITHUB_CLIENT_ID;
-      const redirectUri = `${config.BASE_URL || 'http://localhost:3000'}/api/auth/github/callback`;
+      
+      // 从数据库获取 GitHub 配置
+      const githubConfig = await ThirdPartyAuthConfig.findOne({ provider: 'github' });
+      
+      if (!githubConfig || !githubConfig.enabled) {
+        ctx.status = 400;
+        ctx.body = ThirdPartyAuthController.error('GitHub OAuth 未配置或未启用');
+        return;
+      }
+
+      const clientId = githubConfig.config?.clientId;
+      const redirectUri = githubConfig.config?.redirectUri || `${config.APP_URL || 'http://localhost:3000'}/api/auth/github/callback`;
 
       if (!clientId) {
         ctx.status = 400;
-        ctx.body = ThirdPartyAuthController.error('GitHub OAuth 未配置');
+        ctx.body = ThirdPartyAuthController.error('GitHub OAuth Client ID 未配置');
         return;
       }
 

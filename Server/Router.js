@@ -226,6 +226,8 @@ router.post('/api/sso/auth/:providerId/ldap', SSOController.handleLDAPLogin);
 // 第三方登录路由
 router.get('/api/admin/auth/third-party/config', apiRateLimiter, authMiddleware, ThirdPartyAuthController.getConfig);
 router.post('/api/admin/auth/third-party/config/:provider', apiRateLimiter, authMiddleware, ThirdPartyAuthController.updateProviderConfig);
+// 公开接口：获取已启用的第三方登录提供者（用于登录页面）
+router.get('/api/auth/third-party/providers', authRateLimiter, ThirdPartyAuthController.getEnabledProviders);
 router.get('/api/auth/github', ThirdPartyAuthController.githubAuth);
 router.get('/api/auth/github/callback', ThirdPartyAuthController.githubCallback);
 router.get('/api/auth/gitlab', ThirdPartyAuthController.githubAuth); // TODO: 实现 GitLab

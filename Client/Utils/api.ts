@@ -27,8 +27,14 @@ api.interceptors.response.use(
   (response) => {
     if (response.data && typeof response.data === 'object') {
       if (response.data.success === false) {
+        // 检查当前是否在登录页面，如果是，不显示错误消息（避免干扰登录流程）
+        const isLoginPage = window.location.pathname === '/login' || window.location.pathname === '/register';
         const errorMessage = response.data.message || response.data.error || 'Request failed';
-        messageInstance.error(errorMessage);
+        
+        // 只有在非登录页面才显示错误消息
+        if (!isLoginPage) {
+          messageInstance.error(errorMessage);
+        }
         return Promise.reject(new Error(errorMessage));
       }
     }
@@ -40,12 +46,20 @@ api.interceptors.response.use(
       const data = error.response.data;
 
       if (status === 401) {
+        // 检查当前是否在登录页面，如果是，不显示错误消息也不跳转
+        const isLoginPage = window.location.pathname === '/login' || window.location.pathname === '/register';
+        
         localStorage.removeItem('token');
-        const errorMsg = data?.message || 'Session expired, please login again';
-        messageInstance.error(errorMsg);
-        setTimeout(() => {
-          window.location.href = '/login';
-        }, 1000);
+        
+        // 如果不在登录页面，显示错误消息并跳转
+        if (!isLoginPage) {
+          const errorMsg = data?.message || 'Session expired, please login again';
+          messageInstance.error(errorMsg);
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 1000);
+        }
+        // 如果在登录页面，静默处理，不显示错误消息
         return Promise.reject(new Error('Unauthorized'));
       }
 

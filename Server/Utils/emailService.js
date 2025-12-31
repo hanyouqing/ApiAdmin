@@ -3,63 +3,149 @@ import config from './config.js';
 import { logger } from './logger.js';
 
 let transporter = null;
+let currentConfig = null;
 
-const initEmailService = () => {
-  const provider = config.EMAIL_PROVIDER || 'smtp';
+const initEmailService = (emailConfig = null) => {
+  // Use provided config or fall back to environment variables
+  const provider = emailConfig?.provider || config.EMAIL_PROVIDER || 'smtp';
   
   if (provider === 'oci') {
-    // Oracle Cloud Infrastructure Email Delivery
-    if (config.OCI_EMAIL_REGION && config.OCI_EMAIL_USER && config.OCI_EMAIL_PASS) {
-      const ociHost = `smtp.email.${config.OCI_EMAIL_REGION}.oci.oraclecloud.com`;
+    const region = emailConfig?.oci?.region || config.OCI_EMAIL_REGION;
+    const user = emailConfig?.oci?.user || config.OCI_EMAIL_USER;
+    const pass = emailConfig?.oci?.pass || config.OCI_EMAIL_PASS;
+    
+    if (region && user && pass) {
+      const ociHost = `smtp.email.${region}.oci.oraclecloud.com`;
       transporter = nodemailer.createTransport({
         host: ociHost,
         port: 587,
         secure: false,
         requireTLS: true,
         auth: {
-          user: config.OCI_EMAIL_USER,
-          pass: config.OCI_EMAIL_PASS,
+          user,
+          pass,
         },
       });
 
-      logger.info({ provider: 'oci', region: config.OCI_EMAIL_REGION, host: ociHost }, 'OCI Email Delivery service initialized');
+      logger.info({ provider: 'oci', region, host: ociHost }, 'OCI Email Delivery service initialized');
+      currentConfig = emailConfig || { provider: 'oci', oci: { region, user, pass } };
+      return;
     } else {
       logger.warn('OCI Email Delivery not configured. OCI_EMAIL_REGION, OCI_EMAIL_USER, and OCI_EMAIL_PASS are required.');
     }
-  } else {
-    // Standard SMTP
-    if (config.SMTP_HOST && config.SMTP_USER && config.SMTP_PASS) {
+  } else if (provider === 'smtp') {
+    const smtpConfig = emailConfig?.smtp || {};
+    const host = smtpConfig.host || config.SMTP_HOST;
+    const port = smtpConfig.port || parseInt(config.SMTP_PORT) || 587;
+    const secure = smtpConfig.secure !== undefined ? smtpConfig.secure : (config.SMTP_SECURE === 'true' || config.SMTP_PORT === '465');
+    const user = smtpConfig.auth?.user || config.SMTP_USER;
+    const pass = smtpConfig.auth?.pass || config.SMTP_PASS;
+    
+    if (host && user && pass) {
       transporter = nodemailer.createTransport({
-        host: config.SMTP_HOST,
-        port: parseInt(config.SMTP_PORT) || 587,
-        secure: config.SMTP_SECURE === 'true' || config.SMTP_PORT === '465',
+        host,
+        port,
+        secure,
         auth: {
-          user: config.SMTP_USER,
-          pass: config.SMTP_PASS,
+          user,
+          pass,
         },
       });
 
-      logger.info({ provider: 'smtp', host: config.SMTP_HOST }, 'Email service initialized');
+      logger.info({ provider: 'smtp', host, port }, 'Email service initialized');
+      currentConfig = emailConfig || { provider: 'smtp', smtp: { host, port, secure, auth: { user, pass } } };
+      return;
     } else {
       logger.warn('Email service not configured. SMTP settings missing.');
     }
+  } else if (provider === 'sendgrid') {
+    // SendGrid uses SMTP with specific settings
+    const sendgridConfig = emailConfig?.sendgrid || {};
+    const apiKey = sendgridConfig.apiKey || config.SENDGRID_API_KEY;
+    
+    if (apiKey) {
+      transporter = nodemailer.createTransport({
+        host: 'smtp.sendgrid.net',
+        port: 587,
+        secure: false,
+        auth: {
+          user: 'apikey',
+          pass: apiKey,
+        },
+      });
+
+      logger.info({ provider: 'sendgrid' }, 'SendGrid email service initialized');
+      currentConfig = emailConfig || { provider: 'sendgrid', sendgrid: { apiKey } };
+      return;
+    } else {
+      logger.warn('SendGrid not configured. API key is required.');
+    }
+  } else if (provider === 'ses') {
+    // AWS SES - would need AWS SDK, for now log warning
+    logger.warn('AWS SES provider not yet implemented in emailService');
+  } else if (provider === 'aliyun') {
+    // Aliyun - would need Aliyun SDK, for now log warning
+    logger.warn('Aliyun provider not yet implemented in emailService');
+  } else if (provider === 'resend') {
+    // Resend uses SMTP with specific settings
+    const resendConfig = emailConfig?.resend || {};
+    const apiKey = resendConfig.apiKey;
+    
+    if (apiKey) {
+      transporter = nodemailer.createTransport({
+        host: 'smtp.resend.com',
+        port: 587,
+        secure: false,
+        auth: {
+          user: 'resend',
+          pass: apiKey,
+        },
+      });
+
+      logger.info({ provider: 'resend' }, 'Resend email service initialized');
+      currentConfig = emailConfig || { provider: 'resend', resend: { apiKey } };
+      return;
+    } else {
+      logger.warn('Resend not configured. API key is required.');
+    }
   }
+  
+  transporter = null;
+  currentConfig = null;
 };
 
-export const sendEmail = async (to, subject, html, text) => {
-  if (!transporter) {
+export const sendEmail = async (to, subject, html, text, emailConfig = null) => {
+  // If new config provided, reinitialize
+  if (emailConfig && JSON.stringify(emailConfig) !== JSON.stringify(currentConfig)) {
+    initEmailService(emailConfig);
+  } else if (!transporter) {
     initEmailService();
   }
 
   if (!transporter) {
-    throw new Error('Email service not configured');
+    throw new Error('Email service not configured. Please configure email settings first.');
   }
 
   try {
-    const provider = config.EMAIL_PROVIDER || 'smtp';
-    const fromEmail = provider === 'oci' 
-      ? (config.OCI_EMAIL_FROM || config.OCI_EMAIL_USER)
-      : (config.SMTP_FROM || config.SMTP_USER);
+    const provider = currentConfig?.provider || emailConfig?.provider || config.EMAIL_PROVIDER || 'smtp';
+    let fromEmail;
+    
+    // Priority: emailConfig > currentConfig > environment variables
+    if (emailConfig?.from?.email) {
+      fromEmail = emailConfig.from.email;
+    } else if (currentConfig?.from?.email) {
+      fromEmail = currentConfig.from.email;
+    } else if (provider === 'oci') {
+      fromEmail = config.OCI_EMAIL_FROM || config.OCI_EMAIL_USER;
+    } else if (provider === 'resend' && emailConfig?.from?.email) {
+      fromEmail = emailConfig.from.email;
+    } else {
+      fromEmail = config.SMTP_FROM || config.SMTP_USER;
+    }
+    
+    if (!fromEmail) {
+      throw new Error('Email "from" address is not configured');
+    }
     
     const info = await transporter.sendMail({
       from: fromEmail,

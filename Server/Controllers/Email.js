@@ -2,6 +2,7 @@ import { BaseController } from './Base.js';
 import { validateObjectId, sanitizeInput, validateEmail } from '../Utils/validation.js';
 import { logger } from '../Utils/logger.js';
 import EmailTemplate from '../Models/EmailTemplate.js';
+import EmailConfigModel from '../Models/EmailConfig.js';
 import { sendEmail } from '../Utils/emailService.js';
 import config from '../Utils/config.js';
 
@@ -10,46 +11,100 @@ class EmailController extends BaseController {
 
   static async getConfig(ctx) {
     try {
-      const emailConfig = {
-        provider: config.EMAIL_PROVIDER || 'smtp',
-        smtp: {
-          host: config.SMTP_HOST || '',
-          port: parseInt(config.SMTP_PORT) || 587,
-          secure: config.SMTP_SECURE === 'true' || config.SMTP_PORT === '465',
-          auth: {
-            user: config.SMTP_USER || '',
-            pass: config.SMTP_PASS || '',
+      // Try to get config from database first, fall back to environment variables
+      let emailConfig;
+      try {
+        const dbConfig = await EmailConfigModel.getConfig();
+        emailConfig = {
+          provider: dbConfig.provider || config.EMAIL_PROVIDER || 'smtp',
+          smtp: dbConfig.smtp || {
+            host: config.SMTP_HOST || '',
+            port: parseInt(config.SMTP_PORT) || 587,
+            secure: config.SMTP_SECURE === 'true' || config.SMTP_PORT === '465',
+            auth: {
+              user: config.SMTP_USER || '',
+              pass: config.SMTP_PASS || '',
+            },
           },
-        },
-        oci: {
-          region: config.OCI_EMAIL_REGION || '',
-          user: config.OCI_EMAIL_USER || '',
-          pass: config.OCI_EMAIL_PASS || '',
-          from: config.OCI_EMAIL_FROM || '',
-          host: config.OCI_EMAIL_REGION 
-            ? `smtp.email.${config.OCI_EMAIL_REGION}.oci.oraclecloud.com`
-            : '',
-        },
-        sendgrid: {
-          apiKey: config.SENDGRID_API_KEY || '',
-        },
-        ses: {
-          accessKeyId: config.AWS_ACCESS_KEY_ID || '',
-          secretAccessKey: config.AWS_SECRET_ACCESS_KEY || '',
-          region: config.AWS_REGION || '',
-        },
-        aliyun: {
-          accessKeyId: config.ALIYUN_ACCESS_KEY_ID || '',
-          accessKeySecret: config.ALIYUN_ACCESS_KEY_SECRET || '',
-          region: config.ALIYUN_REGION || '',
-        },
-        from: {
-          name: config.SMTP_FROM_NAME || 'ApiAdmin',
-          email: config.EMAIL_PROVIDER === 'oci'
-            ? (config.OCI_EMAIL_FROM || config.OCI_EMAIL_USER || '')
-            : (config.SMTP_FROM || config.SMTP_USER || ''),
-        },
-      };
+          oci: dbConfig.oci || {
+            region: config.OCI_EMAIL_REGION || '',
+            user: config.OCI_EMAIL_USER || '',
+            pass: config.OCI_EMAIL_PASS || '',
+            from: config.OCI_EMAIL_FROM || '',
+            host: config.OCI_EMAIL_REGION 
+              ? `smtp.email.${config.OCI_EMAIL_REGION}.oci.oraclecloud.com`
+              : '',
+          },
+          sendgrid: dbConfig.sendgrid || {
+            apiKey: config.SENDGRID_API_KEY || '',
+          },
+          ses: dbConfig.ses || {
+            accessKeyId: config.AWS_ACCESS_KEY_ID || '',
+            secretAccessKey: config.AWS_SECRET_ACCESS_KEY || '',
+            region: config.AWS_REGION || '',
+          },
+          aliyun: dbConfig.aliyun || {
+            accessKeyId: config.ALIYUN_ACCESS_KEY_ID || '',
+            accessKeySecret: config.ALIYUN_ACCESS_KEY_SECRET || '',
+            region: config.ALIYUN_REGION || '',
+          },
+          resend: dbConfig.resend || {
+            apiKey: '',
+          },
+          from: dbConfig.from || {
+            name: config.SMTP_FROM_NAME || 'ApiAdmin',
+            email: dbConfig.provider === 'oci'
+              ? (config.OCI_EMAIL_FROM || config.OCI_EMAIL_USER || '')
+              : (config.SMTP_FROM || config.SMTP_USER || ''),
+          },
+        };
+      } catch (dbError) {
+        logger.warn({ error: dbError }, 'Failed to get email config from database, using environment variables');
+        // Fall back to environment variables
+        emailConfig = {
+          provider: config.EMAIL_PROVIDER || 'smtp',
+          smtp: {
+            host: config.SMTP_HOST || '',
+            port: parseInt(config.SMTP_PORT) || 587,
+            secure: config.SMTP_SECURE === 'true' || config.SMTP_PORT === '465',
+            auth: {
+              user: config.SMTP_USER || '',
+              pass: config.SMTP_PASS || '',
+            },
+          },
+          oci: {
+            region: config.OCI_EMAIL_REGION || '',
+            user: config.OCI_EMAIL_USER || '',
+            pass: config.OCI_EMAIL_PASS || '',
+            from: config.OCI_EMAIL_FROM || '',
+            host: config.OCI_EMAIL_REGION 
+              ? `smtp.email.${config.OCI_EMAIL_REGION}.oci.oraclecloud.com`
+              : '',
+          },
+          sendgrid: {
+            apiKey: config.SENDGRID_API_KEY || '',
+          },
+          ses: {
+            accessKeyId: config.AWS_ACCESS_KEY_ID || '',
+            secretAccessKey: config.AWS_SECRET_ACCESS_KEY || '',
+            region: config.AWS_REGION || '',
+          },
+          aliyun: {
+            accessKeyId: config.ALIYUN_ACCESS_KEY_ID || '',
+            accessKeySecret: config.ALIYUN_ACCESS_KEY_SECRET || '',
+            region: config.ALIYUN_REGION || '',
+          },
+          resend: {
+            apiKey: '',
+          },
+          from: {
+            name: config.SMTP_FROM_NAME || 'ApiAdmin',
+            email: config.EMAIL_PROVIDER === 'oci'
+              ? (config.OCI_EMAIL_FROM || config.OCI_EMAIL_USER || '')
+              : (config.SMTP_FROM || config.SMTP_USER || ''),
+          },
+        };
+      }
 
       ctx.body = EmailController.success(emailConfig);
     } catch (error) {
@@ -72,8 +127,45 @@ class EmailController extends BaseController {
         return;
       }
 
-      // TODO: 实现配置更新逻辑
-      // 需要将配置保存到数据库或环境变量
+      const configData = ctx.request.body;
+      
+      // Validate required fields based on provider
+      if (configData.provider === 'smtp') {
+        if (!configData.smtp || !configData.smtp.host || !configData.smtp.auth?.user || !configData.smtp.auth?.pass) {
+          ctx.status = 400;
+          ctx.body = EmailController.error('SMTP配置不完整：需要host、user和password');
+          return;
+        }
+      } else if (configData.provider === 'sendgrid') {
+        if (!configData.sendgrid || !configData.sendgrid.apiKey) {
+          ctx.status = 400;
+          ctx.body = EmailController.error('SendGrid配置不完整：需要apiKey');
+          return;
+        }
+      } else if (configData.provider === 'ses') {
+        if (!configData.ses || !configData.ses.accessKeyId || !configData.ses.secretAccessKey) {
+          ctx.status = 400;
+          ctx.body = EmailController.error('AWS SES配置不完整：需要accessKeyId和secretAccessKey');
+          return;
+        }
+      } else if (configData.provider === 'aliyun') {
+        if (!configData.aliyun || !configData.aliyun.accessKeyId || !configData.aliyun.accessKeySecret) {
+          ctx.status = 400;
+          ctx.body = EmailController.error('阿里云配置不完整：需要accessKeyId和accessKeySecret');
+          return;
+        }
+      } else if (configData.provider === 'resend') {
+        if (!configData.resend || !configData.resend.apiKey) {
+          ctx.status = 400;
+          ctx.body = EmailController.error('Resend配置不完整：需要apiKey');
+          return;
+        }
+      }
+
+      // Save to database
+      await EmailConfigModel.updateConfig(configData, user._id);
+
+      logger.info({ userId: user._id, provider: configData.provider }, 'Email config updated');
 
       ctx.body = EmailController.success(null, '邮件配置更新成功');
     } catch (error) {
@@ -97,14 +189,103 @@ class EmailController extends BaseController {
         return;
       }
 
+      // Get current email configuration from database, fall back to environment variables
+      let emailConfig;
+      try {
+        const dbConfig = await EmailConfigModel.getConfig();
+        emailConfig = {
+          provider: dbConfig.provider || config.EMAIL_PROVIDER || 'smtp',
+          smtp: dbConfig.smtp || {
+            host: config.SMTP_HOST || '',
+            port: parseInt(config.SMTP_PORT) || 587,
+            secure: config.SMTP_SECURE === 'true' || config.SMTP_PORT === '465',
+            auth: {
+              user: config.SMTP_USER || '',
+              pass: config.SMTP_PASS || '',
+            },
+          },
+          sendgrid: dbConfig.sendgrid || {
+            apiKey: config.SENDGRID_API_KEY || '',
+          },
+          ses: dbConfig.ses || {
+            accessKeyId: config.AWS_ACCESS_KEY_ID || '',
+            secretAccessKey: config.AWS_SECRET_ACCESS_KEY || '',
+            region: config.AWS_REGION || '',
+          },
+          aliyun: dbConfig.aliyun || {
+            accessKeyId: config.ALIYUN_ACCESS_KEY_ID || '',
+            accessKeySecret: config.ALIYUN_ACCESS_KEY_SECRET || '',
+            region: config.ALIYUN_REGION || '',
+          },
+          resend: dbConfig.resend || {
+            apiKey: '',
+          },
+          oci: dbConfig.oci || {
+            region: config.OCI_EMAIL_REGION || '',
+            user: config.OCI_EMAIL_USER || '',
+            pass: config.OCI_EMAIL_PASS || '',
+            from: config.OCI_EMAIL_FROM || '',
+          },
+          from: dbConfig.from || {
+            name: config.SMTP_FROM_NAME || 'ApiAdmin',
+            email: (dbConfig.provider || config.EMAIL_PROVIDER) === 'oci'
+              ? (config.OCI_EMAIL_FROM || config.OCI_EMAIL_USER || '')
+              : (config.SMTP_FROM || config.SMTP_USER || ''),
+          },
+        };
+      } catch (dbError) {
+        logger.warn({ error: dbError }, 'Failed to get email config from database, using environment variables');
+        // Fall back to environment variables
+        emailConfig = {
+          provider: config.EMAIL_PROVIDER || 'smtp',
+          smtp: {
+            host: config.SMTP_HOST || '',
+            port: parseInt(config.SMTP_PORT) || 587,
+            secure: config.SMTP_SECURE === 'true' || config.SMTP_PORT === '465',
+            auth: {
+              user: config.SMTP_USER || '',
+              pass: config.SMTP_PASS || '',
+            },
+          },
+          sendgrid: {
+            apiKey: config.SENDGRID_API_KEY || '',
+          },
+          ses: {
+            accessKeyId: config.AWS_ACCESS_KEY_ID || '',
+            secretAccessKey: config.AWS_SECRET_ACCESS_KEY || '',
+            region: config.AWS_REGION || '',
+          },
+          aliyun: {
+            accessKeyId: config.ALIYUN_ACCESS_KEY_ID || '',
+            accessKeySecret: config.ALIYUN_ACCESS_KEY_SECRET || '',
+            region: config.ALIYUN_REGION || '',
+          },
+          resend: {
+            apiKey: '',
+          },
+          oci: {
+            region: config.OCI_EMAIL_REGION || '',
+            user: config.OCI_EMAIL_USER || '',
+            pass: config.OCI_EMAIL_PASS || '',
+            from: config.OCI_EMAIL_FROM || '',
+          },
+          from: {
+            name: config.SMTP_FROM_NAME || 'ApiAdmin',
+            email: config.EMAIL_PROVIDER === 'oci'
+              ? (config.OCI_EMAIL_FROM || config.OCI_EMAIL_USER || '')
+              : (config.SMTP_FROM || config.SMTP_USER || ''),
+          },
+        };
+      }
+
       const testSubject = subject || 'ApiAdmin 测试邮件';
       const testContent = content || '<p>这是一封测试邮件。</p>';
 
-      await sendEmail(to, testSubject, testContent);
+      await sendEmail(to, testSubject, testContent, null, emailConfig);
 
       ctx.body = EmailController.success(null, '测试邮件发送成功');
     } catch (error) {
-      logger.error({ error }, 'Send test email error');
+      logger.error({ error, stack: error.stack }, 'Send test email error');
       ctx.status = 500;
       ctx.body = EmailController.error(
         process.env.NODE_ENV === 'production'

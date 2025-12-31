@@ -92,10 +92,19 @@ const AppContent: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 const Application: React.FC = () => {
   const locale = useSelector((state: RootState) => state.ui.locale);
+  const isAuthenticated = useSelector((state: RootState) => state.user.isAuthenticated);
+  const token = useSelector((state: RootState) => state.user.token);
   const [pluginRoutes, setPluginRoutes] = useState<Array<{ path: string; component: React.ComponentType<any> }>>([]);
 
   useEffect(() => {
     const loadPlugins = async () => {
+      // 检查是否已认证，只有在已登录时才加载插件
+      const currentToken = token || localStorage.getItem('token');
+      if (!currentToken || !isAuthenticated) {
+        // 没有 token 或未认证，不加载插件
+        return;
+      }
+
       try {
         // api.ts 的 baseURL 已经是 '/api'，所以这里只需要 'plugins'
         const response = await api.get('/plugins', { params: { enabled: true } });
@@ -113,8 +122,14 @@ const Application: React.FC = () => {
         }
         
         setPluginRoutes(pluginLoader.getRoutes());
-      } catch (error) {
-        // 插件功能是可选的，静默处理错误，避免影响主应用
+      } catch (error: any) {
+        // 如果是 401 错误，说明 token 无效，静默处理
+        if (error.response?.status === 401) {
+          // Token 无效，清除 token，不显示错误
+          localStorage.removeItem('token');
+          return;
+        }
+        // 插件功能是可选的，静默处理其他错误，避免影响主应用
         if (process.env.NODE_ENV === 'development') {
           console.warn('Failed to load plugins (this is optional):', error);
         }
@@ -122,7 +137,7 @@ const Application: React.FC = () => {
     };
 
     loadPlugins();
-  }, []);
+  }, [isAuthenticated, token]);
 
   return (
     <ConfigProvider locale={getAntdLocale(locale)} theme={antdTheme}>

@@ -13,6 +13,7 @@ import './SSOProvider.js';
 import './Whitelist.js';
 import './WhitelistConfig.js';
 import './EmailTemplate.js';
+import './EmailConfig.js';
 import './Plugin.js';
 import './CLIToken.js';
 import './ProjectToken.js';

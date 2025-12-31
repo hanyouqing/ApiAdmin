@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { register } from '../../Reducer/Modules/User';
 import type { AppDispatch } from '../../Reducer/Create';
 import { darkColors, techColors, themeColor } from '../../Styles/theme';
+import Logo from '../../Components/Logo';
 
 const Register: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
