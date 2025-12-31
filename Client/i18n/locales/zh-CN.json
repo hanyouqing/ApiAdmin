@@ -479,7 +479,19 @@
     "viewDetails": "查看详情",
     "exportReport": "导出报告",
     "exportSuccess": "导出成功",
-    "exportFailed": "导出失败"
+    "exportFailed": "导出失败",
+    "pipeline": {
+      "title": "测试流水线管理",
+      "fetchFailed": "获取测试流水线失败",
+      "fetchInterfacesFailed": "获取接口列表失败",
+      "deleteConfirm": "确认删除",
+      "deleteConfirmMessage": "确定要删除这个测试流水线吗？",
+      "deleteSuccess": "删除成功",
+      "deleteFailed": "删除失败",
+      "selectProjectAndPipeline": "请先选择项目和测试流水线",
+      "noTestCases": "该测试流水线没有测试用例，请先添加API",
+      "selectProject": "选择项目"
+    }
   },
   "admin": {
     "noPermission": "您没有权限访问管理后台",
@@ -730,7 +742,7 @@
       "successRate": "成功率",
       "errorRate": "错误率",
       "avgResponseTime": "平均响应时间",
-      "pipelineMonitor": "测试流水线监控",
+      "pipelineMonitor": "测试流水线",
       "disabled": "已禁用",
       "scheduled": "定时任务",
       "viewDetails": "查看详情",

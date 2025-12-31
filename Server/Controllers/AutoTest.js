@@ -5,6 +5,7 @@ import Interface from '../Models/Interface.js';
 import TestCollection from '../Models/TestCollection.js';
 import TestCase from '../Models/TestCase.js';
 import AutoTestTask from '../Models/AutoTestTask.js';
+import AutoTestConfig from '../Models/AutoTestConfig.js';
 import { TestRunner } from '../Utils/testRunner.js';
 import { TestCaseGenerator } from '../Utils/testCaseGenerator.js';
 
@@ -15,17 +16,37 @@ class AutoTestController extends BaseController {
     try {
       const { projectId } = ctx.query;
 
-      // TODO: 从数据库获取自动测试配置
-      // 临时返回默认配置
-      ctx.body = AutoTestController.success({
-        enabled: true,
-        autoGenerate: true,
-        autoExecute: false,
-        dataGenerationStrategy: 'mock',
-        assertionTemplate: null,
-        timeout: 30000,
-        retryCount: 0,
-      });
+      if (!projectId || !validateObjectId(projectId)) {
+        ctx.status = 400;
+        ctx.body = AutoTestController.error('项目 ID 不能为空');
+        return;
+      }
+
+      let config = await AutoTestConfig.getConfig(projectId);
+      if (!config) {
+        // 如果不存在，返回默认配置
+        config = {
+          enabled: true,
+          autoGenerate: true,
+          autoExecute: false,
+          dataGenerationStrategy: 'mock',
+          assertionTemplate: null,
+          timeout: 30000,
+          retryCount: 0,
+        };
+      } else {
+        config = {
+          enabled: config.enabled,
+          autoGenerate: config.autoGenerate,
+          autoExecute: config.autoExecute,
+          dataGenerationStrategy: config.dataGenerationStrategy,
+          assertionTemplate: config.assertionTemplate,
+          timeout: config.timeout,
+          retryCount: config.retryCount,
+        };
+      }
+
+      ctx.body = AutoTestController.success(config);
     } catch (error) {
       logger.error({ error }, 'Get auto test config error');
       ctx.status = 500;
@@ -42,11 +63,80 @@ class AutoTestController extends BaseController {
       const user = ctx.state.user;
       const { projectId, enabled, autoGenerate, autoExecute, dataGenerationStrategy, assertionTemplate, timeout, retryCount } = ctx.request.body;
 
-      // TODO: 保存配置到数据库
+      if (!projectId || !validateObjectId(projectId)) {
+        ctx.status = 400;
+        ctx.body = AutoTestController.error('项目 ID 不能为空');
+        return;
+      }
+
+      // 验证数据生成策略
+      if (dataGenerationStrategy && !['mock', 'example', 'history'].includes(dataGenerationStrategy)) {
+        ctx.status = 400;
+        ctx.body = AutoTestController.error('无效的数据生成策略');
+        return;
+      }
+
+      // 验证超时时间
+      if (timeout !== undefined && (typeof timeout !== 'number' || timeout < 1000 || timeout > 300000)) {
+        ctx.status = 400;
+        ctx.body = AutoTestController.error('超时时间必须在 1000-300000 毫秒之间');
+        return;
+      }
+
+      // 验证重试次数
+      if (retryCount !== undefined && (typeof retryCount !== 'number' || retryCount < 0 || retryCount > 10)) {
+        ctx.status = 400;
+        ctx.body = AutoTestController.error('重试次数必须在 0-10 次之间');
+        return;
+      }
+
+      const config = await AutoTestConfig.getOrCreateConfig(projectId, {
+        enabled: enabled !== undefined ? enabled : true,
+        autoGenerate: autoGenerate !== undefined ? autoGenerate : true,
+        autoExecute: autoExecute !== undefined ? autoExecute : false,
+        dataGenerationStrategy: dataGenerationStrategy || 'mock',
+        assertionTemplate: assertionTemplate || null,
+        timeout: timeout || 30000,
+        retryCount: retryCount !== undefined ? retryCount : 0,
+        updatedBy: user._id,
+      });
+
+      // 更新配置
+      if (enabled !== undefined) {
+        config.enabled = enabled;
+      }
+      if (autoGenerate !== undefined) {
+        config.autoGenerate = autoGenerate;
+      }
+      if (autoExecute !== undefined) {
+        config.autoExecute = autoExecute;
+      }
+      if (dataGenerationStrategy !== undefined) {
+        config.dataGenerationStrategy = dataGenerationStrategy;
+      }
+      if (assertionTemplate !== undefined) {
+        config.assertionTemplate = assertionTemplate;
+      }
+      if (timeout !== undefined) {
+        config.timeout = timeout;
+      }
+      if (retryCount !== undefined) {
+        config.retryCount = retryCount;
+      }
+      config.updatedBy = user._id;
+      await config.save();
 
       logger.info({ userId: user._id, projectId }, 'Auto test config updated');
 
-      ctx.body = AutoTestController.success(null, '自动测试配置更新成功');
+      ctx.body = AutoTestController.success({
+        enabled: config.enabled,
+        autoGenerate: config.autoGenerate,
+        autoExecute: config.autoExecute,
+        dataGenerationStrategy: config.dataGenerationStrategy,
+        assertionTemplate: config.assertionTemplate,
+        timeout: config.timeout,
+        retryCount: config.retryCount,
+      }, '自动测试配置更新成功');
     } catch (error) {
       logger.error({ error }, 'Update auto test config error');
       ctx.status = 500;

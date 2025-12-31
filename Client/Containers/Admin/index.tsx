@@ -10,7 +10,6 @@ import SSOConfig from './SSOConfig';
 import ThirdPartyAuth from './ThirdPartyAuth';
 import WhitelistManagement from './WhitelistManagement';
 import EmailConfig from './EmailConfig';
-import MonitorStats from './MonitorStats';
 import OperationLog from './OperationLog';
 import LoginLog from './LoginLog';
 import PluginManagement from './PluginManagement';
@@ -28,7 +27,6 @@ const Admin: React.FC = () => {
       <Route path="third-party-auth" element={<ThirdPartyAuth />} />
       <Route path="whitelist" element={<WhitelistManagement />} />
       <Route path="email" element={<EmailConfig />} />
-      <Route path="monitor" element={<MonitorStats />} />
       <Route path="operation-log" element={<OperationLog />} />
       <Route path="login-log" element={<LoginLog />} />
       <Route path="plugin" element={<PluginManagement />} />

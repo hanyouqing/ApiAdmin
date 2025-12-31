@@ -59,7 +59,7 @@ const Login: React.FC = () => {
     }
     // 其他类型暂不支持
     else {
-      message.warning(t('auth.unsupportedProvider') || '不支持的登录方式');
+      message.warning(t('auth.unsupportedProvider'));
     }
   };
 
@@ -68,10 +68,10 @@ const Login: React.FC = () => {
       const values = await emailForm.validateFields(['email']);
       setEmailLoginLoading(true);
       const response = await api.post('/auth/email/send-code', { email: values.email });
-      message.success(response.data.message || t('auth.codeSent') || '验证码已发送');
+      message.success(response.data.message || t('auth.codeSent'));
       setCodeSent(true);
     } catch (error: any) {
-      message.error(error.response?.data?.message || t('auth.sendCodeFailed') || '发送验证码失败');
+      message.error(error.response?.data?.message || t('auth.sendCodeFailed'));
     } finally {
       setEmailLoginLoading(false);
     }
@@ -210,7 +210,7 @@ const Login: React.FC = () => {
 
           {thirdPartyProviders.length > 0 && (
             <>
-              <Divider>{t('auth.or') || '或'}</Divider>
+              <Divider>{t('auth.or')}</Divider>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {thirdPartyProviders.map((provider) => (
                   <Button
@@ -223,7 +223,7 @@ const Login: React.FC = () => {
                     onClick={() => handleThirdPartyLogin(provider.provider)}
                     block
                   >
-                    {t('auth.loginWith') || '使用'} {provider.name} {t('auth.login') || '登录'}
+                    {t('auth.loginWith')} {provider.name} {t('auth.login')}
                   </Button>
                 ))}
               </div>
@@ -233,7 +233,7 @@ const Login: React.FC = () => {
       </Card>
 
       <Modal
-        title={t('auth.emailLogin') || '邮箱验证码登录'}
+        title={t('auth.emailLogin')}
         open={emailLoginVisible}
         onCancel={() => {
           setEmailLoginVisible(false);

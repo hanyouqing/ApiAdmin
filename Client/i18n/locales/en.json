@@ -479,7 +479,19 @@
     "viewDetails": "View Details",
     "exportReport": "Export Report",
     "exportSuccess": "Export successful",
-    "exportFailed": "Export failed"
+    "exportFailed": "Export failed",
+    "pipeline": {
+      "title": "Test Pipeline Management",
+      "fetchFailed": "Failed to fetch test pipelines",
+      "fetchInterfacesFailed": "Failed to fetch interface list",
+      "deleteConfirm": "Confirm Delete",
+      "deleteConfirmMessage": "Are you sure you want to delete this test pipeline?",
+      "deleteSuccess": "Deleted successfully",
+      "deleteFailed": "Failed to delete",
+      "selectProjectAndPipeline": "Please select a project and test pipeline first",
+      "noTestCases": "This test pipeline has no test cases. Please add APIs first",
+      "selectProject": "Select Project"
+    }
   },
   "admin": {
     "noPermission": "You do not have permission to access the admin panel",
@@ -730,7 +742,7 @@
       "successRate": "Success Rate",
       "errorRate": "Error Rate",
       "avgResponseTime": "Average Response Time",
-      "pipelineMonitor": "Test Pipeline Monitoring",
+      "pipelineMonitor": "Test Pipeline",
       "disabled": "Disabled",
       "scheduled": "Scheduled",
       "viewDetails": "View Details",

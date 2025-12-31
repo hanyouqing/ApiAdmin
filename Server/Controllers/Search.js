@@ -3,6 +3,7 @@ import { logger } from '../Utils/logger.js';
 import Interface from '../Models/Interface.js';
 import Project from '../Models/Project.js';
 import Group from '../Models/Group.js';
+import SearchHistory from '../Models/SearchHistory.js';
 
 class SearchController extends BaseController {
   static get ControllerName() { return 'SearchController'; }
@@ -132,6 +133,21 @@ class SearchController extends BaseController {
         total = results.length;
       }
 
+      // 保存搜索历史（如果用户已登录）
+      if (ctx.state.user && ctx.state.user._id) {
+        try {
+          await SearchHistory.create({
+            user_id: ctx.state.user._id,
+            keyword: keyword,
+            search_type: type,
+            result_count: total,
+          });
+        } catch (historyError) {
+          // 忽略搜索历史保存错误，不影响搜索结果
+          logger.warn({ error: historyError }, 'Failed to save search history');
+        }
+      }
+
       ctx.body = SearchController.success({
         results,
         pagination: {
@@ -214,9 +230,26 @@ class SearchController extends BaseController {
       const user = ctx.state.user;
       const { limit = 10 } = ctx.query;
 
-      // TODO: 从数据库获取用户的搜索历史
-      // 临时返回空数组
-      ctx.body = SearchController.success([]);
+      if (!user || !user._id) {
+        ctx.status = 401;
+        ctx.body = SearchController.error('用户未认证');
+        return;
+      }
+
+      const histories = await SearchHistory.find({ user_id: user._id })
+        .sort({ createdAt: -1 })
+        .limit(parseInt(limit))
+        .select('keyword search_type result_count createdAt')
+        .lean();
+
+      const result = histories.map(h => ({
+        keyword: h.keyword,
+        type: h.search_type,
+        resultCount: h.result_count,
+        createdAt: h.createdAt,
+      }));
+
+      ctx.body = SearchController.success(result);
     } catch (error) {
       logger.error({ error }, 'Get search history error');
       ctx.status = 500;
@@ -232,7 +265,13 @@ class SearchController extends BaseController {
     try {
       const user = ctx.state.user;
 
-      // TODO: 清除用户的搜索历史
+      if (!user || !user._id) {
+        ctx.status = 401;
+        ctx.body = SearchController.error('用户未认证');
+        return;
+      }
+
+      await SearchHistory.deleteMany({ user_id: user._id });
 
       ctx.body = SearchController.success(null, '搜索历史已清除');
     } catch (error) {

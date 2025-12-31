@@ -999,6 +999,241 @@ class ProjectController extends BaseController {
     }
   }
 
+  static async addTag(ctx) {
+    try {
+      const user = ctx.state.user;
+      const { project_id, name, desc } = ctx.request.body;
+
+      if (!validateObjectId(project_id)) {
+        ctx.status = 400;
+        ctx.body = ProjectController.error('无效的项目ID');
+        return;
+      }
+
+      if (!name || !name.trim()) {
+        ctx.status = 400;
+        ctx.body = ProjectController.error('Tag 名称不能为空');
+        return;
+      }
+
+      const project = await Project.findById(project_id);
+      if (!project) {
+        ctx.status = 404;
+        ctx.body = ProjectController.error('项目不存在');
+        return;
+      }
+
+      if (
+        project.uid.toString() !== user._id.toString() &&
+        !project.member.some((memberId) => memberId.toString() === user._id.toString()) &&
+        user.role !== 'super_admin'
+      ) {
+        ctx.status = 403;
+        ctx.body = ProjectController.error('无权限修改此项目');
+        return;
+      }
+
+      // 检查 Tag 名称是否已存在
+      if (project.tag.some((tag) => tag.name === name.trim())) {
+        ctx.status = 400;
+        ctx.body = ProjectController.error('Tag 名称已存在');
+        return;
+      }
+
+      project.tag.push({
+        name: sanitizeInput(name.trim()),
+        desc: desc ? sanitizeInput(desc) : '',
+      });
+
+      await project.save();
+
+      logger.info({ userId: user._id, projectId: project._id, tagName: name }, 'Tag added');
+      await createActivity(project._id, user._id, 'tag.added', 'tag', null, `添加了 Tag ${name}`, { tagName: name });
+
+      // 记录操作日志
+      await logOperation({
+        type: 'project',
+        action: 'add_tag',
+        targetId: project._id,
+        targetName: `${project.project_name} - ${name}`,
+        userId: user._id,
+        username: user.username,
+        projectId: project._id,
+        details: { tagName: name, tagDesc: desc },
+        ip: ctx.ip || ctx.request.ip || '',
+        userAgent: ctx.headers['user-agent'] || '',
+        uri: ctx.request.url || '',
+      });
+
+      ctx.body = ProjectController.success(project, 'Tag 添加成功');
+    } catch (error) {
+      logger.error({ error }, 'Tag add error');
+      ctx.status = 500;
+      ctx.body = ProjectController.error(
+        process.env.NODE_ENV === 'production' ? '添加失败' : error.message || '添加失败'
+      );
+    }
+  }
+
+  static async updateTag(ctx) {
+    try {
+      const user = ctx.state.user;
+      const { project_id, tag_name, name, desc } = ctx.request.body;
+
+      if (!validateObjectId(project_id)) {
+        ctx.status = 400;
+        ctx.body = ProjectController.error('无效的项目ID');
+        return;
+      }
+
+      if (!tag_name) {
+        ctx.status = 400;
+        ctx.body = ProjectController.error('Tag 名称不能为空');
+        return;
+      }
+
+      const project = await Project.findById(project_id);
+      if (!project) {
+        ctx.status = 404;
+        ctx.body = ProjectController.error('项目不存在');
+        return;
+      }
+
+      if (
+        project.uid.toString() !== user._id.toString() &&
+        !project.member.some((memberId) => memberId.toString() === user._id.toString()) &&
+        user.role !== 'super_admin'
+      ) {
+        ctx.status = 403;
+        ctx.body = ProjectController.error('无权限修改此项目');
+        return;
+      }
+
+      const tagIndex = project.tag.findIndex((tag) => tag.name === tag_name);
+      if (tagIndex === -1) {
+        ctx.status = 404;
+        ctx.body = ProjectController.error('Tag 不存在');
+        return;
+      }
+
+      // 如果修改名称，检查新名称是否已存在
+      if (name && name.trim() !== tag_name) {
+        if (project.tag.some((tag, index) => index !== tagIndex && tag.name === name.trim())) {
+          ctx.status = 400;
+          ctx.body = ProjectController.error('Tag 名称已存在');
+          return;
+        }
+      }
+
+      if (name) {
+        project.tag[tagIndex].name = sanitizeInput(name.trim());
+      }
+      if (desc !== undefined) {
+        project.tag[tagIndex].desc = sanitizeInput(desc);
+      }
+
+      await project.save();
+
+      logger.info({ userId: user._id, projectId: project._id, tagName: name || tag_name }, 'Tag updated');
+      await createActivity(project._id, user._id, 'tag.updated', 'tag', null, `更新了 Tag ${name || tag_name}`, { tagName: name || tag_name });
+
+      // 记录操作日志
+      await logOperation({
+        type: 'project',
+        action: 'update_tag',
+        targetId: project._id,
+        targetName: `${project.project_name} - ${name || tag_name}`,
+        userId: user._id,
+        username: user.username,
+        projectId: project._id,
+        details: { oldName: tag_name, newName: name, desc },
+        ip: ctx.ip || ctx.request.ip || '',
+        userAgent: ctx.headers['user-agent'] || '',
+        uri: ctx.request.url || '',
+      });
+
+      ctx.body = ProjectController.success(project, 'Tag 更新成功');
+    } catch (error) {
+      logger.error({ error }, 'Tag update error');
+      ctx.status = 500;
+      ctx.body = ProjectController.error(
+        process.env.NODE_ENV === 'production' ? '更新失败' : error.message || '更新失败'
+      );
+    }
+  }
+
+  static async deleteTag(ctx) {
+    try {
+      const user = ctx.state.user;
+      const { project_id, tag_name } = ctx.query;
+
+      if (!validateObjectId(project_id)) {
+        ctx.status = 400;
+        ctx.body = ProjectController.error('无效的项目ID');
+        return;
+      }
+
+      if (!tag_name) {
+        ctx.status = 400;
+        ctx.body = ProjectController.error('Tag 名称不能为空');
+        return;
+      }
+
+      const project = await Project.findById(project_id);
+      if (!project) {
+        ctx.status = 404;
+        ctx.body = ProjectController.error('项目不存在');
+        return;
+      }
+
+      if (
+        project.uid.toString() !== user._id.toString() &&
+        !project.member.some((memberId) => memberId.toString() === user._id.toString()) &&
+        user.role !== 'super_admin'
+      ) {
+        ctx.status = 403;
+        ctx.body = ProjectController.error('无权限修改此项目');
+        return;
+      }
+
+      const tagIndex = project.tag.findIndex((tag) => tag.name === tag_name);
+      if (tagIndex === -1) {
+        ctx.status = 404;
+        ctx.body = ProjectController.error('Tag 不存在');
+        return;
+      }
+
+      project.tag.splice(tagIndex, 1);
+      await project.save();
+
+      logger.info({ userId: user._id, projectId: project._id, tagName: tag_name }, 'Tag deleted');
+      await createActivity(project._id, user._id, 'tag.deleted', 'tag', null, `删除了 Tag ${tag_name}`, { tagName: tag_name });
+
+      // 记录操作日志
+      await logOperation({
+        type: 'project',
+        action: 'delete_tag',
+        targetId: project._id,
+        targetName: `${project.project_name} - ${tag_name}`,
+        userId: user._id,
+        username: user.username,
+        projectId: project._id,
+        details: { tagName: tag_name },
+        ip: ctx.ip || ctx.request.ip || '',
+        userAgent: ctx.headers['user-agent'] || '',
+        uri: ctx.request.url || '',
+      });
+
+      ctx.body = ProjectController.success(project, 'Tag 删除成功');
+    } catch (error) {
+      logger.error({ error }, 'Tag delete error');
+      ctx.status = 500;
+      ctx.body = ProjectController.error(
+        process.env.NODE_ENV === 'production' ? '删除失败' : error.message || '删除失败'
+      );
+    }
+  }
+
   // Admin APIs - only for super_admin
   static async listAllProjects(ctx) {
     try {

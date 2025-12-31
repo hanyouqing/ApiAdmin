@@ -2,6 +2,7 @@ import { BaseController } from './Base.js';
 import { validateObjectId } from '../Utils/validation.js';
 import { logger } from '../Utils/logger.js';
 import Notification from '../Models/Notification.js';
+import NotificationSettings from '../Models/NotificationSettings.js';
 
 class NotificationController extends BaseController {
   static get ControllerName() { return 'NotificationController'; }
@@ -154,25 +155,20 @@ class NotificationController extends BaseController {
   static async getSettings(ctx) {
     try {
       const user = ctx.state.user;
-      // TODO: 从数据库获取用户的通知设置
-      // 临时返回默认设置
+
+      let settings = await NotificationSettings.findOne({ user_id: user._id });
+
+      // 如果不存在，创建默认设置
+      if (!settings) {
+        settings = await NotificationSettings.create({
+          user_id: user._id,
+        });
+      }
+
       ctx.body = NotificationController.success({
-        email: {
-          interfaceChange: true,
-          testFailed: true,
-          projectUpdate: false,
-          system: true,
-        },
-        inApp: {
-          interfaceChange: true,
-          testFailed: true,
-          projectUpdate: true,
-          system: true,
-        },
-        webhook: {
-          enabled: false,
-          url: '',
-        },
+        email: settings.email,
+        inApp: settings.inApp,
+        webhook: settings.webhook,
       });
     } catch (error) {
       logger.error({ error }, 'Get notification settings error');
@@ -190,11 +186,46 @@ class NotificationController extends BaseController {
       const user = ctx.state.user;
       const { email, inApp, webhook } = ctx.request.body;
 
-      // TODO: 保存用户的通知设置到数据库
+      // 验证 webhook URL（如果启用）
+      if (webhook && webhook.enabled && webhook.url) {
+        try {
+          new URL(webhook.url);
+        } catch (urlError) {
+          ctx.status = 400;
+          ctx.body = NotificationController.error('无效的 Webhook URL');
+          return;
+        }
+      }
+
+      let settings = await NotificationSettings.findOne({ user_id: user._id });
+
+      if (!settings) {
+        settings = await NotificationSettings.create({
+          user_id: user._id,
+          email: email || {},
+          inApp: inApp || {},
+          webhook: webhook || {},
+        });
+      } else {
+        if (email) {
+          settings.email = { ...settings.email, ...email };
+        }
+        if (inApp) {
+          settings.inApp = { ...settings.inApp, ...inApp };
+        }
+        if (webhook) {
+          settings.webhook = { ...settings.webhook, ...webhook };
+        }
+        await settings.save();
+      }
 
       logger.info({ userId: user._id }, 'Notification settings updated');
 
-      ctx.body = NotificationController.success(null, '通知设置更新成功');
+      ctx.body = NotificationController.success({
+        email: settings.email,
+        inApp: settings.inApp,
+        webhook: settings.webhook,
+      }, '通知设置更新成功');
     } catch (error) {
       logger.error({ error }, 'Update notification settings error');
       ctx.status = 500;

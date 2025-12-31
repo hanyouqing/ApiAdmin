@@ -3,6 +3,7 @@ import { validateObjectId } from '../Utils/validation.js';
 import { logger } from '../Utils/logger.js';
 import Project from '../Models/Project.js';
 import OperationLog from '../Models/OperationLog.js';
+import ProjectMember from '../Models/ProjectMember.js';
 
 class UserCenterController extends BaseController {
   static get ControllerName() { return 'UserCenterController'; }
@@ -39,14 +40,36 @@ class UserCenterController extends BaseController {
         Project.countDocuments(query),
       ]);
 
+      // 获取用户在项目中的成员信息（包括加入时间）
+      const projectIds = projects.map(p => p._id);
+      const projectMembers = await ProjectMember.find({
+        project_id: { $in: projectIds },
+        user_id: user._id,
+      }).lean();
+
+      const memberMap = new Map();
+      for (const member of projectMembers) {
+        memberMap.set(member.project_id.toString(), member);
+      }
+
       const list = projects.map(project => {
         // 确定用户在该项目中的角色
         let userRole = 'guest';
+        let joinedAt = project.createdAt;
+
         if (project.uid?.toString() === user._id.toString()) {
           userRole = 'project_leader';
-        } else if (project.members?.some(m => m.uid?.toString() === user._id.toString())) {
-          const member = project.members.find(m => m.uid?.toString() === user._id.toString());
-          userRole = member?.role || 'developer';
+          joinedAt = project.createdAt; // 项目负责人使用项目创建时间
+        } else {
+          const member = memberMap.get(project._id.toString());
+          if (member) {
+            userRole = member.role || 'developer';
+            joinedAt = member.joined_at || project.createdAt;
+          } else if (project.member?.some(m => m.toString() === user._id.toString())) {
+            // 兼容旧的数据结构
+            userRole = 'developer';
+            joinedAt = project.createdAt;
+          }
         }
 
         return {
@@ -54,7 +77,7 @@ class UserCenterController extends BaseController {
           projectName: project.project_name,
           description: project.desc || '',
           role: userRole,
-          joinedAt: project.createdAt, // TODO: 使用实际的加入时间
+          joinedAt: joinedAt,
         };
       });
 

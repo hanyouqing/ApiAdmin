@@ -30,4 +30,8 @@ import './ThirdPartyAuthConfig.js';
 import './InterfaceVersion.js';
 import './CollaborationSession.js';
 import './DocumentVersion.js';
+import './SearchHistory.js';
+import './NotificationSettings.js';
+import './AutoTestConfig.js';
+import './TestRuleConfig.js';
 

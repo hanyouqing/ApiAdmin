@@ -1798,6 +1798,58 @@ export const unimplementedPaths = {
       }
     }
   },
+  '/api/search/history': {
+    get: {
+      tags: ['Search'],
+      summary: 'Get search history',
+      description: 'Get user search history',
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: 'limit',
+          in: 'query',
+          schema: { type: 'integer', default: 10, maximum: 50 }
+        }
+      ],
+      responses: {
+        '200': {
+          description: 'Search history',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean' },
+                  data: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        query: { type: 'string' },
+                        count: { type: 'integer' },
+                        lastSearchedAt: { type: 'string', format: 'date-time' }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    delete: {
+      tags: ['Search'],
+      summary: 'Clear search history',
+      description: 'Clear all search history for current user',
+      security: [{ bearerAuth: [] }],
+      responses: {
+        '200': {
+          $ref: '#/components/responses/Success'
+        }
+      }
+    }
+  },
 
   // ============================================================================
   // 10. 项目关注 API
@@ -3210,6 +3262,112 @@ export const unimplementedComponents = {
           ]
         },
         message: { type: 'string' }
+      }
+    },
+    SearchHistory: {
+      type: 'object',
+      properties: {
+        query: { type: 'string' },
+        count: { type: 'integer' },
+        lastSearchedAt: { type: 'string', format: 'date-time' }
+      }
+    },
+    TestRuleConfig: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        project_id: { type: 'string' },
+        name: { type: 'string' },
+        type: {
+          type: 'string',
+          enum: ['assertion', 'request', 'response']
+        },
+        enabled: { type: 'boolean' },
+        assertion_rules: {
+          type: 'object',
+          properties: {
+            status_code_check: { type: 'boolean' },
+            response_time_check: { type: 'boolean' },
+            max_response_time: { type: 'integer' },
+            response_format_check: { type: 'boolean' },
+            custom_assertions: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                  script: { type: 'string' },
+                  description: { type: 'string' }
+                }
+              }
+            }
+          }
+        },
+        request_config: {
+          type: 'object',
+          properties: {
+            timeout: { type: 'integer' },
+            retry_count: { type: 'integer' },
+            retry_delay: { type: 'integer' },
+            follow_redirects: { type: 'boolean' },
+            verify_ssl: { type: 'boolean' },
+            default_headers: {
+              type: 'object',
+              additionalProperties: { type: 'string' }
+            }
+          }
+        },
+        response_config: {
+          type: 'object',
+          properties: {
+            validate_schema: { type: 'boolean' },
+            extract_variables: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                  path: { type: 'string' },
+                  type: {
+                    type: 'string',
+                    enum: ['json', 'header', 'cookie']
+                  }
+                }
+              }
+            }
+          }
+        },
+        description: { type: 'string' },
+        createdAt: { type: 'string', format: 'date-time' },
+        updatedAt: { type: 'string', format: 'date-time' }
+      }
+    },
+    TestRuleConfigCreate: {
+      type: 'object',
+      required: ['projectId', 'name', 'type'],
+      properties: {
+        projectId: { type: 'string' },
+        name: { type: 'string' },
+        type: {
+          type: 'string',
+          enum: ['assertion', 'request', 'response']
+        },
+        enabled: { type: 'boolean', default: true },
+        assertion_rules: { type: 'object' },
+        request_config: { type: 'object' },
+        response_config: { type: 'object' },
+        description: { type: 'string' }
+      }
+    },
+    TestRuleConfigUpdate: {
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+        enabled: { type: 'boolean' },
+        assertion_rules: { type: 'object' },
+        request_config: { type: 'object' },
+        response_config: { type: 'object' },
+        description: { type: 'string' }
       }
     }
   },

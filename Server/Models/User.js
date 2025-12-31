@@ -33,7 +33,7 @@ const userSchema = new mongoose.Schema(
     },
     ssoProvider: {
       type: String,
-      enum: ['local', 'saml', 'oauth2', 'oidc', 'ldap', 'cas', 'wechat', 'google', 'phone', 'email'],
+      enum: ['local', 'saml', 'oauth2', 'oidc', 'ldap', 'cas', 'wechat', 'google', 'github', 'gitlab', 'phone', 'email'],
       default: 'local',
     },
     ssoId: {

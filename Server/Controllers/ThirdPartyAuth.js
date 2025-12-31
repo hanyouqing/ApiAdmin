@@ -277,6 +277,8 @@ class ThirdPartyAuthController extends BaseController {
   static async githubCallback(ctx) {
     try {
       const { code, state } = ctx.query;
+      const userAgent = ctx.headers['user-agent'] || '';
+      const ip = ctx.ip || ctx.request.ip || '';
 
       if (!code) {
         ctx.status = 400;
@@ -288,22 +290,199 @@ class ThirdPartyAuthController extends BaseController {
       const redirectUrl = await getCode(`github:state:${state}`);
       await deleteCode(`github:state:${state}`);
 
-      // TODO: 使用 code 换取 access_token
-      // TODO: 使用 access_token 获取用户信息
-      // TODO: 检查白名单
-      // TODO: 创建或查找用户
-      // TODO: 生成 JWT token
+      // 从数据库获取 GitHub 配置
+      const githubConfig = await ThirdPartyAuthConfig.findOne({ provider: 'github' });
+      
+      if (!githubConfig || !githubConfig.enabled) {
+        ctx.status = 400;
+        ctx.body = ThirdPartyAuthController.error('GitHub OAuth 未配置或未启用');
+        return;
+      }
 
-      // 临时实现
-      ctx.body = ThirdPartyAuthController.success({
-        code,
-        state,
-        redirectUrl,
-      }, '请实现完整的 GitHub OAuth 流程');
+      const clientId = githubConfig.config?.clientId;
+      const clientSecret = githubConfig.config?.clientSecret;
+      const redirectUri = githubConfig.config?.redirectUri || `${config.APP_URL || 'http://localhost:3000'}/api/auth/github/callback`;
+
+      if (!clientId || !clientSecret) {
+        ctx.status = 400;
+        ctx.body = ThirdPartyAuthController.error('GitHub OAuth 配置不完整');
+        return;
+      }
+
+      // 使用 code 换取 access_token
+      const axios = (await import('axios')).default;
+      let tokenResponse;
+      try {
+        tokenResponse = await axios.post(
+          'https://github.com/login/oauth/access_token',
+          {
+            client_id: clientId,
+            client_secret: clientSecret,
+            code,
+            redirect_uri: redirectUri,
+          },
+          {
+            headers: {
+              'Accept': 'application/json',
+            },
+          }
+        );
+      } catch (tokenError) {
+        logger.error({ error: tokenError }, 'Failed to exchange code for token');
+        ctx.status = 500;
+        ctx.body = ThirdPartyAuthController.error('获取访问令牌失败');
+        return;
+      }
+
+      const accessToken = tokenResponse.data?.access_token;
+      if (!accessToken) {
+        logger.error({ response: tokenResponse.data }, 'No access token in response');
+        ctx.status = 500;
+        ctx.body = ThirdPartyAuthController.error('获取访问令牌失败');
+        return;
+      }
+
+      // 使用 access_token 获取用户信息
+      let userInfo;
+      try {
+        const userInfoResponse = await axios.get('https://api.github.com/user', {
+          headers: {
+            'Authorization': `token ${accessToken}`,
+            'Accept': 'application/json',
+            'User-Agent': 'ApiAdmin',
+          },
+        });
+        userInfo = userInfoResponse.data;
+      } catch (userInfoError) {
+        logger.error({ error: userInfoError }, 'Failed to get GitHub user info');
+        ctx.status = 500;
+        ctx.body = ThirdPartyAuthController.error('获取用户信息失败');
+        return;
+      }
+
+      const githubUsername = userInfo.login;
+      const githubEmail = userInfo.email;
+
+      // 如果用户信息中没有邮箱，尝试获取邮箱列表
+      let email = githubEmail;
+      if (!email) {
+        try {
+          const emailsResponse = await axios.get('https://api.github.com/user/emails', {
+            headers: {
+              'Authorization': `token ${accessToken}`,
+              'Accept': 'application/json',
+              'User-Agent': 'ApiAdmin',
+            },
+          });
+          const primaryEmail = emailsResponse.data.find((e) => e.primary);
+          email = primaryEmail ? primaryEmail.email : emailsResponse.data[0]?.email;
+        } catch (emailError) {
+          logger.warn({ error: emailError }, 'Failed to get GitHub user emails');
+        }
+      }
+
+      if (!email) {
+        ctx.status = 400;
+        ctx.body = ThirdPartyAuthController.error('无法获取 GitHub 邮箱信息，请确保 GitHub 账号已设置公开邮箱');
+        return;
+      }
+
+      // 检查白名单
+      const inWhitelist = await checkWhitelist('github', githubUsername);
+      if (!inWhitelist) {
+        await logLogin({
+          username: githubUsername,
+          email: email,
+          loginType: 'github',
+          status: 'failed',
+          failureReason: 'GitHub 用户名不在白名单中',
+          ip,
+          userAgent,
+        });
+        ctx.status = 403;
+        ctx.body = ThirdPartyAuthController.error('GitHub 用户名不在白名单中');
+        return;
+      }
+
+      // 创建或查找用户
+      let user = await User.findOne({
+        $or: [
+          { email: email.toLowerCase() },
+          { ssoProvider: 'github', 'ssoId': userInfo.id.toString() },
+        ],
+      });
+
+      if (!user) {
+        // 检查用户名是否已存在
+        let username = githubUsername;
+        let usernameExists = await User.findOne({ username });
+        let counter = 1;
+        while (usernameExists) {
+          username = `${githubUsername}_${counter}`;
+          usernameExists = await User.findOne({ username });
+          counter++;
+        }
+
+        user = new User({
+          username,
+          email: email.toLowerCase(),
+          password: crypto.randomBytes(16).toString('hex'), // 随机密码，GitHub 登录不需要密码
+          ssoProvider: 'github',
+          ssoId: userInfo.id.toString(),
+          avatar: userInfo.avatar_url || '',
+          role: 'guest',
+        });
+        await user.save();
+        logger.info({ userId: user._id, githubUsername, email }, 'User created via GitHub login');
+      } else {
+        // 更新用户的 GitHub 信息
+        if (!user.ssoProvider || user.ssoProvider !== 'github') {
+          user.ssoProvider = 'github';
+        }
+        if (!user.ssoId) {
+          user.ssoId = userInfo.id.toString();
+        }
+        if (userInfo.avatar_url && !user.avatar) {
+          user.avatar = userInfo.avatar_url;
+        }
+        await user.save();
+      }
+
+      // 生成 JWT token
+      const token = jwt.sign({ userId: user._id }, getJWTSecret(), {
+        expiresIn: getJWTExpiresIn(),
+      });
+
+      logger.info({ userId: user._id, githubUsername, email }, 'User logged in via GitHub');
+
+      // 记录成功的登录日志
+      await logLogin({
+        userId: user._id,
+        username: user.username,
+        email: user.email,
+        loginType: 'github',
+        status: 'success',
+        ip,
+        userAgent,
+      });
+
+      // 如果有 redirectUrl，重定向；否则返回 JSON
+      if (redirectUrl) {
+        ctx.redirect(`${redirectUrl}?token=${token}`);
+      } else {
+        ctx.body = ThirdPartyAuthController.success({
+          token,
+          user: user.toJSON(),
+        }, '登录成功');
+      }
     } catch (error) {
       logger.error({ error }, 'GitHub callback error');
       ctx.status = 500;
-      ctx.body = ThirdPartyAuthController.error('GitHub 回调处理失败');
+      ctx.body = ThirdPartyAuthController.error(
+        process.env.NODE_ENV === 'production'
+          ? 'GitHub 回调处理失败'
+          : error.message || 'GitHub 回调处理失败'
+      );
     }
   }
 
@@ -431,6 +610,706 @@ class ThirdPartyAuthController extends BaseController {
       logger.error({ error }, 'Phone login error');
       ctx.status = 500;
       ctx.body = ThirdPartyAuthController.error('手机号登录失败');
+    }
+  }
+
+  // GitLab 登录
+  static async gitlabAuth(ctx) {
+    try {
+      const { redirectUrl } = ctx.query;
+      
+      // 从数据库获取 GitLab 配置
+      const gitlabConfig = await ThirdPartyAuthConfig.findOne({ provider: 'gitlab' });
+      
+      if (!gitlabConfig || !gitlabConfig.enabled) {
+        ctx.status = 400;
+        ctx.body = ThirdPartyAuthController.error('GitLab OAuth 未配置或未启用');
+        return;
+      }
+
+      const clientId = gitlabConfig.config?.clientId;
+      const redirectUri = gitlabConfig.config?.redirectUri || `${config.APP_URL || 'http://localhost:3000'}/api/auth/gitlab/callback`;
+      const gitlabUrl = gitlabConfig.config?.gitlabUrl || 'https://gitlab.com';
+
+      if (!clientId) {
+        ctx.status = 400;
+        ctx.body = ThirdPartyAuthController.error('GitLab OAuth Client ID 未配置');
+        return;
+      }
+
+      const state = crypto.randomBytes(16).toString('hex');
+      const authUrl = `${gitlabUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=read_user&state=${state}`;
+
+      // 存储 state 和 redirectUrl
+      await storeCode(`gitlab:state:${state}`, redirectUrl || '/', 600);
+
+      ctx.redirect(authUrl);
+    } catch (error) {
+      logger.error({ error }, 'GitLab auth error');
+      ctx.status = 500;
+      ctx.body = ThirdPartyAuthController.error('GitLab 登录失败');
+    }
+  }
+
+  static async gitlabCallback(ctx) {
+    try {
+      const { code, state } = ctx.query;
+      const userAgent = ctx.headers['user-agent'] || '';
+      const ip = ctx.ip || ctx.request.ip || '';
+
+      if (!code) {
+        ctx.status = 400;
+        ctx.body = ThirdPartyAuthController.error('授权码缺失');
+        return;
+      }
+
+      // 获取存储的 redirectUrl
+      const redirectUrl = await getCode(`gitlab:state:${state}`);
+      await deleteCode(`gitlab:state:${state}`);
+
+      // 从数据库获取 GitLab 配置
+      const gitlabConfig = await ThirdPartyAuthConfig.findOne({ provider: 'gitlab' });
+      
+      if (!gitlabConfig || !gitlabConfig.enabled) {
+        ctx.status = 400;
+        ctx.body = ThirdPartyAuthController.error('GitLab OAuth 未配置或未启用');
+        return;
+      }
+
+      const clientId = gitlabConfig.config?.clientId;
+      const clientSecret = gitlabConfig.config?.clientSecret;
+      const redirectUri = gitlabConfig.config?.redirectUri || `${config.APP_URL || 'http://localhost:3000'}/api/auth/gitlab/callback`;
+      const gitlabUrl = gitlabConfig.config?.gitlabUrl || 'https://gitlab.com';
+
+      if (!clientId || !clientSecret) {
+        ctx.status = 400;
+        ctx.body = ThirdPartyAuthController.error('GitLab OAuth 配置不完整');
+        return;
+      }
+
+      // 使用 code 换取 access_token
+      const axios = (await import('axios')).default;
+      let tokenResponse;
+      try {
+        tokenResponse = await axios.post(
+          `${gitlabUrl}/oauth/token`,
+          {
+            client_id: clientId,
+            client_secret: clientSecret,
+            code,
+            grant_type: 'authorization_code',
+            redirect_uri: redirectUri,
+          },
+          {
+            headers: {
+              'Accept': 'application/json',
+            },
+          }
+        );
+      } catch (tokenError) {
+        logger.error({ error: tokenError }, 'Failed to exchange code for token');
+        ctx.status = 500;
+        ctx.body = ThirdPartyAuthController.error('获取访问令牌失败');
+        return;
+      }
+
+      const accessToken = tokenResponse.data?.access_token;
+      if (!accessToken) {
+        logger.error({ response: tokenResponse.data }, 'No access token in response');
+        ctx.status = 500;
+        ctx.body = ThirdPartyAuthController.error('获取访问令牌失败');
+        return;
+      }
+
+      // 使用 access_token 获取用户信息
+      let userInfo;
+      try {
+        const userInfoResponse = await axios.get(`${gitlabUrl}/api/v4/user`, {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Accept': 'application/json',
+          },
+        });
+        userInfo = userInfoResponse.data;
+      } catch (userInfoError) {
+        logger.error({ error: userInfoError }, 'Failed to get GitLab user info');
+        ctx.status = 500;
+        ctx.body = ThirdPartyAuthController.error('获取用户信息失败');
+        return;
+      }
+
+      const gitlabUsername = userInfo.username;
+      const gitlabEmail = userInfo.email;
+
+      if (!gitlabEmail) {
+        ctx.status = 400;
+        ctx.body = ThirdPartyAuthController.error('无法获取 GitLab 邮箱信息');
+        return;
+      }
+
+      // 检查白名单
+      const inWhitelist = await checkWhitelist('gitlab', gitlabUsername);
+      if (!inWhitelist) {
+        await logLogin({
+          username: gitlabUsername,
+          email: gitlabEmail,
+          loginType: 'gitlab',
+          status: 'failed',
+          failureReason: 'GitLab 用户名不在白名单中',
+          ip,
+          userAgent,
+        });
+        ctx.status = 403;
+        ctx.body = ThirdPartyAuthController.error('GitLab 用户名不在白名单中');
+        return;
+      }
+
+      // 创建或查找用户
+      let user = await User.findOne({
+        $or: [
+          { email: gitlabEmail.toLowerCase() },
+          { ssoProvider: 'gitlab', ssoId: userInfo.id.toString() },
+        ],
+      });
+
+      if (!user) {
+        // 检查用户名是否已存在
+        let username = gitlabUsername;
+        let usernameExists = await User.findOne({ username });
+        let counter = 1;
+        while (usernameExists) {
+          username = `${gitlabUsername}_${counter}`;
+          usernameExists = await User.findOne({ username });
+          counter++;
+        }
+
+        user = new User({
+          username,
+          email: gitlabEmail.toLowerCase(),
+          password: crypto.randomBytes(16).toString('hex'),
+          ssoProvider: 'gitlab',
+          ssoId: userInfo.id.toString(),
+          avatar: userInfo.avatar_url || '',
+          role: 'guest',
+        });
+        await user.save();
+        logger.info({ userId: user._id, gitlabUsername, email: gitlabEmail }, 'User created via GitLab login');
+      } else {
+        // 更新用户的 GitLab 信息
+        if (!user.ssoProvider || user.ssoProvider !== 'gitlab') {
+          user.ssoProvider = 'gitlab';
+        }
+        if (!user.ssoId) {
+          user.ssoId = userInfo.id.toString();
+        }
+        if (userInfo.avatar_url && !user.avatar) {
+          user.avatar = userInfo.avatar_url;
+        }
+        await user.save();
+      }
+
+      // 生成 JWT token
+      const token = jwt.sign({ userId: user._id }, getJWTSecret(), {
+        expiresIn: getJWTExpiresIn(),
+      });
+
+      logger.info({ userId: user._id, gitlabUsername, email: gitlabEmail }, 'User logged in via GitLab');
+
+      // 记录成功的登录日志
+      await logLogin({
+        userId: user._id,
+        username: user.username,
+        email: user.email,
+        loginType: 'gitlab',
+        status: 'success',
+        ip,
+        userAgent,
+      });
+
+      // 如果有 redirectUrl，重定向；否则返回 JSON
+      if (redirectUrl) {
+        ctx.redirect(`${redirectUrl}?token=${token}`);
+      } else {
+        ctx.body = ThirdPartyAuthController.success({
+          token,
+          user: user.toJSON(),
+        }, '登录成功');
+      }
+    } catch (error) {
+      logger.error({ error }, 'GitLab callback error');
+      ctx.status = 500;
+      ctx.body = ThirdPartyAuthController.error(
+        process.env.NODE_ENV === 'production'
+          ? 'GitLab 回调处理失败'
+          : error.message || 'GitLab 回调处理失败'
+      );
+    }
+  }
+
+  // Gmail (Google) 登录
+  static async gmailAuth(ctx) {
+    try {
+      const { redirectUrl } = ctx.query;
+      
+      // 从数据库获取 Google 配置
+      const googleConfig = await ThirdPartyAuthConfig.findOne({ provider: 'google' });
+      
+      if (!googleConfig || !googleConfig.enabled) {
+        ctx.status = 400;
+        ctx.body = ThirdPartyAuthController.error('Google OAuth 未配置或未启用');
+        return;
+      }
+
+      const clientId = googleConfig.config?.clientId;
+      const redirectUri = googleConfig.config?.redirectUri || `${config.APP_URL || 'http://localhost:3000'}/api/auth/gmail/callback`;
+
+      if (!clientId) {
+        ctx.status = 400;
+        ctx.body = ThirdPartyAuthController.error('Google OAuth Client ID 未配置');
+        return;
+      }
+
+      const state = crypto.randomBytes(16).toString('hex');
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=openid%20email%20profile&state=${state}`;
+
+      // 存储 state 和 redirectUrl
+      await storeCode(`gmail:state:${state}`, redirectUrl || '/', 600);
+
+      ctx.redirect(authUrl);
+    } catch (error) {
+      logger.error({ error }, 'Gmail auth error');
+      ctx.status = 500;
+      ctx.body = ThirdPartyAuthController.error('Gmail 登录失败');
+    }
+  }
+
+  static async gmailCallback(ctx) {
+    try {
+      const { code, state } = ctx.query;
+      const userAgent = ctx.headers['user-agent'] || '';
+      const ip = ctx.ip || ctx.request.ip || '';
+
+      if (!code) {
+        ctx.status = 400;
+        ctx.body = ThirdPartyAuthController.error('授权码缺失');
+        return;
+      }
+
+      // 获取存储的 redirectUrl
+      const redirectUrl = await getCode(`gmail:state:${state}`);
+      await deleteCode(`gmail:state:${state}`);
+
+      // 从数据库获取 Google 配置
+      const googleConfig = await ThirdPartyAuthConfig.findOne({ provider: 'google' });
+      
+      if (!googleConfig || !googleConfig.enabled) {
+        ctx.status = 400;
+        ctx.body = ThirdPartyAuthController.error('Google OAuth 未配置或未启用');
+        return;
+      }
+
+      const clientId = googleConfig.config?.clientId;
+      const clientSecret = googleConfig.config?.clientSecret;
+      const redirectUri = googleConfig.config?.redirectUri || `${config.APP_URL || 'http://localhost:3000'}/api/auth/gmail/callback`;
+
+      if (!clientId || !clientSecret) {
+        ctx.status = 400;
+        ctx.body = ThirdPartyAuthController.error('Google OAuth 配置不完整');
+        return;
+      }
+
+      // 使用 code 换取 access_token
+      const axios = (await import('axios')).default;
+      let tokenResponse;
+      try {
+        tokenResponse = await axios.post(
+          'https://oauth2.googleapis.com/token',
+          {
+            client_id: clientId,
+            client_secret: clientSecret,
+            code,
+            grant_type: 'authorization_code',
+            redirect_uri: redirectUri,
+          },
+          {
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+          }
+        );
+      } catch (tokenError) {
+        logger.error({ error: tokenError }, 'Failed to exchange code for token');
+        ctx.status = 500;
+        ctx.body = ThirdPartyAuthController.error('获取访问令牌失败');
+        return;
+      }
+
+      const accessToken = tokenResponse.data?.access_token;
+      if (!accessToken) {
+        logger.error({ response: tokenResponse.data }, 'No access token in response');
+        ctx.status = 500;
+        ctx.body = ThirdPartyAuthController.error('获取访问令牌失败');
+        return;
+      }
+
+      // 使用 access_token 获取用户信息
+      let userInfo;
+      try {
+        const userInfoResponse = await axios.get('https://www.googleapis.com/oauth2/v2/userinfo', {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Accept': 'application/json',
+          },
+        });
+        userInfo = userInfoResponse.data;
+      } catch (userInfoError) {
+        logger.error({ error: userInfoError }, 'Failed to get Google user info');
+        ctx.status = 500;
+        ctx.body = ThirdPartyAuthController.error('获取用户信息失败');
+        return;
+      }
+
+      const googleEmail = userInfo.email;
+      const googleName = userInfo.name || userInfo.email.split('@')[0];
+
+      if (!googleEmail) {
+        ctx.status = 400;
+        ctx.body = ThirdPartyAuthController.error('无法获取 Google 邮箱信息');
+        return;
+      }
+
+      // 检查白名单
+      const inWhitelist = await checkWhitelist('gmail', googleEmail);
+      if (!inWhitelist) {
+        await logLogin({
+          username: googleName,
+          email: googleEmail,
+          loginType: 'gmail',
+          status: 'failed',
+          failureReason: 'Gmail 邮箱不在白名单中',
+          ip,
+          userAgent,
+        });
+        ctx.status = 403;
+        ctx.body = ThirdPartyAuthController.error('Gmail 邮箱不在白名单中');
+        return;
+      }
+
+      // 创建或查找用户
+      let user = await User.findOne({
+        $or: [
+          { email: googleEmail.toLowerCase() },
+          { ssoProvider: 'google', ssoId: userInfo.id },
+        ],
+      });
+
+      if (!user) {
+        // 检查用户名是否已存在
+        let username = googleName;
+        let usernameExists = await User.findOne({ username });
+        let counter = 1;
+        while (usernameExists) {
+          username = `${googleName}_${counter}`;
+          usernameExists = await User.findOne({ username });
+          counter++;
+        }
+
+        user = new User({
+          username,
+          email: googleEmail.toLowerCase(),
+          password: crypto.randomBytes(16).toString('hex'),
+          ssoProvider: 'google',
+          ssoId: userInfo.id,
+          avatar: userInfo.picture || '',
+          role: 'guest',
+        });
+        await user.save();
+        logger.info({ userId: user._id, googleEmail }, 'User created via Gmail login');
+      } else {
+        // 更新用户的 Google 信息
+        if (!user.ssoProvider || user.ssoProvider !== 'google') {
+          user.ssoProvider = 'google';
+        }
+        if (!user.ssoId) {
+          user.ssoId = userInfo.id;
+        }
+        if (userInfo.picture && !user.avatar) {
+          user.avatar = userInfo.picture;
+        }
+        await user.save();
+      }
+
+      // 生成 JWT token
+      const token = jwt.sign({ userId: user._id }, getJWTSecret(), {
+        expiresIn: getJWTExpiresIn(),
+      });
+
+      logger.info({ userId: user._id, googleEmail }, 'User logged in via Gmail');
+
+      // 记录成功的登录日志
+      await logLogin({
+        userId: user._id,
+        username: user.username,
+        email: user.email,
+        loginType: 'gmail',
+        status: 'success',
+        ip,
+        userAgent,
+      });
+
+      // 如果有 redirectUrl，重定向；否则返回 JSON
+      if (redirectUrl) {
+        ctx.redirect(`${redirectUrl}?token=${token}`);
+      } else {
+        ctx.body = ThirdPartyAuthController.success({
+          token,
+          user: user.toJSON(),
+        }, '登录成功');
+      }
+    } catch (error) {
+      logger.error({ error }, 'Gmail callback error');
+      ctx.status = 500;
+      ctx.body = ThirdPartyAuthController.error(
+        process.env.NODE_ENV === 'production'
+          ? 'Gmail 回调处理失败'
+          : error.message || 'Gmail 回调处理失败'
+      );
+    }
+  }
+
+  // 微信登录
+  static async wechatAuth(ctx) {
+    try {
+      const { redirectUrl } = ctx.query;
+      
+      // 从数据库获取微信配置
+      const wechatConfig = await ThirdPartyAuthConfig.findOne({ provider: 'wechat' });
+      
+      if (!wechatConfig || !wechatConfig.enabled) {
+        ctx.status = 400;
+        ctx.body = ThirdPartyAuthController.error('微信 OAuth 未配置或未启用');
+        return;
+      }
+
+      const appId = wechatConfig.config?.appId;
+      const redirectUri = wechatConfig.config?.redirectUri || `${config.APP_URL || 'http://localhost:3000'}/api/auth/wechat/callback`;
+
+      if (!appId) {
+        ctx.status = 400;
+        ctx.body = ThirdPartyAuthController.error('微信 App ID 未配置');
+        return;
+      }
+
+      const state = crypto.randomBytes(16).toString('hex');
+      const authUrl = `https://open.weixin.qq.com/connect/qrconnect?appid=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=snsapi_login&state=${state}#wechat_redirect`;
+
+      // 存储 state 和 redirectUrl
+      await storeCode(`wechat:state:${state}`, redirectUrl || '/', 600);
+
+      ctx.redirect(authUrl);
+    } catch (error) {
+      logger.error({ error }, 'WeChat auth error');
+      ctx.status = 500;
+      ctx.body = ThirdPartyAuthController.error('微信登录失败');
+    }
+  }
+
+  static async wechatCallback(ctx) {
+    try {
+      const { code, state } = ctx.query;
+      const userAgent = ctx.headers['user-agent'] || '';
+      const ip = ctx.ip || ctx.request.ip || '';
+
+      if (!code) {
+        ctx.status = 400;
+        ctx.body = ThirdPartyAuthController.error('授权码缺失');
+        return;
+      }
+
+      // 获取存储的 redirectUrl
+      const redirectUrl = await getCode(`wechat:state:${state}`);
+      await deleteCode(`wechat:state:${state}`);
+
+      // 从数据库获取微信配置
+      const wechatConfig = await ThirdPartyAuthConfig.findOne({ provider: 'wechat' });
+      
+      if (!wechatConfig || !wechatConfig.enabled) {
+        ctx.status = 400;
+        ctx.body = ThirdPartyAuthController.error('微信 OAuth 未配置或未启用');
+        return;
+      }
+
+      const appId = wechatConfig.config?.appId;
+      const appSecret = wechatConfig.config?.appSecret;
+      const redirectUri = wechatConfig.config?.redirectUri || `${config.APP_URL || 'http://localhost:3000'}/api/auth/wechat/callback`;
+
+      if (!appId || !appSecret) {
+        ctx.status = 400;
+        ctx.body = ThirdPartyAuthController.error('微信 OAuth 配置不完整');
+        return;
+      }
+
+      // 使用 code 换取 access_token
+      const axios = (await import('axios')).default;
+      let tokenResponse;
+      try {
+        tokenResponse = await axios.get('https://api.weixin.qq.com/sns/oauth2/access_token', {
+          params: {
+            appid: appId,
+            secret: appSecret,
+            code,
+            grant_type: 'authorization_code',
+          },
+        });
+      } catch (tokenError) {
+        logger.error({ error: tokenError }, 'Failed to exchange code for token');
+        ctx.status = 500;
+        ctx.body = ThirdPartyAuthController.error('获取访问令牌失败');
+        return;
+      }
+
+      if (tokenResponse.data.errcode) {
+        logger.error({ response: tokenResponse.data }, 'WeChat API error');
+        ctx.status = 500;
+        ctx.body = ThirdPartyAuthController.error(`微信 API 错误: ${tokenResponse.data.errmsg || '未知错误'}`);
+        return;
+      }
+
+      const accessToken = tokenResponse.data?.access_token;
+      const openid = tokenResponse.data?.openid;
+      if (!accessToken || !openid) {
+        logger.error({ response: tokenResponse.data }, 'No access token or openid in response');
+        ctx.status = 500;
+        ctx.body = ThirdPartyAuthController.error('获取访问令牌失败');
+        return;
+      }
+
+      // 使用 access_token 获取用户信息
+      let userInfo;
+      try {
+        const userInfoResponse = await axios.get('https://api.weixin.qq.com/sns/userinfo', {
+          params: {
+            access_token: accessToken,
+            openid: openid,
+          },
+        });
+        userInfo = userInfoResponse.data;
+      } catch (userInfoError) {
+        logger.error({ error: userInfoError }, 'Failed to get WeChat user info');
+        ctx.status = 500;
+        ctx.body = ThirdPartyAuthController.error('获取用户信息失败');
+        return;
+      }
+
+      if (userInfo.errcode) {
+        logger.error({ response: userInfo }, 'WeChat API error');
+        ctx.status = 500;
+        ctx.body = ThirdPartyAuthController.error(`微信 API 错误: ${userInfo.errmsg || '未知错误'}`);
+        return;
+      }
+
+      const wechatNickname = userInfo.nickname || `wechat_${openid.slice(-8)}`;
+      const wechatOpenId = openid;
+
+      // 检查白名单
+      const inWhitelist = await checkWhitelist('wechat', wechatOpenId);
+      if (!inWhitelist) {
+        await logLogin({
+          username: wechatNickname,
+          email: `${wechatOpenId}@wechat.local`,
+          loginType: 'wechat',
+          status: 'failed',
+          failureReason: '微信 OpenID 不在白名单中',
+          ip,
+          userAgent,
+        });
+        ctx.status = 403;
+        ctx.body = ThirdPartyAuthController.error('微信 OpenID 不在白名单中');
+        return;
+      }
+
+      // 创建或查找用户
+      let user = await User.findOne({
+        $or: [
+          { ssoProvider: 'wechat', ssoId: wechatOpenId },
+        ],
+      });
+
+      if (!user) {
+        // 检查用户名是否已存在
+        let username = wechatNickname;
+        let usernameExists = await User.findOne({ username });
+        let counter = 1;
+        while (usernameExists) {
+          username = `${wechatNickname}_${counter}`;
+          usernameExists = await User.findOne({ username });
+          counter++;
+        }
+
+        // 生成一个唯一的邮箱
+        let email = `${wechatOpenId}@wechat.local`;
+        let emailExists = await User.findOne({ email });
+        counter = 1;
+        while (emailExists) {
+          email = `${wechatOpenId}_${counter}@wechat.local`;
+          emailExists = await User.findOne({ email });
+          counter++;
+        }
+
+        user = new User({
+          username,
+          email: email.toLowerCase(),
+          password: crypto.randomBytes(16).toString('hex'),
+          ssoProvider: 'wechat',
+          ssoId: wechatOpenId,
+          avatar: userInfo.headimgurl || '',
+          role: 'guest',
+        });
+        await user.save();
+        logger.info({ userId: user._id, wechatOpenId }, 'User created via WeChat login');
+      } else {
+        // 更新用户的微信信息
+        if (userInfo.headimgurl && !user.avatar) {
+          user.avatar = userInfo.headimgurl;
+        }
+        await user.save();
+      }
+
+      // 生成 JWT token
+      const token = jwt.sign({ userId: user._id }, getJWTSecret(), {
+        expiresIn: getJWTExpiresIn(),
+      });
+
+      logger.info({ userId: user._id, wechatOpenId }, 'User logged in via WeChat');
+
+      // 记录成功的登录日志
+      await logLogin({
+        userId: user._id,
+        username: user.username,
+        email: user.email,
+        loginType: 'wechat',
+        status: 'success',
+        ip,
+        userAgent,
+      });
+
+      // 如果有 redirectUrl，重定向；否则返回 JSON
+      if (redirectUrl) {
+        ctx.redirect(`${redirectUrl}?token=${token}`);
+      } else {
+        ctx.body = ThirdPartyAuthController.success({
+          token,
+          user: user.toJSON(),
+        }, '登录成功');
+      }
+    } catch (error) {
+      logger.error({ error }, 'WeChat callback error');
+      ctx.status = 500;
+      ctx.body = ThirdPartyAuthController.error(
+        process.env.NODE_ENV === 'production'
+          ? '微信回调处理失败'
+          : error.message || '微信回调处理失败'
+      );
     }
   }
 

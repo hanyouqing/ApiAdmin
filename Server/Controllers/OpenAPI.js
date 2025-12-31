@@ -95,12 +95,67 @@ class OpenAPIController extends BaseController {
   static async createInterface(ctx) {
     try {
       const projectId = ctx.state.projectId;
-      const interfaceData = ctx.request.body;
+      const { title, path, method, catid, desc, tag, status, req_query, req_headers, req_body_type, req_body, res_body, res_body_type } = ctx.request.body;
 
-      // TODO: 实现接口创建逻辑
-      // 参考 InterfaceController.add 方法
+      if (!title || !path || !method) {
+        ctx.status = 400;
+        ctx.body = OpenAPIController.error('接口名称、路径和方法不能为空');
+        return;
+      }
 
-      ctx.body = OpenAPIController.success(null, '接口创建成功');
+      const validMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'];
+      const upperMethod = method.toUpperCase();
+      if (!validMethods.includes(upperMethod)) {
+        ctx.status = 400;
+        ctx.body = OpenAPIController.error('无效的HTTP方法');
+        return;
+      }
+
+      if (catid && !validateObjectId(catid)) {
+        ctx.status = 400;
+        ctx.body = OpenAPIController.error('无效的分类ID');
+        return;
+      }
+
+      // 验证分类是否属于该项目
+      if (catid) {
+        const cat = await InterfaceCat.findOne({
+          _id: catid,
+          project_id: projectId,
+        });
+        if (!cat) {
+          ctx.status = 400;
+          ctx.body = OpenAPIController.error('分类不存在或不属于该项目');
+          return;
+        }
+      }
+
+      const newInterface = new Interface({
+        project_id: projectId,
+        title: title.trim(),
+        path: path.trim(),
+        method: upperMethod,
+        catid: catid || null,
+        desc: desc || '',
+        tag: Array.isArray(tag) ? tag : [],
+        status: status || 'developing',
+        req_query: Array.isArray(req_query) ? req_query : [],
+        req_headers: Array.isArray(req_headers) ? req_headers : [],
+        req_body_type: req_body_type || 'json',
+        req_body: req_body || '',
+        res_body: res_body || '',
+        res_body_type: res_body_type || 'json',
+        req_body_form: [],
+        req_body_other: '',
+        markdown: '',
+        mock_script: '',
+      });
+
+      await newInterface.save();
+
+      logger.info({ projectId, interfaceId: newInterface._id }, 'Interface created via OpenAPI');
+
+      ctx.body = OpenAPIController.success(newInterface, '接口创建成功');
     } catch (error) {
       logger.error({ error }, 'Create interface via OpenAPI error');
       ctx.status = 500;
@@ -116,10 +171,103 @@ class OpenAPIController extends BaseController {
     try {
       const projectId = ctx.state.projectId;
       const { id } = ctx.params;
+      const updateData = ctx.request.body;
 
-      // TODO: 实现接口更新逻辑
+      if (!validateObjectId(id)) {
+        ctx.status = 400;
+        ctx.body = OpenAPIController.error('无效的接口 ID');
+        return;
+      }
 
-      ctx.body = OpenAPIController.success(null, '接口更新成功');
+      const interfaceData = await Interface.findOne({
+        _id: id,
+        project_id: projectId,
+      });
+
+      if (!interfaceData) {
+        ctx.status = 404;
+        ctx.body = OpenAPIController.error('接口不存在');
+        return;
+      }
+
+      // 验证方法
+      if (updateData.method) {
+        const validMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'];
+        const upperMethod = updateData.method.toUpperCase();
+        if (!validMethods.includes(upperMethod)) {
+          ctx.status = 400;
+          ctx.body = OpenAPIController.error('无效的HTTP方法');
+          return;
+        }
+        updateData.method = upperMethod;
+      }
+
+      // 验证分类
+      if (updateData.catid !== undefined) {
+        if (updateData.catid && !validateObjectId(updateData.catid)) {
+          ctx.status = 400;
+          ctx.body = OpenAPIController.error('无效的分类ID');
+          return;
+        }
+        if (updateData.catid) {
+          const cat = await InterfaceCat.findOne({
+            _id: updateData.catid,
+            project_id: projectId,
+          });
+          if (!cat) {
+            ctx.status = 400;
+            ctx.body = OpenAPIController.error('分类不存在或不属于该项目');
+            return;
+          }
+        }
+      }
+
+      // 更新字段
+      if (updateData.title !== undefined) {
+        interfaceData.title = updateData.title.trim();
+      }
+      if (updateData.path !== undefined) {
+        interfaceData.path = updateData.path.trim();
+      }
+      if (updateData.method !== undefined) {
+        interfaceData.method = updateData.method;
+      }
+      if (updateData.catid !== undefined) {
+        interfaceData.catid = updateData.catid || null;
+      }
+      if (updateData.desc !== undefined) {
+        interfaceData.desc = updateData.desc;
+      }
+      if (updateData.tag !== undefined) {
+        interfaceData.tag = Array.isArray(updateData.tag) ? updateData.tag : [];
+      }
+      if (updateData.status !== undefined) {
+        interfaceData.status = updateData.status;
+      }
+      if (updateData.req_query !== undefined) {
+        interfaceData.req_query = Array.isArray(updateData.req_query) ? updateData.req_query : [];
+      }
+      if (updateData.req_headers !== undefined) {
+        interfaceData.req_headers = Array.isArray(updateData.req_headers) ? updateData.req_headers : [];
+      }
+      if (updateData.req_body_type !== undefined) {
+        interfaceData.req_body_type = updateData.req_body_type;
+      }
+      if (updateData.req_body !== undefined) {
+        interfaceData.req_body = updateData.req_body;
+      }
+      if (updateData.res_body !== undefined) {
+        interfaceData.res_body = updateData.res_body;
+      }
+      if (updateData.res_body_type !== undefined) {
+        interfaceData.res_body_type = updateData.res_body_type;
+      }
+
+      await interfaceData.save();
+
+      logger.info({ projectId, interfaceId: id }, 'Interface updated via OpenAPI');
+
+      ctx.body = OpenAPIController.success(interfaceData, '接口更新成功');
     } catch (error) {
       logger.error({ error }, 'Update interface via OpenAPI error');
       ctx.status = 500;
@@ -136,7 +284,26 @@ class OpenAPIController extends BaseController {
       const projectId = ctx.state.projectId;
       const { id } = ctx.params;
 
-      // TODO: 实现接口删除逻辑
+      if (!validateObjectId(id)) {
+        ctx.status = 400;
+        ctx.body = OpenAPIController.error('无效的接口 ID');
+        return;
+      }
+
+      const interfaceData = await Interface.findOne({
+        _id: id,
+        project_id: projectId,
+      });
+
+      if (!interfaceData) {
+        ctx.status = 404;
+        ctx.body = OpenAPIController.error('接口不存在');
+        return;
+      }
+
+      await Interface.findByIdAndDelete(id);
+
+      logger.info({ projectId, interfaceId: id }, 'Interface deleted via OpenAPI');
 
       ctx.body = OpenAPIController.success(null, '接口删除成功');
     } catch (error) {

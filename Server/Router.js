@@ -23,6 +23,7 @@ import LoginLogController from './Controllers/LoginLog.js';
 import ProjectTokenController from './Controllers/ProjectToken.js';
 import OpenAPIController from './Controllers/OpenAPI.js';
 import AutoTestController from './Controllers/AutoTest.js';
+import TestRuleConfigController from './Controllers/TestRuleConfig.js';
 import UserCenterController from './Controllers/UserCenter.js';
 import AnalyticsController from './Controllers/Analytics.js';
 import AutoTestTaskController from './Controllers/AutoTestTask.js';
@@ -174,6 +175,11 @@ router.post('/api/project/copy', apiRateLimiter, authMiddleware, ProjectControll
 // Project activities
 router.get('/api/project/activities', apiRateLimiter, authMiddleware, ProjectController.getActivities);
 
+// Project tag management
+router.post('/api/project/tag/add', apiRateLimiter, authMiddleware, ProjectController.addTag);
+router.put('/api/project/tag/up', apiRateLimiter, authMiddleware, ProjectController.updateTag);
+router.delete('/api/project/tag/del', apiRateLimiter, authMiddleware, ProjectController.deleteTag);
+
 router.get('/api/interface/list', apiRateLimiter, authMiddleware, InterfaceController.list);
 router.post('/api/interface/add', apiRateLimiter, authMiddleware, InterfaceController.add);
 router.put('/api/interface/up', apiRateLimiter, authMiddleware, InterfaceController.update);
@@ -231,12 +237,12 @@ router.post('/api/admin/auth/third-party/config/:provider', apiRateLimiter, auth
 router.get('/api/auth/third-party/providers', authRateLimiter, ThirdPartyAuthController.getEnabledProviders);
 router.get('/api/auth/github', ThirdPartyAuthController.githubAuth);
 router.get('/api/auth/github/callback', ThirdPartyAuthController.githubCallback);
-router.get('/api/auth/gitlab', ThirdPartyAuthController.githubAuth); // TODO: 实现 GitLab
-router.get('/api/auth/gitlab/callback', ThirdPartyAuthController.githubCallback); // TODO: 实现 GitLab
-router.get('/api/auth/gmail', ThirdPartyAuthController.githubAuth); // TODO: 实现 Gmail
-router.get('/api/auth/gmail/callback', ThirdPartyAuthController.githubCallback); // TODO: 实现 Gmail
-router.get('/api/auth/wechat', ThirdPartyAuthController.githubAuth); // TODO: 实现微信
-router.get('/api/auth/wechat/callback', ThirdPartyAuthController.githubCallback); // TODO: 实现微信
+router.get('/api/auth/gitlab', ThirdPartyAuthController.gitlabAuth);
+router.get('/api/auth/gitlab/callback', ThirdPartyAuthController.gitlabCallback);
+router.get('/api/auth/gmail', ThirdPartyAuthController.gmailAuth);
+router.get('/api/auth/gmail/callback', ThirdPartyAuthController.gmailCallback);
+router.get('/api/auth/wechat', ThirdPartyAuthController.wechatAuth);
+router.get('/api/auth/wechat/callback', ThirdPartyAuthController.wechatCallback);
 router.post('/api/auth/phone/send-code', authRateLimiter, ThirdPartyAuthController.sendPhoneCode);
 router.post('/api/auth/phone/login', authRateLimiter, ThirdPartyAuthController.phoneLogin);
 router.post('/api/auth/email/send-code', emailCodeRateLimiter, ThirdPartyAuthController.sendEmailCode);
@@ -290,6 +296,13 @@ router.get('/api/auto-test/config', apiRateLimiter, authMiddleware, AutoTestCont
 router.put('/api/auto-test/config', apiRateLimiter, authMiddleware, AutoTestController.updateConfig);
 router.post('/api/auto-test/generate', apiRateLimiter, authMiddleware, AutoTestController.generateTestCases);
 router.post('/api/auto-test/run', apiRateLimiter, authMiddleware, AutoTestController.runAutoTest);
+
+// 通用规则配置路由
+router.get('/api/test/rules', apiRateLimiter, authMiddleware, TestRuleConfigController.listRules);
+router.post('/api/test/rules', apiRateLimiter, authMiddleware, TestRuleConfigController.createRule);
+router.get('/api/test/rules/:id', apiRateLimiter, authMiddleware, TestRuleConfigController.getRule);
+router.put('/api/test/rules/:id', apiRateLimiter, authMiddleware, TestRuleConfigController.updateRule);
+router.delete('/api/test/rules/:id', apiRateLimiter, authMiddleware, TestRuleConfigController.deleteRule);
 
 // 消息通知路由
 router.get('/api/notifications', apiRateLimiter, authMiddleware, NotificationController.listNotifications);

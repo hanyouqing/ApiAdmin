@@ -623,7 +623,7 @@ const TestPipeline: React.FC = () => {
       const response = await api.get('/auto-test/tasks', { params });
       setTasks(response.data.data || []);
     } catch (error: any) {
-      messageApi.error(error.response?.data?.message || '获取测试流水线失败');
+      messageApi.error(error.response?.data?.message || t('test.pipeline.fetchFailed'));
     } finally {
       setLoading(false);
     }
@@ -636,7 +636,7 @@ const TestPipeline: React.FC = () => {
       });
       setInterfaces(response.data.data || []);
     } catch (error: any) {
-      messageApi.error('获取接口列表失败');
+      messageApi.error(t('test.pipeline.fetchInterfacesFailed'));
     }
   };
 
@@ -797,15 +797,15 @@ const TestPipeline: React.FC = () => {
 
   const handleDelete = (id: string) => {
     Modal.confirm({
-      title: '确认删除',
-      content: '确定要删除这个测试流水线吗？',
+      title: t('test.pipeline.deleteConfirm'),
+      content: t('test.pipeline.deleteConfirmMessage'),
       onOk: async () => {
         try {
           await api.delete(`/auto-test/tasks/${id}`);
-          messageApi.success('删除成功');
+          messageApi.success(t('test.pipeline.deleteSuccess'));
           fetchTasks();
         } catch (error: any) {
-          messageApi.error(error.response?.data?.message || '删除失败');
+          messageApi.error(error.response?.data?.message || t('test.pipeline.deleteFailed'));
         }
       },
     });
@@ -1063,7 +1063,7 @@ const TestPipeline: React.FC = () => {
 
   const handleImportAllAPIs = async () => {
     if (!selectedTask || !selectedProjectId) {
-      messageApi.warning('请先选择项目和测试流水线');
+      messageApi.warning(t('test.pipeline.selectProjectAndPipeline'));
       return;
     }
 
@@ -1355,7 +1355,7 @@ const TestPipeline: React.FC = () => {
     
     // 检查是否有测试用例
     if (!taskToRun.test_cases || taskToRun.test_cases.length === 0) {
-      messageApi.warning('该测试流水线没有测试用例，请先添加API');
+      messageApi.warning(t('test.pipeline.noTestCases'));
       return;
     }
 
@@ -2062,11 +2062,11 @@ const TestPipeline: React.FC = () => {
   return (
     <div>
       <Card
-        title="测试流水线管理"
+        title={t('test.pipeline.title')}
         extra={
           <Space>
             <Select
-              placeholder="选择项目"
+              placeholder={t('test.pipeline.selectProject')}
               value={selectedProjectId}
               onChange={setSelectedProjectId}
               style={{ width: 200 }}

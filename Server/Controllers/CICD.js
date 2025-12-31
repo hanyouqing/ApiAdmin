@@ -7,6 +7,7 @@ import { TestRunner } from '../Utils/testRunner.js';
 import TestCollection from '../Models/TestCollection.js';
 import { SwaggerImporter } from '../Utils/importers/SwaggerImporter.js';
 import Project from '../Models/Project.js';
+import { formatJUnitXML, formatAllureJSON } from '../Utils/reportFormatters.js';
 
 class CICDController extends BaseController {
   static get ControllerName() { return 'CICDController'; }
@@ -155,14 +156,20 @@ class CICDController extends BaseController {
 
       // 根据格式生成报告
       let content = '';
+      let contentType = 'application/json';
+      
       if (format === 'junit') {
-        // TODO: 实现 JUnit XML 格式
-        content = '<?xml version="1.0" encoding="UTF-8"?><testsuites></testsuites>';
+        // 实现 JUnit XML 格式
+        content = formatJUnitXML(report);
+        contentType = 'application/xml';
       } else if (format === 'allure') {
-        // TODO: 实现 Allure 格式
-        content = JSON.stringify(report, null, 2);
+        // 实现 Allure 格式
+        const allureResults = formatAllureJSON(report);
+        content = JSON.stringify(allureResults, null, 2);
+        contentType = 'application/json';
       } else {
         content = JSON.stringify(report, null, 2);
+        contentType = 'application/json';
       }
 
       ctx.body = CICDController.success({

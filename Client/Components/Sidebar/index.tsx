@@ -85,10 +85,6 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
       label: t('sidebar.adminEmail'),
     },
     {
-      key: '/admin/monitor',
-      label: t('sidebar.adminMonitor'),
-    },
-    {
       key: '/admin/plugin',
       label: t('sidebar.adminPlugin'),
     },
