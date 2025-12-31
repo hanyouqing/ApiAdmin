@@ -244,7 +244,7 @@ const Setting: React.FC = () => {
     setEditingEnv(env);
     envForm.setFieldsValue({
       name: env.name,
-      host: env.host,
+      host: env?.host || env?.base_url || '',
       variables: JSON.stringify(env.variables || {}, null, 2),
     });
     setEnvModalVisible(true);

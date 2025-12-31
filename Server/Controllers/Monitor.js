@@ -5,6 +5,9 @@ import User from '../Models/User.js';
 import Group from '../Models/Group.js';
 import Project from '../Models/Project.js';
 import Interface from '../Models/Interface.js';
+import AutoTestTask from '../Models/AutoTestTask.js';
+import AutoTestResult from '../Models/AutoTestResult.js';
+import TestEnvironment from '../Models/TestEnvironment.js';
 import { logger } from '../Utils/logger.js';
 
 class MonitorController extends BaseController {
@@ -187,6 +190,243 @@ class MonitorController extends BaseController {
       logger.error({ error }, 'Get metrics error');
       ctx.status = 500;
       ctx.body = MonitorController.error('获取指标失败');
+    }
+  }
+
+  static async getHierarchy(ctx) {
+    try {
+      const user = ctx.state.user;
+
+      if (user.role !== 'super_admin') {
+        ctx.status = 403;
+        ctx.body = MonitorController.error('只有超级管理员可以查看监控信息');
+        return;
+      }
+
+      // 获取所有分组
+      const groups = await Group.find().lean();
+      
+      // 获取所有项目，按分组组织
+      const projects = await Project.find().populate('group_id', 'group_name').lean();
+      
+      // 获取所有测试流水线
+      const tasks = await AutoTestTask.find()
+        .populate('project_id', 'project_name group_id')
+        .populate('environment_id', 'name base_url')
+        .populate('createdBy', 'username email')
+        .lean();
+      
+      // 获取所有任务的ID
+      const taskIds = tasks.map(t => t._id).filter(id => id && mongoose.Types.ObjectId.isValid(id));
+      
+      if (taskIds.length === 0) {
+        // 如果没有任务，直接返回空结构
+        const hierarchy = groups.map(group => {
+          const groupProjects = projects.filter(p => 
+            p.group_id && p.group_id._id && p.group_id._id.toString() === group._id.toString()
+          );
+          return {
+            ...group,
+            projects: groupProjects.map(p => ({
+              ...p,
+              tasks: [],
+              taskCount: 0,
+            })),
+            projectCount: groupProjects.length,
+            totalTasks: 0,
+          };
+        });
+        ctx.body = MonitorController.success(hierarchy);
+        return;
+      }
+
+      // 批量获取所有任务的最新结果和统计信息
+      const [latestResults, allStats] = await Promise.all([
+        // 获取每个任务的最新一次运行结果
+        AutoTestResult.aggregate([
+          { $match: { task_id: { $in: taskIds } } },
+          { $sort: { started_at: -1 } },
+          {
+            $group: {
+              _id: '$task_id',
+              latest: { $first: '$$ROOT' }
+            }
+          }
+        ]),
+        // 获取所有任务的统计信息
+        AutoTestResult.aggregate([
+          { $match: { task_id: { $in: taskIds } } },
+          {
+            $group: {
+              _id: { task_id: '$task_id', status: '$status' },
+              count: { $sum: 1 }
+            }
+          }
+        ])
+      ]);
+
+      // 构建结果映射
+      const resultMap = new Map();
+      latestResults.forEach(item => {
+        resultMap.set(item._id.toString(), item.latest);
+      });
+
+      // 构建统计映射
+      const statsMap = new Map();
+      allStats.forEach(stat => {
+        const taskId = stat._id.task_id.toString();
+        if (!statsMap.has(taskId)) {
+          statsMap.set(taskId, {
+            total: 0,
+            passed: 0,
+            failed: 0,
+            error: 0,
+            running: 0,
+            cancelled: 0,
+          });
+        }
+        const taskStats = statsMap.get(taskId);
+        taskStats[stat._id.status] = stat.count;
+        taskStats.total += stat.count;
+      });
+
+      // 按分组组织数据，使用 Map 去重（按 _id 去重，确保每个分组只出现一次）
+      const groupMap = new Map();
+      
+      groups.forEach(group => {
+        const groupId = group._id.toString();
+        // 如果已存在，跳过（避免重复）
+        if (!groupMap.has(groupId)) {
+          groupMap.set(groupId, {
+            ...group,
+            projects: [],
+            projectCount: 0,
+            totalTasks: 0,
+          });
+        }
+      });
+
+      // 按项目组织数据，使用 Map 去重
+      const projectMap = new Map();
+      
+      projects.forEach(project => {
+        const projectId = project._id.toString();
+        if (!projectMap.has(projectId)) {
+          const groupId = project.group_id?._id?.toString() || project.group_id?.toString();
+          if (groupId && groupMap.has(groupId)) {
+            projectMap.set(projectId, {
+              ...project,
+              tasks: [],
+              taskCount: 0,
+            });
+          }
+        }
+      });
+
+      // 为每个测试流水线添加最新结果和统计信息，并分配到对应的项目
+      // 使用 Set 记录已添加的任务，避免重复
+      const addedTasks = new Set();
+      tasks.forEach(task => {
+        const projectId = task.project_id?._id?.toString() || task.project_id?.toString();
+        const taskIdStr = task._id.toString();
+        
+        // 检查任务是否已经添加过，避免重复
+        if (projectId && projectMap.has(projectId) && !addedTasks.has(taskIdStr)) {
+          const latestResult = resultMap.get(taskIdStr);
+          const stats = statsMap.get(taskIdStr) || {
+            total: 0,
+            passed: 0,
+            failed: 0,
+            error: 0,
+            running: 0,
+            cancelled: 0,
+          };
+
+          const taskData = {
+            _id: task._id,
+            name: task.name,
+            description: task.description,
+            enabled: task.enabled,
+            schedule: task.schedule,
+            base_url: task.base_url,
+            createdBy: task.createdBy,
+            createdAt: task.createdAt,
+            updatedAt: task.updatedAt,
+            latestResult: latestResult ? {
+              status: latestResult.status,
+              summary: latestResult.summary,
+              started_at: latestResult.started_at,
+              completed_at: latestResult.completed_at,
+              duration: latestResult.duration,
+            } : null,
+            stats,
+            environment: task.environment_id ? {
+              name: task.environment_id.name,
+              base_url: task.environment_id.base_url,
+            } : null,
+          };
+
+          const project = projectMap.get(projectId);
+          // 再次检查项目任务列表中是否已存在，避免重复添加
+          const existingTask = project.tasks.find(t => t._id.toString() === taskIdStr);
+          if (!existingTask) {
+            project.tasks.push(taskData);
+            project.taskCount = project.tasks.length;
+            addedTasks.add(taskIdStr);
+          }
+        }
+      });
+
+      // 将项目分配到对应的分组，确保每个项目只被添加一次
+      projectMap.forEach(project => {
+        const groupId = project.group_id?._id?.toString() || project.group_id?.toString();
+        if (groupId && groupMap.has(groupId)) {
+          const group = groupMap.get(groupId);
+          // 检查项目是否已经存在于分组中，避免重复添加
+          const existingProject = group.projects.find(p => p._id.toString() === project._id.toString());
+          if (!existingProject) {
+            group.projects.push(project);
+            group.projectCount = group.projects.length;
+            group.totalTasks += project.taskCount;
+          }
+        }
+      });
+
+      // 转换为数组，过滤掉没有项目和测试流水线的分组（可选）
+      // 同时确保项目数组中没有重复的项目
+      const hierarchy = Array.from(groupMap.values())
+        .map(group => {
+          // 对项目数组去重（按 _id），确保没有重复
+          const uniqueProjects = new Map();
+          group.projects.forEach(project => {
+            const projectId = project._id.toString();
+            if (!uniqueProjects.has(projectId)) {
+              uniqueProjects.set(projectId, project);
+            }
+          });
+          const deduplicatedProjects = Array.from(uniqueProjects.values());
+          return {
+            ...group,
+            projects: deduplicatedProjects,
+            projectCount: deduplicatedProjects.length,
+            totalTasks: deduplicatedProjects.reduce((sum, p) => sum + p.taskCount, 0),
+          };
+        })
+        .filter(group => group.projectCount > 0 || group.totalTasks > 0)
+        .sort((a, b) => {
+          // 按分组名称排序，确保顺序一致
+          return (a.group_name || '').localeCompare(b.group_name || '');
+        });
+
+      ctx.body = MonitorController.success(hierarchy);
+    } catch (error) {
+      logger.error({ error }, 'Get hierarchy error');
+      ctx.status = 500;
+      ctx.body = MonitorController.error(
+        process.env.NODE_ENV === 'production' 
+          ? '获取监控数据失败' 
+          : error.message || '获取监控数据失败'
+      );
     }
   }
 }

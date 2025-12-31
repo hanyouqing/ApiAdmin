@@ -878,7 +878,7 @@ const InterfaceManagement: React.FC = () => {
                       <Select>
                         {currentProject.env.map((env: any) => (
                           <Option key={env.name} value={env.name}>
-                            {env.name} - {env.host}
+                            {env.name} - {env?.host || env?.base_url || ''}
                           </Option>
                         ))}
                       </Select>

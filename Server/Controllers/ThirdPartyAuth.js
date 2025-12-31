@@ -6,6 +6,7 @@ import User from '../Models/User.js';
 import WhitelistConfig from '../Models/WhitelistConfig.js';
 import Whitelist from '../Models/Whitelist.js';
 import ThirdPartyAuthConfig from '../Models/ThirdPartyAuthConfig.js';
+import EmailConfigModel from '../Models/EmailConfig.js';
 import config from '../Utils/config.js';
 import { sendEmail } from '../Utils/emailService.js';
 import { logLogin } from '../Utils/loginLogger.js';
@@ -78,18 +79,24 @@ async function deleteCode(key) {
 }
 
 async function checkWhitelist(platform, value) {
-  const whitelistConfig = await WhitelistConfig.getConfig();
-  if (!whitelistConfig.enabled) {
+  try {
+    const whitelistConfig = await WhitelistConfig.getConfig();
+    if (!whitelistConfig || !whitelistConfig.enabled) {
+      return true;
+    }
+
+    const entry = await Whitelist.findOne({
+      platform,
+      value: value.toLowerCase(),
+      enabled: true,
+    });
+
+    return !!entry;
+  } catch (error) {
+    logger.error({ error, platform, value }, 'Check whitelist error');
+    // 如果检查白名单时出错，默认允许（避免因为白名单检查失败而阻止登录）
     return true;
   }
-
-  const entry = await Whitelist.findOne({
-    platform,
-    value,
-    enabled: true,
-  });
-
-  return !!entry;
 }
 
 function generateToken() {
@@ -438,49 +445,107 @@ class ThirdPartyAuthController extends BaseController {
         return;
       }
 
+      // 统一使用小写邮箱
+      const normalizedEmail = email.toLowerCase();
+
       // 检查白名单
-      const inWhitelist = await checkWhitelist('email', email);
-      if (!inWhitelist) {
-        ctx.status = 403;
-        ctx.body = ThirdPartyAuthController.error('邮箱不在白名单中');
-        return;
+      try {
+        const inWhitelist = await checkWhitelist('email', normalizedEmail);
+        if (!inWhitelist) {
+          ctx.status = 403;
+          ctx.body = ThirdPartyAuthController.error('邮箱不在白名单中');
+          return;
+        }
+      } catch (whitelistError) {
+        logger.error({ error: whitelistError, email: normalizedEmail }, 'Whitelist check failed, allowing request');
+        // 如果白名单检查失败，记录错误但继续处理（避免因为白名单系统问题而阻止所有请求）
       }
 
-      // 检查发送频率
-      const rateLimitKey = `email:rate:${email}`;
+      // 检查发送频率（基于邮箱地址，60秒内不能重复发送）
+      const rateLimitKey = `email:rate:${normalizedEmail}`;
       const lastSent = await getCode(rateLimitKey);
       if (lastSent) {
         ctx.status = 429;
-        ctx.body = ThirdPartyAuthController.error('发送过于频繁，请稍后再试');
+        ctx.body = ThirdPartyAuthController.error('发送过于频繁，请60秒后再试');
         return;
       }
 
       // 生成验证码
       const code = Math.floor(100000 + Math.random() * 900000).toString();
 
-      // 存储验证码（5分钟过期）
-      await storeCode(`email:code:${email}`, code, 300);
+      // 存储验证码（5分钟过期），使用标准化的邮箱地址
+      await storeCode(`email:code:${normalizedEmail}`, code, 300);
       await storeCode(rateLimitKey, '1', 60);
+
+      // 从数据库加载邮件配置
+      let emailConfig = null;
+      try {
+        const dbConfig = await EmailConfigModel.getConfig();
+        if (dbConfig) {
+          emailConfig = {
+            provider: dbConfig.provider || config.EMAIL_PROVIDER || 'smtp',
+            smtp: dbConfig.smtp || {
+              host: config.SMTP_HOST || '',
+              port: parseInt(config.SMTP_PORT) || 587,
+              secure: config.SMTP_SECURE === 'true' || config.SMTP_PORT === '465',
+              auth: {
+                user: config.SMTP_USER || '',
+                pass: config.SMTP_PASS || '',
+              },
+            },
+            sendgrid: dbConfig.sendgrid || {
+              apiKey: config.SENDGRID_API_KEY || '',
+            },
+            resend: dbConfig.resend || {
+              apiKey: '',
+            },
+            oci: dbConfig.oci || {
+              region: config.OCI_EMAIL_REGION || '',
+              user: config.OCI_EMAIL_USER || '',
+              pass: config.OCI_EMAIL_PASS || '',
+            },
+            from: dbConfig.from || {
+              name: config.SMTP_FROM_NAME || 'ApiAdmin',
+              email: dbConfig.provider === 'oci'
+                ? (config.OCI_EMAIL_FROM || config.OCI_EMAIL_USER || '')
+                : (config.SMTP_FROM || config.SMTP_USER || ''),
+            },
+          };
+        }
+      } catch (dbError) {
+        logger.warn({ error: dbError }, 'Failed to get email config from database, will use environment variables');
+      }
 
       // 发送邮件
       try {
         await sendEmail(
-          email,
+          normalizedEmail,
           'ApiAdmin 登录验证码',
-          `<p>您的登录验证码是：<strong>${code}</strong></p><p>验证码5分钟内有效。</p>`
+          `<p>您的登录验证码是：<strong>${code}</strong></p><p>验证码5分钟内有效。</p>`,
+          null,
+          emailConfig
         );
+        logger.info({ email: normalizedEmail }, 'Email verification code sent successfully');
       } catch (error) {
-        logger.error({ error, email }, 'Failed to send email code');
+        logger.error({ error, email: normalizedEmail, errorMessage: error.message, errorStack: error.stack }, 'Failed to send email code');
         ctx.status = 500;
-        ctx.body = ThirdPartyAuthController.error('发送邮件失败');
+        ctx.body = ThirdPartyAuthController.error(
+          process.env.NODE_ENV === 'production' 
+            ? '发送邮件失败，请检查邮件服务配置' 
+            : `发送邮件失败: ${error.message || '未知错误'}`
+        );
         return;
       }
 
       ctx.body = ThirdPartyAuthController.success(null, '验证码已发送到邮箱');
     } catch (error) {
-      logger.error({ error }, 'Send email code error');
+      logger.error({ error, errorMessage: error.message, errorStack: error.stack }, 'Send email code error');
       ctx.status = 500;
-      ctx.body = ThirdPartyAuthController.error('发送验证码失败');
+      ctx.body = ThirdPartyAuthController.error(
+        process.env.NODE_ENV === 'production' 
+          ? '发送验证码失败' 
+          : `发送验证码失败: ${error.message || '未知错误'}`
+      );
     }
   }
 
@@ -496,13 +561,16 @@ class ThirdPartyAuthController extends BaseController {
         return;
       }
 
+      // 统一使用小写邮箱
+      const normalizedEmail = email.toLowerCase();
+
       // 验证验证码
-      const storedCode = await getCode(`email:code:${email}`);
+      const storedCode = await getCode(`email:code:${normalizedEmail}`);
       if (!storedCode || storedCode !== code) {
         // 记录失败的登录日志
         await logLogin({
-          username: email.split('@')[0] || email,
-          email: email.toLowerCase(),
+          username: normalizedEmail.split('@')[0] || normalizedEmail,
+          email: normalizedEmail,
           loginType: 'email',
           status: 'failed',
           failureReason: '验证码错误或已过期',
@@ -515,21 +583,21 @@ class ThirdPartyAuthController extends BaseController {
       }
 
       // 删除验证码
-      await deleteCode(`email:code:${email}`);
+      await deleteCode(`email:code:${normalizedEmail}`);
 
       // 查找或创建用户
-      let user = await User.findOne({ email: email.toLowerCase() });
+      let user = await User.findOne({ email: normalizedEmail });
 
       if (!user) {
         user = new User({
-          username: email.split('@')[0],
-          email: email.toLowerCase(),
+          username: normalizedEmail.split('@')[0],
+          email: normalizedEmail,
           password: crypto.randomBytes(16).toString('hex'),
           ssoProvider: 'email',
           role: 'guest',
         });
         await user.save();
-        logger.info({ userId: user._id, email }, 'User created via email login');
+        logger.info({ userId: user._id, email: normalizedEmail }, 'User created via email login');
       }
 
       // 生成 JWT token
@@ -555,9 +623,18 @@ class ThirdPartyAuthController extends BaseController {
         user: user.toJSON(),
       }, '登录成功');
     } catch (error) {
-      logger.error({ error }, 'Email login error');
+      logger.error({ 
+        error, 
+        errorMessage: error.message, 
+        errorStack: error.stack,
+        email: email?.toLowerCase() || email 
+      }, 'Email login error');
       ctx.status = 500;
-      ctx.body = ThirdPartyAuthController.error('邮箱登录失败');
+      ctx.body = ThirdPartyAuthController.error(
+        process.env.NODE_ENV === 'production' 
+          ? '邮箱登录失败' 
+          : `邮箱登录失败: ${error.message || '未知错误'}`
+      );
     }
   }
 }

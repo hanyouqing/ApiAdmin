@@ -43,3 +43,4 @@ const WhitelistConfig = mongoose.model('WhitelistConfig', whitelistConfigSchema)
 
 export default WhitelistConfig;
 
+

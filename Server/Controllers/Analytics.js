@@ -191,3 +191,4 @@ class AnalyticsController extends BaseController {
 
 export default AnalyticsController;
 
+

@@ -55,7 +55,16 @@
     "confirmPasswordRequired": "请确认密码",
     "passwordMismatch": "两次输入的密码不一致",
     "usernameRequired": "请输入用户名",
-    "usernameTooShort": "用户名至少需要3个字符"
+    "usernameTooShort": "用户名至少需要3个字符",
+    "emailLogin": "邮箱验证码登录",
+    "verificationCode": "验证码",
+    "codeSent": "验证码已发送",
+    "sendCode": "发送验证码",
+    "resendCode": "重新发送验证码",
+    "codeRequired": "请输入验证码",
+    "codeLength": "验证码为6位数字",
+    "sendCodeFailed": "发送验证码失败",
+    "unsupportedProvider": "不支持的登录方式"
   },
   "group": {
     "title": "分组管理",
@@ -720,7 +729,29 @@
       "requests": "请求数",
       "successRate": "成功率",
       "errorRate": "错误率",
-      "avgResponseTime": "平均响应时间"
+      "avgResponseTime": "平均响应时间",
+      "pipelineMonitor": "测试流水线监控",
+      "disabled": "已禁用",
+      "scheduled": "定时任务",
+      "viewDetails": "查看详情",
+      "baseUrl": "基础URL",
+      "duration": "耗时",
+      "unknown": "未知",
+      "total": "总计",
+      "passed": "通过",
+      "failed": "失败",
+      "error": "错误",
+      "noData": "暂无数据",
+      "testPipelines": "个测试流水线",
+      "noProjectsInGroup": "该分组下暂无项目",
+      "noPipelinesInProject": "该项目下暂无测试流水线",
+      "status": {
+        "passed": "通过",
+        "failed": "失败",
+        "error": "错误",
+        "running": "运行中",
+        "cancelled": "已取消"
+      }
     },
     "plugin": {
       "title": "插件管理",

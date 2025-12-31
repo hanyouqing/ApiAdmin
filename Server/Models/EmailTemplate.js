@@ -45,3 +45,4 @@ const EmailTemplate = mongoose.model('EmailTemplate', emailTemplateSchema);
 
 export default EmailTemplate;
 
+

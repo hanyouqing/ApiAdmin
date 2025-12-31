@@ -565,3 +565,4 @@ type ${typeName} {
 
 export default APIDesignController;
 
+

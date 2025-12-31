@@ -82,3 +82,4 @@ const EmailConfig = mongoose.model('EmailConfig', emailConfigSchema);
 
 export default EmailConfig;
 
+

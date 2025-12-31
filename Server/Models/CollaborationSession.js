@@ -64,3 +64,4 @@ const CollaborationSession = mongoose.model('CollaborationSession', collaboratio
 
 export default CollaborationSession;
 
+

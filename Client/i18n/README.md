@@ -160,3 +160,4 @@ Users can switch languages using the language switcher in the Header component. 
 - Check Redux state (`ui.locale`)
 - Verify i18n config is loaded correctly
 
+

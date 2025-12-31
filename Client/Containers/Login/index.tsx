@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Input, Button, Card, App, Divider } from 'antd';
-import { UserOutlined, LockOutlined, GithubOutlined } from '@ant-design/icons';
+import { Form, Input, Button, Card, App, Divider, Modal } from 'antd';
+import { UserOutlined, LockOutlined, GithubOutlined, MailOutlined } from '@ant-design/icons';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -22,6 +22,10 @@ const Login: React.FC = () => {
   const { message } = App.useApp();
   const [loading, setLoading] = useState(false);
   const [thirdPartyProviders, setThirdPartyProviders] = useState<ThirdPartyProvider[]>([]);
+  const [emailLoginVisible, setEmailLoginVisible] = useState(false);
+  const [emailLoginLoading, setEmailLoginLoading] = useState(false);
+  const [codeSent, setCodeSent] = useState(false);
+  const [emailForm] = Form.useForm();
   
   useEffect(() => {
     // 获取已启用的第三方登录提供者
@@ -43,7 +47,61 @@ const Login: React.FC = () => {
   };
 
   const handleThirdPartyLogin = (provider: string) => {
-    window.location.href = `/api/auth/${provider}`;
+    // OAuth 类型的登录（如 GitHub）直接跳转
+    if (['github', 'gitlab', 'google', 'wechat'].includes(provider)) {
+      window.location.href = `/api/auth/${provider}`;
+    } 
+    // 验证码类型的登录（如邮箱、手机号）显示模态框
+    else if (provider === 'email') {
+      setEmailLoginVisible(true);
+      setCodeSent(false);
+      emailForm.resetFields();
+    }
+    // 其他类型暂不支持
+    else {
+      message.warning(t('auth.unsupportedProvider') || '不支持的登录方式');
+    }
+  };
+
+  const handleSendEmailCode = async () => {
+    try {
+      const values = await emailForm.validateFields(['email']);
+      setEmailLoginLoading(true);
+      const response = await api.post('/auth/email/send-code', { email: values.email });
+      message.success(response.data.message || t('auth.codeSent') || '验证码已发送');
+      setCodeSent(true);
+    } catch (error: any) {
+      message.error(error.response?.data?.message || t('auth.sendCodeFailed') || '发送验证码失败');
+    } finally {
+      setEmailLoginLoading(false);
+    }
+  };
+
+  const handleEmailLogin = async () => {
+    try {
+      const values = await emailForm.validateFields();
+      setEmailLoginLoading(true);
+      const response = await api.post('/auth/email/login', {
+        email: values.email,
+        code: values.code,
+      });
+      
+      // 保存 token
+      const { token, user } = response.data.data;
+      localStorage.setItem('token', token);
+      
+      message.success(t('auth.loginSuccess'));
+      setEmailLoginVisible(false);
+      emailForm.resetFields();
+      setCodeSent(false);
+      
+      // 刷新页面以更新用户状态
+      window.location.href = '/';
+    } catch (error: any) {
+      message.error(error.response?.data?.message || t('auth.loginFailed') || '登录失败');
+    } finally {
+      setEmailLoginLoading(false);
+    }
   };
 
   const onFinish = async (values: { email: string; password: string }) => {
@@ -157,7 +215,11 @@ const Login: React.FC = () => {
                 {thirdPartyProviders.map((provider) => (
                   <Button
                     key={provider.provider}
-                    icon={provider.provider === 'github' ? <GithubOutlined /> : undefined}
+                    icon={
+                      provider.provider === 'github' ? <GithubOutlined /> :
+                      provider.provider === 'email' ? <MailOutlined /> :
+                      undefined
+                    }
                     onClick={() => handleThirdPartyLogin(provider.provider)}
                     block
                   >
@@ -169,6 +231,77 @@ const Login: React.FC = () => {
           )}
         </Form>
       </Card>
+
+      <Modal
+        title={t('auth.emailLogin') || '邮箱验证码登录'}
+        open={emailLoginVisible}
+        onCancel={() => {
+          setEmailLoginVisible(false);
+          setCodeSent(false);
+          emailForm.resetFields();
+        }}
+        footer={null}
+      >
+        <Form
+          form={emailForm}
+          layout="vertical"
+          onFinish={codeSent ? handleEmailLogin : handleSendEmailCode}
+        >
+          <Form.Item
+            name="email"
+            label={t('auth.email')}
+            rules={[
+              { required: true, message: t('auth.emailRequired') },
+              { type: 'email', message: t('auth.emailInvalid') },
+            ]}
+          >
+            <Input
+              prefix={<MailOutlined />}
+              placeholder={t('auth.email')}
+              disabled={codeSent}
+            />
+          </Form.Item>
+
+          {codeSent && (
+            <Form.Item
+              name="code"
+              label={t('auth.verificationCode') || '验证码'}
+              rules={[
+                { required: true, message: t('auth.codeRequired') || '请输入验证码' },
+                { len: 6, message: t('auth.codeLength') || '验证码为6位数字' },
+              ]}
+            >
+              <Input
+                placeholder={t('auth.verificationCode') || '请输入6位验证码'}
+                maxLength={6}
+              />
+            </Form.Item>
+          )}
+
+          <Form.Item>
+            <Button
+              type="primary"
+              htmlType="submit"
+              block
+              loading={emailLoginLoading}
+            >
+              {codeSent ? (t('auth.login') || '登录') : (t('auth.sendCode') || '发送验证码')}
+            </Button>
+          </Form.Item>
+
+          {codeSent && (
+            <div style={{ textAlign: 'center' }}>
+              <Button
+                type="link"
+                onClick={handleSendEmailCode}
+                loading={emailLoginLoading}
+              >
+                {t('auth.resendCode') || '重新发送验证码'}
+              </Button>
+            </div>
+          )}
+        </Form>
+      </Modal>
     </div>
   );
 };

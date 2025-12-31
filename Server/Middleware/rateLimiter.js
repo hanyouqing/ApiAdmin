@@ -79,3 +79,9 @@ export const registerRateLimiter = createRateLimiter({
   duration: 60 * 60 * 1000,
   message: 'Too many registration attempts, please try again in 1 hour',
 });
+
+export const emailCodeRateLimiter = createRateLimiter({
+  max: 10,
+  duration: 15 * 60 * 1000,
+  message: 'Too many email code requests, please try again in 15 minutes',
+});

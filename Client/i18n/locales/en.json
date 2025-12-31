@@ -55,7 +55,16 @@
     "confirmPasswordRequired": "Please confirm your password",
     "passwordMismatch": "Passwords do not match",
     "usernameRequired": "Please enter your username",
-    "usernameTooShort": "Username must be at least 3 characters"
+    "usernameTooShort": "Username must be at least 3 characters",
+    "emailLogin": "Email Verification Code Login",
+    "verificationCode": "Verification Code",
+    "codeSent": "Verification code sent",
+    "sendCode": "Send Code",
+    "resendCode": "Resend Code",
+    "codeRequired": "Please enter verification code",
+    "codeLength": "Verification code must be 6 digits",
+    "sendCodeFailed": "Failed to send verification code",
+    "unsupportedProvider": "Unsupported login method"
   },
   "group": {
     "title": "Group Management",
@@ -720,7 +729,29 @@
       "requests": "Requests",
       "successRate": "Success Rate",
       "errorRate": "Error Rate",
-      "avgResponseTime": "Average Response Time"
+      "avgResponseTime": "Average Response Time",
+      "pipelineMonitor": "Test Pipeline Monitoring",
+      "disabled": "Disabled",
+      "scheduled": "Scheduled",
+      "viewDetails": "View Details",
+      "baseUrl": "Base URL",
+      "duration": "Duration",
+      "unknown": "Unknown",
+      "total": "Total",
+      "passed": "Passed",
+      "failed": "Failed",
+      "error": "Error",
+      "noData": "No Data",
+      "testPipelines": "test pipelines",
+      "noProjectsInGroup": "No projects in this group",
+      "noPipelinesInProject": "No test pipelines in this project",
+      "status": {
+        "passed": "Passed",
+        "failed": "Failed",
+        "error": "Error",
+        "running": "Running",
+        "cancelled": "Cancelled"
+      }
     },
     "plugin": {
       "title": "Plugin Management",

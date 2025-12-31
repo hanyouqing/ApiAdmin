@@ -34,7 +34,7 @@ import AIAssistantController from './Controllers/AIAssistant.js';
 import DocumentCenterController from './Controllers/DocumentCenter.js';
 import { projectTokenAuth } from './Middleware/projectTokenAuth.js';
 import { authMiddleware } from './Middleware/auth.js';
-import { apiRateLimiter, authRateLimiter, registerRateLimiter } from './Middleware/rateLimiter.js';
+import { apiRateLimiter, authRateLimiter, registerRateLimiter, emailCodeRateLimiter } from './Middleware/rateLimiter.js';
 import { upload, handleUploadError } from './Middleware/upload.js';
 import { getVersionInfoFormatted } from './Utils/version.js';
 
@@ -190,6 +190,7 @@ router.post('/api/upload', apiRateLimiter, authMiddleware, handleUploadError, up
 router.post('/api/upload/avatar', apiRateLimiter, authMiddleware, handleUploadError, upload.single('avatar'), UploadController.uploadAvatar);
 
 router.get('/api/monitor/stats', apiRateLimiter, authMiddleware, MonitorController.getStats);
+router.get('/api/monitor/hierarchy', apiRateLimiter, authMiddleware, MonitorController.getHierarchy);
 router.get('/metrics', MonitorController.getMetrics);
 router.get('/api/metrics', MonitorController.getMetrics);
 
@@ -238,7 +239,7 @@ router.get('/api/auth/wechat', ThirdPartyAuthController.githubAuth); // TODO: �
 router.get('/api/auth/wechat/callback', ThirdPartyAuthController.githubCallback); // TODO: 实现微信
 router.post('/api/auth/phone/send-code', authRateLimiter, ThirdPartyAuthController.sendPhoneCode);
 router.post('/api/auth/phone/login', authRateLimiter, ThirdPartyAuthController.phoneLogin);
-router.post('/api/auth/email/send-code', authRateLimiter, ThirdPartyAuthController.sendEmailCode);
+router.post('/api/auth/email/send-code', emailCodeRateLimiter, ThirdPartyAuthController.sendEmailCode);
 router.post('/api/auth/email/login', authRateLimiter, ThirdPartyAuthController.emailLogin);
 
 // 白名单路由

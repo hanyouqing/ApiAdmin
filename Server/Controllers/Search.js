@@ -249,3 +249,4 @@ class SearchController extends BaseController {
 
 export default SearchController;
 
+
