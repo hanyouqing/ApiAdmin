@@ -230,6 +230,17 @@ class ProjectController extends BaseController {
         return;
       }
 
+      // 检查同一分组内项目名称是否已存在
+      const existingProject = await Project.findOne({ 
+        project_name, 
+        group_id 
+      });
+      if (existingProject) {
+        ctx.status = 400;
+        ctx.body = ProjectController.error('该分组下已存在同名项目，请使用其他名称');
+        return;
+      }
+
       const project = new Project({
         project_name,
         project_desc: project_desc || '',
@@ -311,6 +322,20 @@ class ProjectController extends BaseController {
         ctx.status = 403;
         ctx.body = ProjectController.error('无权限修改此项目');
         return;
+      }
+
+      // 如果更新了项目名称，检查同一分组内是否已存在同名项目
+      if (updateData.project_name && updateData.project_name !== project.project_name) {
+        const existingProject = await Project.findOne({ 
+          project_name: updateData.project_name, 
+          group_id: project.group_id,
+          _id: { $ne: project._id } // 排除当前项目
+        });
+        if (existingProject) {
+          ctx.status = 400;
+          ctx.body = ProjectController.error('该分组下已存在同名项目，请使用其他名称');
+          return;
+        }
       }
 
       Object.assign(project, updateData);

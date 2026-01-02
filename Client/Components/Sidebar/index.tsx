@@ -13,6 +13,7 @@ import {
   EnvironmentOutlined,
   ImportOutlined,
   ExperimentOutlined,
+  CodeOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import Logo from '../Logo';
@@ -32,10 +33,28 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
   
   // 根据当前路径确定打开的菜单项
   const getOpenKeys = () => {
+    const keys: string[] = [];
     if (location.pathname.startsWith('/admin')) {
-      return ['/admin'];
+      keys.push('/admin');
     }
-    return [];
+    if (
+      location.pathname.startsWith('/admin/code') || 
+      location.pathname === '/project' || 
+      location.pathname.startsWith('/project/') ||
+      location.pathname === '/interface' ||
+      location.pathname.startsWith('/interface/') ||
+      location.pathname === '/environment' ||
+      location.pathname.startsWith('/environment/') ||
+      location.pathname === '/swagger-import' ||
+      location.pathname.startsWith('/swagger-import/') ||
+      location.pathname === '/postman-import' ||
+      location.pathname.startsWith('/postman-import/') ||
+      location.pathname === '/test-pipeline' ||
+      location.pathname.startsWith('/test-pipeline/')
+    ) {
+      keys.push('/project');
+    }
+    return keys;
   };
   
   const [openKeys, setOpenKeys] = React.useState<string[]>(getOpenKeys());
@@ -85,6 +104,14 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
       label: t('sidebar.adminEmail'),
     },
     {
+      key: '/admin/ai',
+      label: t('sidebar.adminAI'),
+    },
+    {
+      key: '/admin/test',
+      label: t('sidebar.adminTest'),
+    },
+    {
       key: '/admin/plugin',
       label: t('sidebar.adminPlugin'),
     },
@@ -111,43 +138,55 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
       key: '/project',
       icon: <ProjectOutlined />,
       label: t('sidebar.project'),
-    },
-    {
-      key: '/interface',
-      icon: <ApiOutlined />,
-      label: t('sidebar.interface'),
-    },
-    {
-      key: '/environment',
-      icon: <EnvironmentOutlined />,
-      label: t('sidebar.environment'),
-    },
-    {
-      key: '/swagger-import',
-      icon: <ImportOutlined />,
-      label: t('sidebar.swaggerImport'),
-    },
-    {
-      key: '/postman-import',
-      icon: <ImportOutlined />,
-      label: t('sidebar.postmanImport'),
-    },
-    {
-      key: '/test-pipeline',
-      icon: <ExperimentOutlined />,
-      label: (
-        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {testPipelineRunning && (
-            <Spin 
-              size="small" 
-              style={{ 
-                display: 'inline-block',
-              }}
-            />
-          )}
-          {t('sidebar.testPipeline')}
-        </span>
-      ),
+      children: [
+        {
+          key: '/project',
+          icon: <ProjectOutlined />,
+          label: t('sidebar.projectManagement'),
+        },
+        {
+          key: '/interface',
+          icon: <ApiOutlined />,
+          label: t('sidebar.interface'),
+        },
+        {
+          key: '/environment',
+          icon: <EnvironmentOutlined />,
+          label: t('sidebar.environment'),
+        },
+        {
+          key: '/swagger-import',
+          icon: <ImportOutlined />,
+          label: t('sidebar.swaggerImport'),
+        },
+        {
+          key: '/postman-import',
+          icon: <ImportOutlined />,
+          label: t('sidebar.postmanImport'),
+        },
+        {
+          key: '/test-pipeline',
+          icon: <ExperimentOutlined />,
+          label: (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {testPipelineRunning && (
+                <Spin 
+                  size="small" 
+                  style={{ 
+                    display: 'inline-block',
+                  }}
+                />
+              )}
+              {t('sidebar.testPipeline')}
+            </span>
+          ),
+        },
+        {
+          key: '/admin/code',
+          icon: <CodeOutlined />,
+          label: t('sidebar.codeManagement'),
+        },
+      ],
     },
     // 系统管理菜单：只有超级管理员可见
     ...(isSuperAdmin

@@ -31,6 +31,7 @@
     "lodash": "^4.17.21",
     "mockjs": "^1.1.0",
     "mongoose": "^7.8.0",
+    "node-cron": "^4.2.1",
     "nodemailer": "^7.0.12",
     "passport": "^0.7.0",
     "passport-cas": "^0.1.1",

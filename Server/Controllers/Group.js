@@ -1,4 +1,5 @@
 import Group from '../Models/Group.js';
+import Project from '../Models/Project.js';
 import { BaseController } from './Base.js';
 import { validateObjectId, sanitizeInput } from '../Utils/validation.js';
 import { logger } from '../Utils/logger.js';
@@ -26,19 +27,20 @@ class GroupController extends BaseController {
 
       let groups = [];
       try {
+        // 超级管理员可以查看所有分组
+        const query = user.role === 'super_admin' 
+          ? {} 
+          : { $or: [{ uid: userId }, { member: userId }] };
+
         // 先尝试不使用 populate，避免 populate 失败
-        groups = await Group.find({
-          $or: [{ uid: userId }, { member: userId }],
-        })
+        groups = await Group.find(query)
           .sort({ created_at: -1 })
           .lean();
         
         // 如果查询成功，尝试 populate（可选）
         if (groups.length > 0) {
           try {
-            const populatedGroups = await Group.find({
-              $or: [{ uid: userId }, { member: userId }],
-            })
+            const populatedGroups = await Group.find(query)
               .populate('uid', 'username email avatar')
               .populate('member', 'username email avatar')
               .sort({ created_at: -1 })
@@ -63,6 +65,37 @@ class GroupController extends BaseController {
       if (!Array.isArray(groups)) {
         logger.warn('Groups query did not return an array, converting');
         groups = [];
+      }
+
+      // 为每个分组添加项目数量
+      if (groups.length > 0) {
+        try {
+          const groupIds = groups.map(g => g._id);
+          // 使用聚合查询获取每个分组的项目数量
+          const projectCounts = await Project.aggregate([
+            { $match: { group_id: { $in: groupIds } } },
+            { $group: { _id: '$group_id', count: { $sum: 1 } } }
+          ]);
+
+          // 创建项目数量映射
+          const countMap = new Map();
+          projectCounts.forEach(item => {
+            countMap.set(item._id.toString(), item.count);
+          });
+
+          // 为每个分组添加项目数量
+          groups = groups.map(group => ({
+            ...group,
+            project_count: countMap.get(group._id.toString()) || 0
+          }));
+        } catch (countError) {
+          logger.warn({ error: countError.message }, 'Failed to get project counts, continuing without counts');
+          // 如果获取项目数量失败，为每个分组设置默认值0
+          groups = groups.map(group => ({
+            ...group,
+            project_count: 0
+          }));
+        }
       }
 
       ctx.body = GroupController.success(groups);
@@ -114,6 +147,14 @@ class GroupController extends BaseController {
           ctx.body = GroupController.error('分组描述长度不能超过500个字符');
           return;
         }
+      }
+
+      // 检查分组名称是否已存在（全局唯一）
+      const existingGroup = await Group.findOne({ group_name });
+      if (existingGroup) {
+        ctx.status = 400;
+        ctx.body = GroupController.error('分组名称已存在，请使用其他名称');
+        return;
       }
 
       const group = new Group({
@@ -185,6 +226,19 @@ class GroupController extends BaseController {
         ctx.status = 403;
         ctx.body = GroupController.error('无权限修改此分组');
         return;
+      }
+
+      // 如果更新了分组名称，检查是否已存在同名分组
+      if (group_name && group_name !== group.group_name) {
+        const existingGroup = await Group.findOne({ 
+          group_name,
+          _id: { $ne: group._id } // 排除当前分组
+        });
+        if (existingGroup) {
+          ctx.status = 400;
+          ctx.body = GroupController.error('分组名称已存在，请使用其他名称');
+          return;
+        }
       }
 
       if (group_name) {

@@ -13,6 +13,9 @@ import EmailConfig from './EmailConfig';
 import OperationLog from './OperationLog';
 import LoginLog from './LoginLog';
 import PluginManagement from './PluginManagement';
+import AIConfig from './AIConfig';
+import TestManagement from './TestManagement';
+import CodeManagement from './CodeManagement';
 
 const Admin: React.FC = () => {
   return (
@@ -23,10 +26,13 @@ const Admin: React.FC = () => {
       <Route path="environment" element={<EnvironmentManagement />} />
       <Route path="swagger-import" element={<SwaggerImport />} />
       <Route path="postman-import" element={<PostmanImport />} />
+      <Route path="code" element={<CodeManagement />} />
       <Route path="sso" element={<SSOConfig />} />
       <Route path="third-party-auth" element={<ThirdPartyAuth />} />
       <Route path="whitelist" element={<WhitelistManagement />} />
       <Route path="email" element={<EmailConfig />} />
+      <Route path="ai" element={<AIConfig />} />
+      <Route path="test" element={<TestManagement />} />
       <Route path="operation-log" element={<OperationLog />} />
       <Route path="login-log" element={<LoginLog />} />
       <Route path="plugin" element={<PluginManagement />} />

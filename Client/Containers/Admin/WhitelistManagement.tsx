@@ -190,12 +190,12 @@ const WhitelistManagement: React.FC = () => {
           <Form.Item
             name="value"
             label={t('admin.whitelist.value')}
-            rules={[{ required: true, message: t('admin.whitelist.valueRequired') || '值不能为空' }]}
+            rules={[{ required: true, message: t('admin.whitelist.valueRequired') }]}
           >
-            <Input placeholder={t('admin.whitelist.valuePlaceholder') || '请输入白名单值'} />
+            <Input placeholder={t('admin.whitelist.valuePlaceholder')} />
           </Form.Item>
-          <Form.Item name="description" label={t('admin.whitelist.description') || '描述'}>
-            <Input.TextArea rows={2} placeholder={t('admin.whitelist.descriptionPlaceholder') || '可选描述'} />
+          <Form.Item name="description" label={t('admin.whitelist.description')}>
+            <Input.TextArea rows={2} placeholder={t('admin.whitelist.descriptionPlaceholder')} />
           </Form.Item>
         </Form>
       </Modal>

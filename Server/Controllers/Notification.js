@@ -169,6 +169,9 @@ class NotificationController extends BaseController {
         email: settings.email,
         inApp: settings.inApp,
         webhook: settings.webhook,
+        feishu: settings.feishu,
+        dingtalk: settings.dingtalk,
+        slack: settings.slack,
       });
     } catch (error) {
       logger.error({ error }, 'Get notification settings error');
@@ -184,7 +187,7 @@ class NotificationController extends BaseController {
   static async updateSettings(ctx) {
     try {
       const user = ctx.state.user;
-      const { email, inApp, webhook } = ctx.request.body;
+      const { email, inApp, webhook, feishu, dingtalk, slack } = ctx.request.body;
 
       // 验证 webhook URL（如果启用）
       if (webhook && webhook.enabled && webhook.url) {
@@ -197,6 +200,39 @@ class NotificationController extends BaseController {
         }
       }
 
+      // 验证飞书 Webhook URL（如果启用）
+      if (feishu && feishu.enabled && feishu.webhookUrl) {
+        try {
+          new URL(feishu.webhookUrl);
+        } catch (urlError) {
+          ctx.status = 400;
+          ctx.body = NotificationController.error('无效的飞书 Webhook URL');
+          return;
+        }
+      }
+
+      // 验证钉钉 Webhook URL（如果启用）
+      if (dingtalk && dingtalk.enabled && dingtalk.webhookUrl) {
+        try {
+          new URL(dingtalk.webhookUrl);
+        } catch (urlError) {
+          ctx.status = 400;
+          ctx.body = NotificationController.error('无效的钉钉 Webhook URL');
+          return;
+        }
+      }
+
+      // 验证 Slack Webhook URL（如果启用）
+      if (slack && slack.enabled && slack.webhookUrl) {
+        try {
+          new URL(slack.webhookUrl);
+        } catch (urlError) {
+          ctx.status = 400;
+          ctx.body = NotificationController.error('无效的 Slack Webhook URL');
+          return;
+        }
+      }
+
       let settings = await NotificationSettings.findOne({ user_id: user._id });
 
       if (!settings) {
@@ -205,6 +241,9 @@ class NotificationController extends BaseController {
           email: email || {},
           inApp: inApp || {},
           webhook: webhook || {},
+          feishu: feishu || {},
+          dingtalk: dingtalk || {},
+          slack: slack || {},
         });
       } else {
         if (email) {
@@ -216,6 +255,15 @@ class NotificationController extends BaseController {
         if (webhook) {
           settings.webhook = { ...settings.webhook, ...webhook };
         }
+        if (feishu) {
+          settings.feishu = { ...settings.feishu, ...feishu };
+        }
+        if (dingtalk) {
+          settings.dingtalk = { ...settings.dingtalk, ...dingtalk };
+        }
+        if (slack) {
+          settings.slack = { ...settings.slack, ...slack };
+        }
         await settings.save();
       }
 
@@ -225,6 +273,9 @@ class NotificationController extends BaseController {
         email: settings.email,
         inApp: settings.inApp,
         webhook: settings.webhook,
+        feishu: settings.feishu,
+        dingtalk: settings.dingtalk,
+        slack: settings.slack,
       }, '通知设置更新成功');
     } catch (error) {
       logger.error({ error }, 'Update notification settings error');

@@ -118,7 +118,7 @@ const UserManagement: React.FC = () => {
           developer: 'green',
           guest: 'default',
         };
-        return <Tag color={colorMap[role]}>{t(`admin.user.role.${role}`)}</Tag>;
+        return <Tag color={colorMap[role]}>{t(`admin.user.roleLabels.${role}`)}</Tag>;
       },
     },
     {
@@ -201,11 +201,11 @@ const UserManagement: React.FC = () => {
           )}
           <Form.Item name="role" label={t('admin.user.role')} rules={[{ required: true }]}>
             <Select>
-              <Option value="super_admin">{t('admin.user.role.super_admin')}</Option>
-              <Option value="group_leader">{t('admin.user.role.group_leader')}</Option>
-              <Option value="project_leader">{t('admin.user.role.project_leader')}</Option>
-              <Option value="developer">{t('admin.user.role.developer')}</Option>
-              <Option value="guest">{t('admin.user.role.guest')}</Option>
+              <Option value="super_admin">{t('admin.user.roleLabels.super_admin')}</Option>
+              <Option value="group_leader">{t('admin.user.roleLabels.group_leader')}</Option>
+              <Option value="project_leader">{t('admin.user.roleLabels.project_leader')}</Option>
+              <Option value="developer">{t('admin.user.roleLabels.developer')}</Option>
+              <Option value="guest">{t('admin.user.roleLabels.guest')}</Option>
             </Select>
           </Form.Item>
         </Form>

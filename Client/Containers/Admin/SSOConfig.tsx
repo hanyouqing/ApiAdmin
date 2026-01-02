@@ -236,8 +236,8 @@ const SSOConfig: React.FC = () => {
         <Form.Item name="autoCreateUser" label={t('admin.sso.autoCreateUser')} valuePropName="checked">
           <Switch />
         </Form.Item>
-        <Form.Item name="description" label={t('admin.sso.description') || '描述'}>
-          <TextArea rows={2} placeholder={t('admin.sso.descriptionPlaceholder') || 'SSO 提供者描述'} />
+        <Form.Item name="description" label={t('admin.sso.description')}>
+          <TextArea rows={2} placeholder={t('admin.sso.descriptionPlaceholder')} />
         </Form.Item>
         <Form.Item name="callbackUrl" label={t('admin.sso.callbackUrl')}>
           <Input placeholder="https://your-domain.com/api/sso/auth/{providerId}/callback" />

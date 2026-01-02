@@ -55,6 +55,96 @@ const notificationSettingsSchema = new mongoose.Schema(
         default: '',
       },
     },
+    feishu: {
+      enabled: {
+        type: Boolean,
+        default: false,
+      },
+      webhookUrl: {
+        type: String,
+        default: '',
+      },
+      secret: {
+        type: String,
+        default: '',
+      },
+      interfaceChange: {
+        type: Boolean,
+        default: true,
+      },
+      testFailed: {
+        type: Boolean,
+        default: true,
+      },
+      projectUpdate: {
+        type: Boolean,
+        default: false,
+      },
+      system: {
+        type: Boolean,
+        default: true,
+      },
+    },
+    dingtalk: {
+      enabled: {
+        type: Boolean,
+        default: false,
+      },
+      webhookUrl: {
+        type: String,
+        default: '',
+      },
+      secret: {
+        type: String,
+        default: '',
+      },
+      interfaceChange: {
+        type: Boolean,
+        default: true,
+      },
+      testFailed: {
+        type: Boolean,
+        default: true,
+      },
+      projectUpdate: {
+        type: Boolean,
+        default: false,
+      },
+      system: {
+        type: Boolean,
+        default: true,
+      },
+    },
+    slack: {
+      enabled: {
+        type: Boolean,
+        default: false,
+      },
+      webhookUrl: {
+        type: String,
+        default: '',
+      },
+      channel: {
+        type: String,
+        default: '',
+      },
+      interfaceChange: {
+        type: Boolean,
+        default: true,
+      },
+      testFailed: {
+        type: Boolean,
+        default: true,
+      },
+      projectUpdate: {
+        type: Boolean,
+        default: false,
+      },
+      system: {
+        type: Boolean,
+        default: true,
+      },
+    },
   },
   {
     timestamps: true,

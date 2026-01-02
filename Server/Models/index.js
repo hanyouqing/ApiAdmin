@@ -34,4 +34,7 @@ import './SearchHistory.js';
 import './NotificationSettings.js';
 import './AutoTestConfig.js';
 import './TestRuleConfig.js';
+import './CodeRepository.js';
+import './AIConfig.js';
+import './CodeFixSuggestion.js';
 

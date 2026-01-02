@@ -21,6 +21,7 @@ import {
 import { fetchInterfaces } from '../../Reducer/Modules/Interface';
 import type { AppDispatch, RootState } from '../../Reducer/Create';
 import type { TestCollection, TestCase } from '../../Reducer/Modules/Test';
+import TestRules from './TestRules';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -357,21 +358,36 @@ const TestManagement: React.FC = () => {
 
   return (
     <div>
-      <Card
-        title={t('test.title')}
-        extra={
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate} style={{ color: '#ffffff' }}>
-            {t('test.create')}
-          </Button>
-        }
-      >
-        <Table
-          columns={collectionColumns}
-          dataSource={collections}
-          rowKey="_id"
-          loading={loading}
-        />
-      </Card>
+      <Tabs
+        items={[
+          {
+            key: 'collections',
+            label: t('test.title'),
+            children: (
+              <Card
+                title={t('test.title')}
+                extra={
+                  <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate} style={{ color: '#ffffff' }}>
+                    {t('test.create')}
+                  </Button>
+                }
+              >
+                <Table
+                  columns={collectionColumns}
+                  dataSource={collections}
+                  rowKey="_id"
+                  loading={loading}
+                />
+              </Card>
+            ),
+          },
+          {
+            key: 'rules',
+            label: t('test.rules.title'),
+            children: <TestRules />,
+          },
+        ]}
+      />
 
       {currentCollection && (
         <Card

@@ -52,9 +52,12 @@ const ProjectManagement: React.FC = () => {
       // 否则使用普通用户 API，只返回用户参与的项目
       const apiPath = user?.role === 'super_admin' ? '/admin/project/list' : '/project/list';
       const response = await api.get(apiPath);
-      setProjects(response.data.data || []);
+      const data = response.data?.data || response.data || [];
+      setProjects(Array.isArray(data) ? data : []);
     } catch (error: any) {
+      console.error('获取项目列表失败:', error);
       message.error(error.response?.data?.message || t('admin.project.fetchFailed'));
+      setProjects([]);
     } finally {
       setLoading(false);
     }
@@ -174,7 +177,15 @@ const ProjectManagement: React.FC = () => {
           </Button>
         }
       >
-        <Table columns={columns} dataSource={projects} rowKey="_id" loading={loading} />
+        <Table 
+          columns={columns} 
+          dataSource={projects || []} 
+          rowKey="_id" 
+          loading={loading}
+          locale={{
+            emptyText: t('common.empty'),
+          }}
+        />
       </Card>
 
       <Modal

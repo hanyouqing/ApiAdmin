@@ -200,7 +200,7 @@ const LoginLogManagement: React.FC = () => {
           <Col span={6}>
             <Card>
               <Statistic
-                title={t('admin.loginLog.statistics.total') || '总登录次数'}
+                title={t('admin.loginLog.statistics.total')}
                 value={statistics.total}
               />
             </Card>
@@ -208,7 +208,7 @@ const LoginLogManagement: React.FC = () => {
           <Col span={6}>
             <Card>
               <Statistic
-                title={t('admin.loginLog.statistics.success') || '成功登录'}
+                title={t('admin.loginLog.statistics.success')}
                 value={statistics.success}
                 valueStyle={{ color: '#3f8600' }}
               />
@@ -217,7 +217,7 @@ const LoginLogManagement: React.FC = () => {
           <Col span={6}>
             <Card>
               <Statistic
-                title={t('admin.loginLog.statistics.failed') || '失败登录'}
+                title={t('admin.loginLog.statistics.failed')}
                 value={statistics.failed}
                 valueStyle={{ color: '#cf1322' }}
               />
@@ -226,7 +226,7 @@ const LoginLogManagement: React.FC = () => {
           <Col span={6}>
             <Card>
               <Statistic
-                title={t('admin.loginLog.statistics.successRate') || '成功率'}
+                title={t('admin.loginLog.statistics.successRate')}
                 value={statistics.successRate}
                 suffix="%"
                 valueStyle={{ color: '#1890ff' }}
@@ -237,16 +237,16 @@ const LoginLogManagement: React.FC = () => {
       )}
 
       <Card
-        title={t('admin.loginLog.title') || '登录日志'}
+        title={t('admin.loginLog.title')}
         extra={
           <Button icon={<ReloadOutlined />} onClick={() => { fetchLogs(); fetchStatistics(); }}>
-            {t('common.refresh') || '刷新'}
+            {t('common.refresh')}
           </Button>
         }
       >
         <Space style={{ marginBottom: 16 }} wrap>
           <Input
-            placeholder={t('admin.loginLog.searchPlaceholder') || '搜索用户名、邮箱或IP'}
+            placeholder={t('admin.loginLog.searchPlaceholder')}
             prefix={<SearchOutlined />}
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
@@ -254,17 +254,17 @@ const LoginLogManagement: React.FC = () => {
             allowClear
           />
           <Select
-            placeholder={t('admin.loginLog.filterByStatus') || '状态'}
+            placeholder={t('admin.loginLog.filterByStatus')}
             value={selectedStatus}
             onChange={setSelectedStatus}
             style={{ width: 120 }}
             allowClear
           >
-            <Option value="success">{t('admin.loginLog.status.success') || '成功'}</Option>
-            <Option value="failed">{t('admin.loginLog.status.failed') || '失败'}</Option>
+            <Option value="success">{t('admin.loginLog.status.success')}</Option>
+            <Option value="failed">{t('admin.loginLog.status.failed')}</Option>
           </Select>
           <Select
-            placeholder={t('admin.loginLog.filterByLoginType') || '登录方式'}
+            placeholder={t('admin.loginLog.filterByLoginType')}
             value={selectedLoginType}
             onChange={setSelectedLoginType}
             style={{ width: 150 }}

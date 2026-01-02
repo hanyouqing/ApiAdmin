@@ -1,0 +1,146 @@
+// ApiAdmin Jenkins Pipeline 模板
+// 将此文件复制为 Jenkinsfile 并根据需要修改
+
+pipeline {
+    agent any
+    
+    environment {
+        APIADMIN_URL = credentials('apiadmin-url')
+        APIADMIN_TOKEN = credentials('apiadmin-token')
+        TEST_COLLECTION_ID = credentials('test-collection-id')
+        ENVIRONMENT = "${ENVIRONMENT ?: 'production'}"
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        
+        stage('Setup') {
+            steps {
+                sh '''
+                    node --version
+                    npm --version
+                    npm install -g @apiadmin/cli || echo "CLI not available, using curl"
+                '''
+            }
+        }
+        
+        stage('API Tests') {
+            steps {
+                script {
+                    try {
+                        if (sh(script: 'command -v apiadmin', returnStatus: true) == 0) {
+                            sh """
+                                apiadmin test \\
+                                    --collection ${TEST_COLLECTION_ID} \\
+                                    --env ${ENVIRONMENT} \\
+                                    --output junit \\
+                                    --file test-results.xml
+                            """
+                        } else {
+                            sh """
+                                curl -X POST "${APIADMIN_URL}/api/cicd/test/run" \\
+                                    -H "Authorization: Bearer ${APIADMIN_TOKEN}" \\
+                                    -H "Content-Type: application/json" \\
+                                    -d '{"collectionId": "${TEST_COLLECTION_ID}", "environment": "${ENVIRONMENT}", "format": "junit"}' \\
+                                    -o test-results.xml
+                            """
+                        }
+                    } catch (Exception e) {
+                        echo "Test execution failed: ${e.getMessage()}"
+                        currentBuild.result = 'UNSTABLE'
+                    }
+                }
+            }
+            post {
+                always {
+                    junit 'test-results.xml'
+                    archiveArtifacts artifacts: 'test-results.xml', fingerprint: true
+                }
+            }
+        }
+        
+        stage('Allure Report') {
+            steps {
+                script {
+                    try {
+                        if (sh(script: 'command -v apiadmin', returnStatus: true) == 0) {
+                            sh """
+                                apiadmin test \\
+                                    --collection ${TEST_COLLECTION_ID} \\
+                                    --env ${ENVIRONMENT} \\
+                                    --output allure \\
+                                    --dir allure-results
+                            """
+                        } else {
+                            echo "Allure report generation skipped (CLI not available)"
+                        }
+                    } catch (Exception e) {
+                        echo "Allure report generation failed: ${e.getMessage()}"
+                    }
+                }
+            }
+            post {
+                always {
+                    publishHTML([
+                        reportDir: 'allure-results',
+                        reportFiles: 'index.html',
+                        reportName: 'API Test Report',
+                        keepAll: true
+                    ])
+                }
+            }
+        }
+        
+        stage('Swagger Sync') {
+            when {
+                anyOf {
+                    branch 'main'
+                    expression { params.SYNC_SWAGGER == true }
+                }
+            }
+            steps {
+                script {
+                    try {
+                        if (sh(script: 'command -v apiadmin', returnStatus: true) == 0) {
+                            sh """
+                                apiadmin sync \\
+                                    --url "${SWAGGER_URL}" \\
+                                    --project "${PROJECT_ID}" \\
+                                    --mode smart
+                            """
+                        } else {
+                            echo "Swagger sync skipped (CLI not available)"
+                        }
+                    } catch (Exception e) {
+                        echo "Swagger sync failed: ${e.getMessage()}"
+                    }
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            cleanWs()
+        }
+        success {
+            echo 'Pipeline succeeded!'
+        }
+        failure {
+            echo 'Pipeline failed!'
+            emailext (
+                subject: "API Tests Failed: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
+                body: "API tests failed. Check the build for details.\n\nBuild URL: ${env.BUILD_URL}",
+                to: "${env.CHANGE_AUTHOR_EMAIL ?: env.DEFAULT_EMAIL}"
+            )
+        }
+        unstable {
+            echo 'Pipeline unstable!'
+        }
+    }
+}
+

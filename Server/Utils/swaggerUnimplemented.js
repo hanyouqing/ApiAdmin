@@ -1500,6 +1500,229 @@ export const unimplementedPaths = {
       }
     }
   },
+  '/api/test/rules': {
+    get: {
+      tags: ['Test Rules'],
+      summary: 'Get test rules list',
+      description: 'Get list of test rules for a project',
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: 'projectId',
+          in: 'query',
+          required: true,
+          schema: { type: 'string' },
+          description: 'Project ID'
+        },
+        {
+          name: 'type',
+          in: 'query',
+          required: false,
+          schema: {
+            type: 'string',
+            enum: ['assertion', 'request', 'response']
+          },
+          description: 'Rule type filter'
+        }
+      ],
+      responses: {
+        '200': {
+          description: 'Test rules list',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean' },
+                  data: {
+                    type: 'array',
+                    items: {
+                      $ref: '#/components/schemas/TestRuleConfig'
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        '400': {
+          $ref: '#/components/responses/BadRequest'
+        },
+        '404': {
+          $ref: '#/components/responses/NotFound'
+        }
+      }
+    },
+    post: {
+      tags: ['Test Rules'],
+      summary: 'Create test rule',
+      description: 'Create a new test rule configuration',
+      security: [{ bearerAuth: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: {
+              $ref: '#/components/schemas/TestRuleConfigCreate'
+            }
+          }
+        }
+      },
+      responses: {
+        '200': {
+          description: 'Test rule created',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean' },
+                  data: {
+                    $ref: '#/components/schemas/TestRuleConfig'
+                  },
+                  message: { type: 'string' }
+                }
+              }
+            }
+          }
+        },
+        '400': {
+          $ref: '#/components/responses/BadRequest'
+        },
+        '404': {
+          $ref: '#/components/responses/NotFound'
+        }
+      }
+    }
+  },
+  '/api/test/rules/{id}': {
+    get: {
+      tags: ['Test Rules'],
+      summary: 'Get test rule details',
+      description: 'Get details of a specific test rule',
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: 'id',
+          in: 'path',
+          required: true,
+          schema: { type: 'string' },
+          description: 'Test rule ID'
+        }
+      ],
+      responses: {
+        '200': {
+          description: 'Test rule details',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean' },
+                  data: {
+                    $ref: '#/components/schemas/TestRuleConfig'
+                  }
+                }
+              }
+            }
+          }
+        },
+        '400': {
+          $ref: '#/components/responses/BadRequest'
+        },
+        '404': {
+          $ref: '#/components/responses/NotFound'
+        }
+      }
+    },
+    put: {
+      tags: ['Test Rules'],
+      summary: 'Update test rule',
+      description: 'Update an existing test rule configuration',
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: 'id',
+          in: 'path',
+          required: true,
+          schema: { type: 'string' },
+          description: 'Test rule ID'
+        }
+      ],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: {
+              $ref: '#/components/schemas/TestRuleConfigUpdate'
+            }
+          }
+        }
+      },
+      responses: {
+        '200': {
+          description: 'Test rule updated',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean' },
+                  data: {
+                    $ref: '#/components/schemas/TestRuleConfig'
+                  },
+                  message: { type: 'string' }
+                }
+              }
+            }
+          }
+        },
+        '400': {
+          $ref: '#/components/responses/BadRequest'
+        },
+        '404': {
+          $ref: '#/components/responses/NotFound'
+        }
+      }
+    },
+    delete: {
+      tags: ['Test Rules'],
+      summary: 'Delete test rule',
+      description: 'Delete a test rule configuration',
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: 'id',
+          in: 'path',
+          required: true,
+          schema: { type: 'string' },
+          description: 'Test rule ID'
+        }
+      ],
+      responses: {
+        '200': {
+          description: 'Test rule deleted',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean' },
+                  message: { type: 'string' }
+                }
+              }
+            }
+          }
+        },
+        '400': {
+          $ref: '#/components/responses/BadRequest'
+        },
+        '404': {
+          $ref: '#/components/responses/NotFound'
+        }
+      }
+    }
+  },
   '/api/auto-test/run': {
     post: {
       tags: ['Auto Test'],
@@ -2837,6 +3060,165 @@ export const unimplementedComponents = {
         contentType: { type: 'string' }
       }
     },
+    TestRuleConfig: {
+      type: 'object',
+      properties: {
+        _id: { type: 'string' },
+        project_id: { type: 'string' },
+        name: { type: 'string' },
+        type: {
+          type: 'string',
+          enum: ['assertion', 'request', 'response']
+        },
+        enabled: { type: 'boolean' },
+        assertion_rules: {
+          type: 'object',
+          properties: {
+            status_code_check: { type: 'boolean' },
+            response_time_check: { type: 'boolean' },
+            max_response_time: { type: 'integer' },
+            response_format_check: { type: 'boolean' },
+            custom_assertions: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                  script: { type: 'string' },
+                  description: { type: 'string' }
+                }
+              }
+            }
+          }
+        },
+        request_config: {
+          type: 'object',
+          properties: {
+            timeout: { type: 'integer' },
+            retry_count: { type: 'integer' },
+            retry_delay: { type: 'integer' },
+            follow_redirects: { type: 'boolean' },
+            verify_ssl: { type: 'boolean' },
+            default_headers: {
+              type: 'object',
+              additionalProperties: true
+            }
+          }
+        },
+        response_config: {
+          type: 'object',
+          properties: {
+            validate_schema: { type: 'boolean' },
+            extract_variables: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                  path: { type: 'string' },
+                  type: {
+                    type: 'string',
+                    enum: ['json', 'header', 'cookie']
+                  }
+                }
+              }
+            }
+          }
+        },
+        description: { type: 'string' },
+        createdBy: { type: 'string' },
+        createdAt: { type: 'string', format: 'date-time' },
+        updatedAt: { type: 'string', format: 'date-time' }
+      }
+    },
+    TestRuleConfigCreate: {
+      type: 'object',
+      required: ['projectId', 'name', 'type'],
+      properties: {
+        projectId: { type: 'string' },
+        name: { type: 'string' },
+        type: {
+          type: 'string',
+          enum: ['assertion', 'request', 'response']
+        },
+        enabled: { type: 'boolean' },
+        assertion_rules: {
+          type: 'object',
+          properties: {
+            status_code_check: { type: 'boolean' },
+            response_time_check: { type: 'boolean' },
+            max_response_time: { type: 'integer' },
+            response_format_check: { type: 'boolean' },
+            custom_assertions: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                  script: { type: 'string' },
+                  description: { type: 'string' }
+                }
+              }
+            }
+          }
+        },
+        request_config: {
+          type: 'object',
+          properties: {
+            timeout: { type: 'integer' },
+            retry_count: { type: 'integer' },
+            retry_delay: { type: 'integer' },
+            follow_redirects: { type: 'boolean' },
+            verify_ssl: { type: 'boolean' },
+            default_headers: {
+              type: 'object',
+              additionalProperties: true
+            }
+          }
+        },
+        response_config: {
+          type: 'object',
+          properties: {
+            validate_schema: { type: 'boolean' },
+            extract_variables: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                  path: { type: 'string' },
+                  type: {
+                    type: 'string',
+                    enum: ['json', 'header', 'cookie']
+                  }
+                }
+              }
+            }
+          }
+        },
+        description: { type: 'string' }
+      }
+    },
+    TestRuleConfigUpdate: {
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+        enabled: { type: 'boolean' },
+        assertion_rules: {
+          type: 'object',
+          additionalProperties: true
+        },
+        request_config: {
+          type: 'object',
+          additionalProperties: true
+        },
+        response_config: {
+          type: 'object',
+          additionalProperties: true
+        },
+        description: { type: 'string' }
+      }
+    },
     Plugin: {
       type: 'object',
       properties: {
@@ -2958,6 +3340,42 @@ export const unimplementedComponents = {
           properties: {
             enabled: { type: 'boolean' },
             url: { type: 'string', format: 'uri' }
+          }
+        },
+        feishu: {
+          type: 'object',
+          properties: {
+            enabled: { type: 'boolean' },
+            webhookUrl: { type: 'string', format: 'uri' },
+            secret: { type: 'string' },
+            interfaceChange: { type: 'boolean' },
+            testFailed: { type: 'boolean' },
+            projectUpdate: { type: 'boolean' },
+            system: { type: 'boolean' }
+          }
+        },
+        dingtalk: {
+          type: 'object',
+          properties: {
+            enabled: { type: 'boolean' },
+            webhookUrl: { type: 'string', format: 'uri' },
+            secret: { type: 'string' },
+            interfaceChange: { type: 'boolean' },
+            testFailed: { type: 'boolean' },
+            projectUpdate: { type: 'boolean' },
+            system: { type: 'boolean' }
+          }
+        },
+        slack: {
+          type: 'object',
+          properties: {
+            enabled: { type: 'boolean' },
+            webhookUrl: { type: 'string', format: 'uri' },
+            channel: { type: 'string' },
+            interfaceChange: { type: 'boolean' },
+            testFailed: { type: 'boolean' },
+            projectUpdate: { type: 'boolean' },
+            system: { type: 'boolean' }
           }
         }
       }

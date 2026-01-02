@@ -76,7 +76,7 @@ const EmailConfig: React.FC = () => {
         setProvider(formData.provider);
       }
     } catch (error: any) {
-      message.error(error.response?.data?.message || t('admin.email.fetchFailed') || '获取配置失败');
+      message.error(error.response?.data?.message || t('admin.email.fetchFailed'));
     } finally {
       setLoading(false);
     }
@@ -144,9 +144,9 @@ const EmailConfig: React.FC = () => {
       }
 
       await api.put('/email/config', configData);
-      message.success(t('admin.email.updateSuccess') || '配置保存成功');
+      message.success(t('admin.email.updateSuccess'));
     } catch (error: any) {
-      message.error(error.response?.data?.message || t('admin.email.updateFailed') || '配置保存失败');
+      message.error(error.response?.data?.message || t('admin.email.updateFailed'));
     }
   };
 
@@ -154,13 +154,13 @@ const EmailConfig: React.FC = () => {
     try {
       const testEmail = form.getFieldValue('testEmail');
       if (!testEmail) {
-        message.warning(t('admin.email.testEmailPlaceholder') || '请输入测试邮箱地址');
+        message.warning(t('admin.email.testEmailPlaceholder'));
         return;
       }
       await api.post('/email/test', { to: testEmail });
-      message.success(t('admin.email.testSuccess') || '测试邮件发送成功');
+      message.success(t('admin.email.testSuccess'));
     } catch (error: any) {
-      message.error(error.response?.data?.message || t('admin.email.testFailed') || '测试邮件发送失败');
+      message.error(error.response?.data?.message || t('admin.email.testFailed'));
     }
   };
 

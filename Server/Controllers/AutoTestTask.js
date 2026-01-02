@@ -78,6 +78,8 @@ class AutoTestTaskController extends BaseController {
         test_cases: test_cases || [],
         environment_id: environment_id || null,
         base_url: base_url ? base_url.trim() : '',
+        code_repository_id: code_repository_id && validateObjectId(code_repository_id) ? code_repository_id : null,
+        ai_config_provider: ai_config_provider && typeof ai_config_provider === 'string' ? ai_config_provider.trim() : null,
         schedule: schedule || { enabled: false },
         notification: notification || { enabled: false },
         enabled: true,
@@ -121,13 +123,6 @@ class AutoTestTaskController extends BaseController {
   // 获取任务列表
   static async listTasks(ctx) {
     try {
-      const user = ctx.state.user;
-      if (!user || !user._id) {
-        ctx.status = 401;
-        ctx.body = AutoTestTaskController.error('用户未认证');
-        return;
-      }
-
       // 检查数据库连接
       const mongoose = (await import('mongoose')).default;
       if (mongoose.connection.readyState !== 1) {
@@ -138,14 +133,6 @@ class AutoTestTaskController extends BaseController {
       }
 
       const { project_id, enabled } = ctx.query;
-
-      // 确保 user._id 是 ObjectId 类型
-      let userId = user._id;
-      if (userId && !(userId instanceof mongoose.Types.ObjectId)) {
-        if (mongoose.Types.ObjectId.isValid(userId)) {
-          userId = new mongoose.Types.ObjectId(userId);
-        }
-      }
 
       const query = {};
       if (project_id && validateObjectId(project_id)) {
@@ -160,7 +147,7 @@ class AutoTestTaskController extends BaseController {
         tasks = await AutoTestTask.find(query)
           .populate({
             path: 'project_id',
-            select: 'project_name uid member',
+            select: 'project_name',
             options: { lean: true }
           })
           .populate({
@@ -192,31 +179,6 @@ class AutoTestTaskController extends BaseController {
       // 如果 tasks 为 null 或 undefined，设置为空数组
       if (!tasks || !Array.isArray(tasks)) {
         tasks = [];
-      }
-
-      // 权限过滤：如果不是超级管理员，只返回用户有权限访问的任务
-      if (user.role !== 'super_admin') {
-        tasks = tasks.filter(task => {
-          // 如果任务是用户创建的，允许访问
-          if (task.createdBy && task.createdBy._id && task.createdBy._id.toString() === userId.toString()) {
-            return true;
-          }
-          
-          // 检查用户是否有权限访问项目
-          if (task.project_id) {
-            const project = task.project_id;
-            const isOwner = project.uid && project.uid.toString() === userId.toString();
-            const isMember = project.member && Array.isArray(project.member) && 
-              project.member.some(member => {
-                const memberId = member?._id?.toString() || member?.toString() || member;
-                return memberId === userId.toString();
-              });
-            return isOwner || isMember;
-          }
-          
-          // 如果没有项目信息，不允许访问
-          return false;
-        });
       }
 
       // 确保所有任务数据都是可序列化的普通对象
@@ -335,7 +297,7 @@ class AutoTestTaskController extends BaseController {
   static async updateTask(ctx) {
     try {
       const { id } = ctx.params;
-      const { name, description, test_cases, environment_id, base_url, schedule, notification, enabled } = ctx.request.body;
+      const { name, description, test_cases, environment_id, base_url, schedule, notification, enabled, code_repository_id, ai_config_provider } = ctx.request.body;
 
       if (!validateObjectId(id)) {
         ctx.status = 400;
@@ -422,6 +384,12 @@ class AutoTestTaskController extends BaseController {
       }
       if (base_url !== undefined) {
         task.base_url = typeof base_url === 'string' ? base_url.trim() : '';
+      }
+      if (code_repository_id !== undefined) {
+        task.code_repository_id = code_repository_id && validateObjectId(code_repository_id) ? code_repository_id : null;
+      }
+      if (ai_config_provider !== undefined) {
+        task.ai_config_provider = ai_config_provider && typeof ai_config_provider === 'string' ? ai_config_provider.trim() : null;
       }
       if (schedule !== undefined) {
         task.schedule = schedule;
@@ -1730,6 +1698,57 @@ class AutoTestTaskController extends BaseController {
         process.env.NODE_ENV === 'production'
           ? '导入失败'
           : error.message || '导入失败'
+      );
+    }
+  }
+
+  /**
+   * 手动触发AI分析
+   */
+  static async triggerAIAnalysis(ctx) {
+    try {
+      const { id } = ctx.params;
+
+      if (!validateObjectId(id)) {
+        ctx.status = 400;
+        ctx.body = AutoTestTaskController.error('无效的结果ID');
+        return;
+      }
+
+      const result = await AutoTestResult.findById(id)
+        .populate('task_id', 'name project_id code_repository_id ai_config_provider')
+        .lean();
+
+      if (!result) {
+        ctx.status = 404;
+        ctx.body = AutoTestTaskController.error('测试结果不存在');
+        return;
+      }
+
+      const task = await AutoTestTask.findById(result.task_id._id).lean();
+      if (!task) {
+        ctx.status = 404;
+        ctx.body = AutoTestTaskController.error('测试任务不存在');
+        return;
+      }
+
+      if (!task.code_repository_id || !task.ai_config_provider) {
+        ctx.status = 400;
+        ctx.body = AutoTestTaskController.error('测试任务未配置代码仓库或AI配置');
+        return;
+      }
+
+      const { testPipelineAIService } = await import('../Utils/testPipelineAIService.js');
+      const analysis = await testPipelineAIService.analyzeTestResult(id, task);
+
+      ctx.body = AutoTestTaskController.success(analysis, 'AI分析完成');
+    } catch (error) {
+      logger.error({ error }, 'Trigger AI analysis error');
+      ctx.status = 500;
+      ctx.body = AutoTestTaskController.error(
+        process.env.NODE_ENV === 'production'
+          ? 'AI分析失败'
+          : error.message || 'AI分析失败'
       );
     }
   }

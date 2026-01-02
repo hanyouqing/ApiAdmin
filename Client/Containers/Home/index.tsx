@@ -430,61 +430,6 @@ const Home: React.FC = () => {
         )}
       </div>
 
-      {/* 基础统计卡片 */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={12} md={isSuperAdmin ? 6 : 8}>
-          <Card>
-            <Statistic
-              title={t('home.groupCount')}
-              value={safeGroups.length}
-              prefix={<FolderOutlined />}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={isSuperAdmin ? 6 : 8}>
-          <Card>
-            <Statistic
-              title={t('home.projectCount')}
-              value={safeProjects.length}
-              prefix={<ProjectOutlined />}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={isSuperAdmin ? 6 : 8}>
-          <Card>
-            <Statistic
-              title={t('home.interfaceCount')}
-              value={totalInterfaceCount}
-              prefix={<ApiOutlined />}
-            />
-          </Card>
-        </Col>
-        {isSuperAdmin && monitorStats && (
-          <>
-            <Col xs={24} sm={12} md={6}>
-              <Card>
-                <Statistic
-                  title={t('admin.monitor.users')}
-                  value={monitorStats.users || 0}
-                  prefix={<UserOutlined />}
-                />
-              </Card>
-            </Col>
-            {monitorStats.mockRequests !== undefined && (
-              <Col xs={24} sm={12} md={6}>
-                <Card>
-                  <Statistic
-                    title={t('admin.monitor.mockRequests')}
-                    value={monitorStats.mockRequests || 0}
-                    prefix={<ThunderboltOutlined />}
-                  />
-                </Card>
-              </Col>
-            )}
-          </>
-        )}
-      </Row>
-
       {/* 系统监控（仅超级管理员） */}
       {isSuperAdmin && monitorStats?.system && (
         <Card 
@@ -571,51 +516,59 @@ const Home: React.FC = () => {
         </Card>
       )}
 
-      {/* 最近项目和分组 */}
+      {/* 基础统计卡片 */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} lg={12}>
-          <Card 
-            title={t('home.recentProjects')} 
-            extra={<a onClick={() => navigate('/project')}>{t('common.viewAll')}</a>}
-          >
-            <List
-              dataSource={safeProjects.slice(0, 5)}
-              renderItem={(item) => (
-                <List.Item
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => navigate(`/project/${item._id}`)}
-                >
-                  <List.Item.Meta
-                    title={item.project_name}
-                    description={item.project_desc}
-                  />
-                </List.Item>
-              )}
+        <Col xs={24} sm={12} md={isSuperAdmin ? 6 : 8}>
+          <Card>
+            <Statistic
+              title={t('home.groupCount')}
+              value={safeGroups.length}
+              prefix={<FolderOutlined />}
             />
           </Card>
         </Col>
-        <Col xs={24} lg={12}>
-          <Card 
-            title={t('home.recentGroups')} 
-            extra={<a onClick={() => navigate('/group')}>{t('common.viewAll')}</a>}
-          >
-            <List
-              dataSource={safeGroups.slice(0, 5)}
-              renderItem={(item) => (
-                <List.Item
-                  key={item._id}
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => navigate(`/group/${item._id}`)}
-                >
-                  <List.Item.Meta
-                    title={item.group_name}
-                    description={item.group_desc}
-                  />
-                </List.Item>
-              )}
+        <Col xs={24} sm={12} md={isSuperAdmin ? 6 : 8}>
+          <Card>
+            <Statistic
+              title={t('home.projectCount')}
+              value={safeProjects.length}
+              prefix={<ProjectOutlined />}
             />
           </Card>
         </Col>
+        <Col xs={24} sm={12} md={isSuperAdmin ? 6 : 8}>
+          <Card>
+            <Statistic
+              title={t('home.interfaceCount')}
+              value={totalInterfaceCount}
+              prefix={<ApiOutlined />}
+            />
+          </Card>
+        </Col>
+        {isSuperAdmin && monitorStats && (
+          <>
+            <Col xs={24} sm={12} md={6}>
+              <Card>
+                <Statistic
+                  title={t('admin.monitor.users')}
+                  value={monitorStats.users || 0}
+                  prefix={<UserOutlined />}
+                />
+              </Card>
+            </Col>
+            {monitorStats.mockRequests !== undefined && (
+              <Col xs={24} sm={12} md={6}>
+                <Card>
+                  <Statistic
+                    title={t('admin.monitor.mockRequests')}
+                    value={monitorStats.mockRequests || 0}
+                    prefix={<ThunderboltOutlined />}
+                  />
+                </Card>
+              </Col>
+            )}
+          </>
+        )}
       </Row>
 
       {/* 测试流水线（仅超级管理员） */}
@@ -623,6 +576,7 @@ const Home: React.FC = () => {
         <Card 
           title={t('admin.monitor.pipelineMonitor')} 
           loading={hierarchyLoading}
+          style={{ marginBottom: 24 }}
         >
           {hierarchy.length === 0 ? (
             <Empty description={t('admin.monitor.noData')} />
@@ -669,6 +623,53 @@ const Home: React.FC = () => {
           )}
         </Card>
       )}
+
+      {/* 最近项目和分组 */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+        <Col xs={24} lg={12}>
+          <Card 
+            title={t('home.recentProjects')} 
+            extra={<a onClick={() => navigate('/project')}>{t('common.viewAll')}</a>}
+          >
+            <List
+              dataSource={safeProjects.slice(0, 5)}
+              renderItem={(item) => (
+                <List.Item
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => navigate(`/project/${item._id}`)}
+                >
+                  <List.Item.Meta
+                    title={item.project_name}
+                    description={item.project_desc}
+                  />
+                </List.Item>
+              )}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} lg={12}>
+          <Card 
+            title={t('home.recentGroups')} 
+            extra={<a onClick={() => navigate('/group')}>{t('common.viewAll')}</a>}
+          >
+            <List
+              dataSource={safeGroups.slice(0, 5)}
+              renderItem={(item) => (
+                <List.Item
+                  key={item._id}
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => navigate(`/group/${item._id}`)}
+                >
+                  <List.Item.Meta
+                    title={item.group_name}
+                    description={item.group_desc}
+                  />
+                </List.Item>
+              )}
+            />
+          </Card>
+        </Col>
+      </Row>
     </div>
   );
 };

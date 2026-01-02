@@ -1,0 +1,94 @@
+# ApiAdmin GitLab CI 模板
+# 将此文件复制为 .gitlab-ci.yml 并根据需要修改
+
+stages:
+  - test
+  - deploy
+
+variables:
+  APIADMIN_URL: "${APIADMIN_URL}"
+  APIADMIN_TOKEN: "${APIADMIN_TOKEN}"
+  TEST_COLLECTION_ID: "${TEST_COLLECTION_ID}"
+  ENVIRONMENT: "${ENVIRONMENT:-production}"
+
+# API 测试任务
+api-tests:
+  stage: test
+  image: node:18
+  before_script:
+    - npm install -g @apiadmin/cli || echo "CLI not available, using curl"
+  script:
+    - |
+      if command -v apiadmin &> /dev/null; then
+        apiadmin test \
+          --collection $TEST_COLLECTION_ID \
+          --env $ENVIRONMENT \
+          --output junit \
+          --file test-results.xml
+      else
+        echo "Using curl to run tests"
+        curl -X POST "$APIADMIN_URL/api/cicd/test/run" \
+          -H "Authorization: Bearer $APIADMIN_TOKEN" \
+          -H "Content-Type: application/json" \
+          -d "{\"collectionId\": \"$TEST_COLLECTION_ID\", \"environment\": \"$ENVIRONMENT\", \"format\": \"junit\"}" \
+          -o test-results.xml
+      fi
+  artifacts:
+    reports:
+      junit: test-results.xml
+    paths:
+      - test-results.xml
+      - allure-results/
+    expire_in: 30 days
+  only:
+    - main
+    - develop
+    - merge_requests
+
+# Allure 报告生成
+allure-report:
+  stage: test
+  image: node:18
+  dependencies:
+    - api-tests
+  before_script:
+    - npm install -g @apiadmin/cli || echo "CLI not available"
+  script:
+    - |
+      if command -v apiadmin &> /dev/null; then
+        apiadmin test \
+          --collection $TEST_COLLECTION_ID \
+          --env $ENVIRONMENT \
+          --output allure \
+          --dir allure-results
+      else
+        echo "Allure report generation skipped (CLI not available)"
+      fi
+  artifacts:
+    paths:
+      - allure-results/
+    expire_in: 30 days
+  only:
+    - main
+    - develop
+    - merge_requests
+
+# Swagger 同步任务（可选）
+swagger-sync:
+  stage: test
+  image: node:18
+  script:
+    - |
+      if command -v apiadmin &> /dev/null; then
+        apiadmin sync \
+          --url "${SWAGGER_URL}" \
+          --project "${PROJECT_ID}" \
+          --mode smart
+      else
+        echo "Swagger sync skipped (CLI not available)"
+      fi
+  only:
+    - main
+    - schedules
+  when: manual
+

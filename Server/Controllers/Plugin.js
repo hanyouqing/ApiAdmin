@@ -65,54 +65,8 @@ class PluginController extends BaseController {
         plugins = [];
       }
 
-      // 确保所有插件数据都是可序列化的普通对象
-      // 使用 JSON.parse(JSON.stringify()) 来深度序列化，移除所有 Mongoose 特有的属性和方法
-      let serializedPlugins = [];
-      try {
-        serializedPlugins = JSON.parse(JSON.stringify(plugins));
-      } catch (serializeError) {
-        logger.error({ 
-          error: serializeError.message,
-          stack: serializeError.stack,
-          pluginCount: plugins.length
-        }, 'Failed to serialize plugins, trying manual serialization');
-        
-        // 如果 JSON 序列化失败，尝试手动序列化
-        serializedPlugins = plugins.map((plugin) => {
-          try {
-            // 如果 plugin 是 Mongoose 文档，转换为普通对象
-            if (plugin && typeof plugin.toObject === 'function') {
-              return plugin.toObject({ virtuals: false });
-            }
-            // 如果已经是普通对象，创建一个新的纯对象
-            const pluginObj = {};
-            Object.keys(plugin).forEach((key) => {
-              if (key !== '__v') {
-                const value = plugin[key];
-                if (value && typeof value === 'object' && !Array.isArray(value) && typeof value.toObject === 'function') {
-                  pluginObj[key] = value.toObject({ virtuals: false });
-                } else if (value && typeof value === 'object' && value.constructor && value.constructor.name === 'ObjectId') {
-                  pluginObj[key] = value.toString();
-                } else {
-                  pluginObj[key] = value;
-                }
-              }
-            });
-            // 确保 _id 是字符串
-            if (pluginObj._id && typeof pluginObj._id === 'object') {
-              pluginObj._id = pluginObj._id.toString();
-            }
-            return pluginObj;
-          } catch (itemError) {
-            logger.warn({ error: itemError.message, pluginId: plugin?._id }, 'Failed to serialize plugin item');
-            // 返回一个最小化的对象，至少包含 _id
-            return { _id: plugin?._id?.toString() || null, name: plugin?.name || 'Unknown' };
-          }
-        });
-      }
-
       const pluginsWithManifest = await Promise.all(
-        serializedPlugins.map(async (plugin) => {
+        plugins.map(async (plugin) => {
           try {
             if (!plugin || !plugin.name) {
               return plugin;
@@ -142,29 +96,9 @@ class PluginController extends BaseController {
         })
       );
 
-      // 确保响应体可以被正确序列化
-      try {
-        // 测试序列化
-        JSON.stringify(pluginsWithManifest);
-        ctx.body = PluginController.success(pluginsWithManifest);
-      } catch (testSerializeError) {
-        logger.error({ 
-          error: testSerializeError.message,
-          stack: testSerializeError.stack,
-          pluginCount: pluginsWithManifest.length
-        }, 'Response body serialization test failed');
-        
-        // 如果测试序列化失败，返回空数组
-        ctx.body = PluginController.success([]);
-      }
+      ctx.body = PluginController.success(pluginsWithManifest);
     } catch (error) {
-      logger.error({ 
-        error: {
-          name: error?.name,
-          message: error?.message,
-          stack: error?.stack,
-        }
-      }, 'List plugins error');
+      logger.error({ error, stack: error.stack }, 'List plugins error');
       ctx.status = 500;
       ctx.body = PluginController.error(
         process.env.NODE_ENV === 'production'

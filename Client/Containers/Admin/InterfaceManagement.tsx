@@ -60,15 +60,19 @@ const InterfaceManagement: React.FC = () => {
       // 否则使用普通用户 API，只返回用户项目的接口
       const apiPath = user?.role === 'super_admin' ? '/admin/interface/list' : '/interface/list';
       const response = await api.get(apiPath);
-      const data = response.data.data || [];
-      setAllInterfaces(data);
-      setInterfaces(data);
+      const data = response.data?.data || response.data || [];
+      const interfacesList = Array.isArray(data) ? data : [];
+      setAllInterfaces(interfacesList);
+      setInterfaces(interfacesList);
     } catch (error: any) {
+      console.error('获取接口列表失败:', error);
       if (message) {
         message.error(error.response?.data?.message || t('admin.interface.fetchFailed'));
       } else {
         console.error('获取接口列表失败:', error.response?.data?.message || t('admin.interface.fetchFailed'));
       }
+      setAllInterfaces([]);
+      setInterfaces([]);
     } finally {
       setLoading(false);
     }
@@ -170,7 +174,7 @@ const InterfaceManagement: React.FC = () => {
 
   const columns = [
     {
-      title: t('admin.interface.title'),
+      title: t('admin.interface.name'),
       dataIndex: 'title',
       key: 'title',
     },
@@ -294,7 +298,15 @@ const InterfaceManagement: React.FC = () => {
             </Select>
           </Space>
         </Space>
-        <Table columns={columns} dataSource={interfaces} rowKey="_id" loading={loading} />
+        <Table 
+          columns={columns} 
+          dataSource={interfaces || []} 
+          rowKey="_id" 
+          loading={loading}
+          locale={{
+            emptyText: t('common.empty'),
+          }}
+        />
       </Card>
 
       <Modal
@@ -309,8 +321,21 @@ const InterfaceManagement: React.FC = () => {
       >
         <Form form={form} layout="vertical">
           <Form.Item
+            name="project_id"
+            label={t('admin.interface.project')}
+            rules={[{ required: true, message: t('admin.interface.projectRequired') }]}
+          >
+            <Select placeholder={t('admin.interface.projectPlaceholder')}>
+              {projects.map((project: any) => (
+                <Option key={project._id} value={project._id}>
+                  {project.project_name}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item
             name="title"
-            label={t('admin.interface.title')}
+            label={t('admin.interface.name')}
             rules={[{ required: true, message: t('admin.interface.titleRequired') }]}
           >
             <Input />
@@ -334,19 +359,6 @@ const InterfaceManagement: React.FC = () => {
             rules={[{ required: true, message: t('admin.interface.pathRequired') }]}
           >
             <Input placeholder="/api/example" />
-          </Form.Item>
-          <Form.Item
-            name="project_id"
-            label={t('admin.interface.project')}
-            rules={[{ required: true, message: t('admin.interface.projectRequired') }]}
-          >
-            <Select>
-              {projects.map((project: any) => (
-                <Option key={project._id} value={project._id}>
-                  {project.project_name}
-                </Option>
-              ))}
-            </Select>
           </Form.Item>
           <Form.Item name="status" label={t('admin.interface.status')}>
             <Select>

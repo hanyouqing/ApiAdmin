@@ -137,53 +137,10 @@ class OperationLogController extends BaseController {
         filename = 'logs.json';
         content = JSON.stringify(logs, null, 2);
       } else if (format === 'excel') {
-        // 实现 Excel 格式
-        const ExcelJS = (await import('exceljs')).default;
-        const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet('操作日志');
-
-        // 设置列
-        worksheet.columns = [
-          { header: '时间', key: 'createdAt', width: 20 },
-          { header: '类型', key: 'type', width: 15 },
-          { header: '操作', key: 'action', width: 15 },
-          { header: '目标', key: 'targetName', width: 30 },
-          { header: '用户', key: 'username', width: 20 },
-          { header: 'URI', key: 'uri', width: 40 },
-          { header: 'IP', key: 'ip', width: 15 },
-          { header: '详情', key: 'details', width: 50 },
-        ];
-
-        // 设置表头样式
-        worksheet.getRow(1).font = { bold: true };
-        worksheet.getRow(1).fill = {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: 'FFE0E0E0' },
-        };
-
-        // 添加数据
-        for (const log of logs) {
-          worksheet.addRow({
-            createdAt: log.createdAt.toISOString(),
-            type: log.type || '',
-            action: log.action || '',
-            targetName: log.targetName || log.targetId?.toString() || '',
-            username: log.username || '',
-            uri: log.uri || '',
-            ip: log.ip || '',
-            details: JSON.stringify(log.details || {}),
-          });
-        }
-
-        // 生成 Excel 文件
-        const buffer = await workbook.xlsx.writeBuffer();
+        // TODO: 实现 Excel 格式
         contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
         filename = 'logs.xlsx';
-        ctx.set('Content-Type', contentType);
-        ctx.set('Content-Disposition', `attachment; filename="${filename}"`);
-        ctx.body = buffer;
-        return;
+        content = JSON.stringify(logs, null, 2); // 临时使用 JSON
       }
 
       ctx.set('Content-Type', contentType);
@@ -196,6 +153,71 @@ class OperationLogController extends BaseController {
         process.env.NODE_ENV === 'production'
           ? '导出操作日志失败'
           : error.message || '导出操作日志失败'
+      );
+    }
+  }
+
+  static async deleteLog(ctx) {
+    try {
+      const { id } = ctx.params;
+
+      if (!validateObjectId(id)) {
+        ctx.status = 400;
+        ctx.body = OperationLogController.error('无效的日志ID');
+        return;
+      }
+
+      const log = await OperationLog.findByIdAndDelete(id);
+
+      if (!log) {
+        ctx.status = 404;
+        ctx.body = OperationLogController.error('日志不存在');
+        return;
+      }
+
+      ctx.body = OperationLogController.success(null, '删除成功');
+    } catch (error) {
+      logger.error({ error }, 'Delete operation log error');
+      ctx.status = 500;
+      ctx.body = OperationLogController.error(
+        process.env.NODE_ENV === 'production'
+          ? '删除操作日志失败'
+          : error.message || '删除操作日志失败'
+      );
+    }
+  }
+
+  static async batchDeleteLogs(ctx) {
+    try {
+      const { ids } = ctx.request.body;
+
+      if (!Array.isArray(ids) || ids.length === 0) {
+        ctx.status = 400;
+        ctx.body = OperationLogController.error('请选择要删除的日志');
+        return;
+      }
+
+      const validIds = ids.filter(id => validateObjectId(id));
+
+      if (validIds.length === 0) {
+        ctx.status = 400;
+        ctx.body = OperationLogController.error('无效的日志ID');
+        return;
+      }
+
+      const result = await OperationLog.deleteMany({ _id: { $in: validIds } });
+
+      ctx.body = OperationLogController.success(
+        { deletedCount: result.deletedCount },
+        `成功删除 ${result.deletedCount} 条日志`
+      );
+    } catch (error) {
+      logger.error({ error }, 'Batch delete operation logs error');
+      ctx.status = 500;
+      ctx.body = OperationLogController.error(
+        process.env.NODE_ENV === 'production'
+          ? '批量删除操作日志失败'
+          : error.message || '批量删除操作日志失败'
       );
     }
   }

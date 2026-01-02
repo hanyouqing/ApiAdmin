@@ -1,6 +1,6 @@
 import React from 'react';
 import { Layout, Menu, Dropdown, Avatar, Space, Button } from 'antd';
-import { UserOutlined, LogoutOutlined, SettingOutlined, GithubOutlined } from '@ant-design/icons';
+import { UserOutlined, LogoutOutlined, SettingOutlined, GithubOutlined, BellOutlined } from '@ant-design/icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -39,6 +39,12 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
       icon: <SettingOutlined />,
       label: t('user.settings'),
       onClick: () => navigate('/user/settings'),
+    },
+    {
+      key: 'notification-settings',
+      icon: <BellOutlined />,
+      label: t('user.notificationSettings.title'),
+      onClick: () => navigate('/user/notification-settings'),
     },
     {
       type: 'divider',

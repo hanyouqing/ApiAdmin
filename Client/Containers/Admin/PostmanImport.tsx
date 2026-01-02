@@ -126,14 +126,14 @@ const PostmanImport: React.FC = () => {
       try {
         data = JSON.parse(text);
       } catch (error) {
-        messageApi.error('无效的JSON格式，请确保上传的是有效的Postman Collection JSON文件');
+        messageApi.error(t('admin.postmanImport.invalidJson'));
         setUploadedFile(null);
         return;
       }
 
       // 验证是否为Postman Collection格式
       if (!data.info || !data.item) {
-        messageApi.error('无效的Postman Collection格式，请确保上传的是Postman导出的Collection文件');
+        messageApi.error(t('admin.postmanImport.invalidFormat'));
         setUploadedFile(null);
         return;
       }
@@ -142,10 +142,10 @@ const PostmanImport: React.FC = () => {
       setPreviewData(interfaces);
       
       if (interfaces.length === 0) {
-        messageApi.warning('未找到可导入的接口，请检查Postman Collection文件');
+        messageApi.warning(t('admin.postmanImport.noInterfaces'));
       }
     } catch (error: any) {
-      messageApi.error(error.message || '解析文件失败');
+      messageApi.error(error.message || t('admin.postmanImport.parseFailed'));
       setPreviewData([]);
       setUploadedFile(null);
     } finally {
@@ -159,12 +159,12 @@ const PostmanImport: React.FC = () => {
       const { project_id, import_mode } = values;
 
       if (!uploadedFile) {
-        messageApi.warning('请先选择Postman Collection文件');
+        messageApi.warning(t('admin.postmanImport.selectFileFirst'));
         return;
       }
 
       if (previewData.length === 0) {
-        messageApi.warning('没有可导入的接口数据');
+        messageApi.warning(t('admin.postmanImport.noData'));
         return;
       }
 
@@ -176,7 +176,7 @@ const PostmanImport: React.FC = () => {
       try {
         postmanData = JSON.parse(fileContent);
       } catch {
-        messageApi.error('文件格式错误，无法解析JSON');
+        messageApi.error(t('admin.postmanImport.fileFormatError'));
         return;
       }
 
@@ -195,10 +195,13 @@ const PostmanImport: React.FC = () => {
 
       setImportResult(importResult);
       messageApi.success(
-        `导入完成：成功导入 ${importResult.imported} 个接口，跳过 ${importResult.skipped} 个已存在的接口`
+        t('admin.postmanImport.importSuccess', {
+          imported: importResult.imported,
+          skipped: importResult.skipped,
+        })
       );
     } catch (error: any) {
-      messageApi.error(error.response?.data?.message || '导入失败');
+      messageApi.error(error.response?.data?.message || t('admin.postmanImport.importFailed'));
     } finally {
       setLoading(false);
     }
@@ -206,7 +209,7 @@ const PostmanImport: React.FC = () => {
 
   const previewColumns = [
     {
-      title: '请求方法',
+      title: t('admin.postmanImport.requestMethod'),
       dataIndex: 'method',
       key: 'method',
       width: 100,
@@ -224,18 +227,18 @@ const PostmanImport: React.FC = () => {
       },
     },
     {
-      title: '接口路径',
+      title: t('admin.postmanImport.interfacePath'),
       dataIndex: 'path',
       key: 'path',
     },
     {
-      title: '接口名称',
+      title: t('admin.postmanImport.interfaceName'),
       dataIndex: 'name',
       key: 'name',
       render: (text: string) => text || '-',
     },
     {
-      title: '描述',
+      title: t('admin.postmanImport.description'),
       dataIndex: 'description',
       key: 'description',
       render: (text: string) => (text ? (typeof text === 'string' ? text : text.content || '-') : '-'),
@@ -244,14 +247,14 @@ const PostmanImport: React.FC = () => {
 
   return (
     <div>
-      <Card title="Postman Collection 导入">
+      <Card title={t('admin.postmanImport.title')}>
         <Form form={form} layout="vertical">
           <Form.Item
             name="project_id"
-            label="目标项目"
-            rules={[{ required: true, message: '请选择目标项目' }]}
+            label={t('admin.postmanImport.targetProject')}
+            rules={[{ required: true, message: t('admin.postmanImport.targetProjectRequired') }]}
           >
-            <Select placeholder="请选择要导入到的项目">
+            <Select placeholder={t('admin.postmanImport.selectProject')}>
               {projects.map((project: any) => (
                 <Option key={project._id} value={project._id}>
                   {project.project_name}
@@ -260,7 +263,7 @@ const PostmanImport: React.FC = () => {
             </Select>
           </Form.Item>
 
-          <Form.Item label="上传文件">
+          <Form.Item label={t('admin.postmanImport.uploadFile')}>
             <Upload
               accept=".json"
               beforeUpload={(file) => {
@@ -275,30 +278,30 @@ const PostmanImport: React.FC = () => {
                 setImportResult(null);
               }}
             >
-              <Button icon={<UploadOutlined />}>选择Postman Collection文件</Button>
+              <Button icon={<UploadOutlined />}>{t('admin.postmanImport.selectFile')}</Button>
             </Upload>
             <Text type="secondary" style={{ display: 'block', marginTop: 8 }}>
-              支持Postman导出的Collection JSON格式文件
+              {t('admin.postmanImport.fileFormatHint')}
             </Text>
             {uploadedFile && (
               <div style={{ marginTop: 8, color: '#666' }}>
-                已选择: {uploadedFile.name}
+                {t('admin.postmanImport.fileSelected')}: {uploadedFile.name}
               </div>
             )}
           </Form.Item>
 
-          <Form.Item name="import_mode" label="导入模式" initialValue="normal">
+          <Form.Item name="import_mode" label={t('admin.postmanImport.importMode')} initialValue="normal">
             <Select>
-              <Option value="normal">普通模式（跳过已存在的接口）</Option>
-              <Option value="good">智能合并（合并响应数据，保留已有修改）</Option>
-              <Option value="mergin">完全覆盖（完全使用新数据）</Option>
+              <Option value="normal">{t('admin.postmanImport.modeNormal')}</Option>
+              <Option value="good">{t('admin.postmanImport.modeGood')}</Option>
+              <Option value="mergin">{t('admin.postmanImport.modeMergin')}</Option>
             </Select>
           </Form.Item>
 
           {previewData.length > 0 && (
-            <Form.Item label="预览">
+            <Form.Item label={t('admin.postmanImport.preview')}>
               <Alert
-                message={`找到 ${previewData.length} 个接口，请确认后导入`}
+                message={t('admin.postmanImport.previewMessage', { count: previewData.length })}
                 type="info"
                 style={{ marginBottom: 16 }}
               />
@@ -315,21 +318,21 @@ const PostmanImport: React.FC = () => {
           {importResult && (
             <Form.Item>
               <Alert
-                message="导入完成"
+                message={t('admin.postmanImport.importComplete')}
                 description={
                   <div>
                     <div>
                       <CheckCircleOutlined style={{ color: '#52c41a', marginRight: 8 }} />
-                      成功导入 {importResult.imported} 个接口
+                      {t('admin.postmanImport.imported', { count: importResult.imported })}
                     </div>
                     {importResult.skipped > 0 && (
                       <div style={{ marginTop: 8 }}>
-                        跳过 {importResult.skipped} 个已存在的接口
+                        {t('admin.postmanImport.skipped', { count: importResult.skipped })}
                       </div>
                     )}
                     {importResult.errors && importResult.errors.length > 0 && (
                       <div style={{ marginTop: 8 }}>
-                        <Text type="danger">{importResult.errors.length} 个接口导入失败</Text>
+                        <Text type="danger">{t('admin.postmanImport.errors', { count: importResult.errors.length })}</Text>
                         <ul style={{ marginTop: 8, marginBottom: 0 }}>
                           {importResult.errors.map((error: any, index: number) => (
                             <li key={index}>
@@ -358,7 +361,7 @@ const PostmanImport: React.FC = () => {
                 style={{ color: '#ffffff' }}
                 htmlType="button"
               >
-                开始导入
+                {t('admin.postmanImport.import')}
               </Button>
               <Button
                 onClick={() => {
@@ -369,7 +372,7 @@ const PostmanImport: React.FC = () => {
                 }}
                 htmlType="button"
               >
-                重置
+                {t('common.reset')}
               </Button>
             </Space>
           </Form.Item>

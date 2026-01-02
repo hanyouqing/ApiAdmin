@@ -366,7 +366,7 @@ const SwaggerImport: React.FC = () => {
             rules={[{ type: 'url', message: t('admin.swaggerImport.invalidUrl') }]}
           >
             <Input
-              placeholder="https://api.example.com/swagger.json"
+              placeholder={t('admin.swaggerImport.swaggerUrlPlaceholder')}
               prefix={<LinkOutlined />}
               onChange={(e) => {
                 form.setFieldsValue({ swagger_url: e.target.value });
@@ -416,7 +416,7 @@ const SwaggerImport: React.FC = () => {
                   pageSize: pagination.pageSize,
                   total: previewData.length,
                   showSizeChanger: true,
-                  showTotal: (total) => `共 ${total} 条`,
+                  showTotal: (total) => t('admin.swaggerImport.total', { total }),
                   pageSizeOptions: ['10', '20', '50', '100'],
                   onChange: (page, pageSize) => {
                     setPagination({

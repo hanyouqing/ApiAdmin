@@ -46,6 +46,7 @@ import { setTestPipelineRunning } from '../../Reducer/Modules/UI';
 const { TextArea } = Input;
 const { Option } = Select;
 const { Text, Paragraph } = Typography;
+const { Panel } = Collapse;
 
 // 拖拽项类型
 const DRAG_TYPE = 'TEST_CASE';
@@ -244,7 +245,7 @@ const DraggableTestCaseItem: React.FC<DraggableTestCaseItemProps> = ({
               {testCase.enabled ? '启用' : '禁用'}
             </Tag>
             <Text strong>
-              {interfaceData ? `${interfaceData.method || ''} ${interfaceData.path || ''}`.trim() || '未知接口' : '未知接口'}
+              {interfaceData ? `${interfaceData.method || ''} ${interfaceData.path || ''}`.trim() || t('admin.test.pipeline.unknownInterface') : t('admin.test.pipeline.unknownInterface')}
             </Text>
           </Space>
           <Space>
@@ -321,7 +322,22 @@ interface TestTask {
   test_cases: TestCase[];
   environment_id?: string;
   base_url?: string;
+  code_repository_id?: string;
+  ai_config_provider?: string;
   common_headers?: Record<string, any>;
+  schedule?: {
+    enabled: boolean;
+    cron?: string;
+    timezone?: string;
+  };
+  notification?: {
+    enabled: boolean;
+    on_success?: boolean;
+    on_failure?: boolean;
+    email_enabled?: boolean;
+    email_addresses?: string[];
+    webhook_url?: string;
+  };
   enabled: boolean;
   created_at: string;
   updated_at: string;
@@ -372,6 +388,12 @@ interface TestResult {
   started_at: string;
   completed_at?: string;
   duration: number;
+  ai_analysis?: {
+    testCaseImprovement?: any;
+    bugFixes?: any;
+    optimizationSuggestions?: any;
+    timestamp?: Date;
+  };
 }
 
 // 移除拖拽相关代码，使用按钮调整顺序
@@ -531,6 +553,8 @@ const TestPipeline: React.FC = () => {
   const [projects, setProjects] = useState<any[]>([]);
   const [interfaces, setInterfaces] = useState<any[]>([]);
   const [environments, setEnvironments] = useState<any[]>([]);
+  const [codeRepositories, setCodeRepositories] = useState<any[]>([]);
+  const [aiConfigs, setAiConfigs] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [viewingTaskLoading, setViewingTaskLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -542,7 +566,10 @@ const TestPipeline: React.FC = () => {
   const [selectedTask, setSelectedTask] = useState<TestTask | null>(null);
   const [selectedResult, setSelectedResult] = useState<TestResult | null>(null);
   const [running, setRunning] = useState(false);
+  const [runningTaskId, setRunningTaskId] = useState<string | null>(null);
   const [runningCaseIndex, setRunningCaseIndex] = useState<number | null>(null);
+  const [aiAnalysis, setAiAnalysis] = useState<any>(null);
+  const [analyzing, setAnalyzing] = useState(false);
   
   // 同步运行状态到 Redux store
   React.useEffect(() => {
@@ -555,6 +582,7 @@ const TestPipeline: React.FC = () => {
   const [form] = Form.useForm();
   const [caseForm] = Form.useForm();
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const formProjectId = Form.useWatch('project_id', form);
   const [importModalVisible, setImportModalVisible] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importFile, setImportFile] = useState<any>(null);
@@ -593,12 +621,19 @@ const TestPipeline: React.FC = () => {
     if (selectedProjectId) {
       fetchInterfaces();
       fetchEnvironments(selectedProjectId, false); // 不显示警告，测试环境是可选的
+      fetchCodeRepository(selectedProjectId);
     } else {
       // 清空接口和环境列表
       setInterfaces([]);
       setEnvironments([]);
+      setCodeRepositories([]);
     }
   }, [selectedProjectId]);
+
+  useEffect(() => {
+    // 获取AI配置列表
+    fetchAIConfigs();
+  }, [user]);
 
   const fetchProjects = async () => {
     try {
@@ -608,7 +643,7 @@ const TestPipeline: React.FC = () => {
       const response = await api.get(apiPath);
       setProjects(response.data.data || []);
     } catch (error: any) {
-      messageApi.error(error.response?.data?.message || '获取项目列表失败');
+      messageApi.error(error.response?.data?.message || t('admin.test.pipeline.fetchProjectsFailed'));
     }
   };
 
@@ -623,7 +658,7 @@ const TestPipeline: React.FC = () => {
       const response = await api.get('/auto-test/tasks', { params });
       setTasks(response.data.data || []);
     } catch (error: any) {
-      messageApi.error(error.response?.data?.message || t('test.pipeline.fetchFailed'));
+      messageApi.error(error.response?.data?.message || t('admin.test.pipeline.fetchFailed'));
     } finally {
       setLoading(false);
     }
@@ -636,7 +671,7 @@ const TestPipeline: React.FC = () => {
       });
       setInterfaces(response.data.data || []);
     } catch (error: any) {
-      messageApi.error(t('test.pipeline.fetchInterfacesFailed'));
+      messageApi.error(t('admin.test.pipeline.fetchInterfacesFailed'));
     }
   };
 
@@ -661,29 +696,55 @@ const TestPipeline: React.FC = () => {
       setEnvironments(normalizedEnvs);
       // 只在明确需要警告时才显示（例如创建测试流水线时）
       if (normalizedEnvs.length === 0 && showWarning) {
-        messageApi.warning('该项目暂无测试环境，测试环境为可选配置');
+        messageApi.warning(t('admin.test.pipeline.noTestEnvironmentWarning'));
       }
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || '获取环境列表失败';
+      const errorMessage = error.response?.data?.message || t('admin.test.pipeline.fetchEnvironmentsFailed');
       messageApi.error(errorMessage);
       setEnvironments([]);
     }
   };
 
-  const handleCreate = async () => {
-    if (!selectedProjectId) {
-      messageApi.warning('请先选择项目');
-      return;
+  const fetchCodeRepository = async (projectId: string) => {
+    try {
+      const response = await api.get(`/projects/${projectId}/repository`);
+      const repository = response.data.data;
+      if (repository) {
+        setCodeRepositories([repository]);
+      } else {
+        setCodeRepositories([]);
+      }
+    } catch (error: any) {
+      // 404 表示没有配置代码仓库，这是正常的
+      if (error.response?.status !== 404) {
+        console.error('获取代码仓库失败:', error);
+      }
+      setCodeRepositories([]);
     }
-    
+  };
+
+  const fetchAIConfigs = async () => {
+    try {
+      const response = await api.get('/admin/ai/configs');
+      const configs = (response.data.data || []).filter((config: any) => config.enabled);
+      setAiConfigs(configs);
+    } catch (error: any) {
+      console.error('获取AI配置失败:', error);
+      setAiConfigs([]);
+    }
+  };
+
+  const handleCreate = async () => {
     setEditingTask(null);
     form.resetFields();
     // 获取当前用户的 token
     const currentToken = localStorage.getItem('token') || '';
     
     form.setFieldsValue({
-      project_id: selectedProjectId,
+      project_id: selectedProjectId || undefined, // 如果有选中的项目，使用它，否则让用户选择
       environment_id: undefined, // 明确设置为 undefined，让用户选择
+      code_repository_id: undefined,
+      ai_config_provider: undefined,
       enabled: true,
       test_cases: [],
       common_headers: JSON.stringify({
@@ -697,9 +758,13 @@ const TestPipeline: React.FC = () => {
     // 重置格式为 JSON
     setCommonHeadersFormat('json');
     
-    // 确保环境列表已加载，不显示警告（测试环境是可选的）
-    if (environments.length === 0) {
+    // 如果有选中的项目，加载对应的环境和代码仓库
+    if (selectedProjectId) {
       await fetchEnvironments(selectedProjectId, false);
+      await fetchCodeRepository(selectedProjectId);
+    } else {
+      setEnvironments([]);
+      setCodeRepositories([]);
     }
     
     setModalVisible(true);
@@ -769,27 +834,54 @@ const TestPipeline: React.FC = () => {
       }, null, 2);
     }
     
+    // 处理邮箱地址：将数组转换为逗号分隔的字符串
+    let emailAddressesStr = '';
+    if (task.notification?.email_addresses && Array.isArray(task.notification.email_addresses)) {
+      emailAddressesStr = task.notification.email_addresses.join(', ');
+    }
+    
+    // 处理 code_repository_id
+    let codeRepositoryId: string | undefined = undefined;
+    if (task.code_repository_id) {
+      if (typeof task.code_repository_id === 'string') {
+        codeRepositoryId = task.code_repository_id;
+      } else if (task.code_repository_id && typeof task.code_repository_id === 'object') {
+        codeRepositoryId = (task.code_repository_id as any)?._id?.toString();
+      }
+    }
+
+    // 处理 project_id：确保是字符串ID（处理populated对象的情况）
+    const projectId = typeof task.project_id === 'string' 
+      ? task.project_id 
+      : (task.project_id as any)?._id?.toString() || task.project_id;
+    
     form.setFieldsValue({
       name: task.name,
       description: task.description || '',
-      project_id: typeof task.project_id === 'string' 
-        ? task.project_id 
-        : (task.project_id as any)?._id?.toString() || task.project_id,
+      project_id: projectId,
       environment_id: environmentId,
       base_url: baseUrl,
+      code_repository_id: codeRepositoryId,
+      ai_config_provider: task.ai_config_provider || undefined,
       enabled: task.enabled !== undefined ? task.enabled : true,
       common_headers: commonHeadersValue,
+      schedule: task.schedule || { enabled: false, cron: '', timezone: 'Asia/Shanghai' },
+      notification: task.notification ? {
+        ...task.notification,
+        email_addresses: emailAddressesStr,
+      } : { enabled: false, on_success: false, on_failure: true, email_enabled: false, email_addresses: '', webhook_url: '' },
     });
     
     // 重置格式为 JSON
     setCommonHeadersFormat('json');
     
-    // 确保环境列表已加载，不显示警告（测试环境是可选的）
-    const projectId = typeof task.project_id === 'string' 
-      ? task.project_id 
-      : (task.project_id as any)?._id?.toString() || task.project_id;
-    if (environments.length === 0 && projectId) {
+    // 确保环境列表和代码仓库已加载，不显示警告（测试环境是可选的）
+    if (projectId) {
       await fetchEnvironments(projectId, false);
+      await fetchCodeRepository(projectId);
+    } else {
+      setEnvironments([]);
+      setCodeRepositories([]);
     }
     
     setModalVisible(true);
@@ -797,15 +889,15 @@ const TestPipeline: React.FC = () => {
 
   const handleDelete = (id: string) => {
     Modal.confirm({
-      title: t('test.pipeline.deleteConfirm'),
-      content: t('test.pipeline.deleteConfirmMessage'),
+      title: t('admin.test.pipeline.deleteConfirm'),
+      content: t('admin.test.pipeline.deleteConfirmMessage'),
       onOk: async () => {
         try {
           await api.delete(`/auto-test/tasks/${id}`);
-          messageApi.success(t('test.pipeline.deleteSuccess'));
+          messageApi.success(t('admin.test.pipeline.deleteSuccess'));
           fetchTasks();
         } catch (error: any) {
-          messageApi.error(error.response?.data?.message || t('test.pipeline.deleteFailed'));
+          messageApi.error(error.response?.data?.message || t('admin.test.pipeline.deleteFailed'));
         }
       },
     });
@@ -827,10 +919,37 @@ const TestPipeline: React.FC = () => {
       // 处理 base_url
       const baseUrl = values.base_url ? String(values.base_url).trim() : '';
       
+      // 处理 code_repository_id
+      const codeRepositoryId = values.code_repository_id ? String(values.code_repository_id).trim() : null;
+      
+      // 处理 ai_config_provider
+      const aiConfigProvider = values.ai_config_provider ? String(values.ai_config_provider).trim() : null;
+      
+      // 处理邮箱地址：将逗号分隔的字符串转换为数组
+      let emailAddresses: string[] = [];
+      if (values.notification?.email_addresses) {
+        const emailStr = String(values.notification.email_addresses).trim();
+        if (emailStr) {
+          emailAddresses = emailStr
+            .split(',')
+            .map(email => email.trim())
+            .filter(email => email && email.includes('@'));
+        }
+      }
+      
+      // 处理通知配置
+      const notification = values.notification ? {
+        ...values.notification,
+        email_addresses: emailAddresses,
+      } : undefined;
+      
       const submitData = {
         ...values,
         environment_id: environmentId,
         base_url: baseUrl,
+        code_repository_id: codeRepositoryId,
+        ai_config_provider: aiConfigProvider,
+        notification: notification,
       };
       
       console.log('提交数据:', submitData); // 调试日志
@@ -848,7 +967,7 @@ const TestPipeline: React.FC = () => {
       fetchTasks();
     } catch (error: any) {
       console.error('提交失败:', error); // 调试日志
-      messageApi.error(error.response?.data?.message || '操作失败');
+      messageApi.error(error.response?.data?.message || t('admin.test.pipeline.operationFailed'));
     }
   };
 
@@ -970,7 +1089,7 @@ const TestPipeline: React.FC = () => {
           const response = await api.get(`/auto-test/tasks/${selectedTask._id}`);
           setSelectedTask(response.data.data);
         } catch (error: any) {
-          messageApi.error(error.response?.data?.message || '删除失败');
+          messageApi.error(error.response?.data?.message || t('admin.test.pipeline.deleteFailed'));
         }
       },
     });
@@ -1057,13 +1176,13 @@ const TestPipeline: React.FC = () => {
       const updatedTask = { ...selectedTask, test_cases: updatedCases };
       setSelectedTask(updatedTask);
     } catch (error: any) {
-      messageApi.error(error.response?.data?.message || '操作失败');
+      messageApi.error(error.response?.data?.message || t('admin.test.pipeline.operationFailed'));
     }
   };
 
   const handleImportAllAPIs = async () => {
     if (!selectedTask || !selectedProjectId) {
-      messageApi.warning(t('test.pipeline.selectProjectAndPipeline'));
+      messageApi.warning(t('admin.test.pipeline.selectProjectAndPipeline'));
       return;
     }
 
@@ -1152,7 +1271,7 @@ const TestPipeline: React.FC = () => {
             setSelectedTask({ ...selectedTask, test_cases: updatedCases });
           }
         } catch (error: any) {
-          messageApi.error(error.response?.data?.message || '导入失败');
+          messageApi.error(error.response?.data?.message || t('admin.test.pipeline.importFailed'));
         }
       },
     });
@@ -1202,7 +1321,7 @@ const TestPipeline: React.FC = () => {
         messageApi.success('测试用例顺序已保存');
       }
     } catch (error: any) {
-      messageApi.error(error.response?.data?.message || '保存顺序失败');
+      messageApi.error(error.response?.data?.message || t('admin.test.pipeline.saveOrderFailed'));
       // 保存失败时恢复原状态
       fetchTasks();
       if (selectedTask._id) {
@@ -1311,7 +1430,7 @@ const TestPipeline: React.FC = () => {
           },
           results: [{
             interface_id: interfaceId,
-            interface_name: interfaceData?.title || interfaceData?.path || 'Unknown Interface',
+            interface_name: interfaceData?.title || interfaceData?.path || t('admin.test.pipeline.unknownInterface'),
             order: testCase.order,
             status: result.status,
             request: result.request,
@@ -1341,7 +1460,7 @@ const TestPipeline: React.FC = () => {
         messageApi.error('获取测试结果失败：结果数据为空');
       }
     } catch (error: any) {
-      const errorMsg = error.response?.data?.message || error.message || '执行测试用例失败';
+      const errorMsg = error.response?.data?.message || error.message || t('admin.test.pipeline.runTestCaseFailed');
       messageApi.error(errorMsg);
       console.error('执行单个测试用例异常：', error);
     } finally {
@@ -1355,11 +1474,17 @@ const TestPipeline: React.FC = () => {
     
     // 检查是否有测试用例
     if (!taskToRun.test_cases || taskToRun.test_cases.length === 0) {
-      messageApi.warning(t('test.pipeline.noTestCases'));
+      messageApi.warning(t('admin.test.pipeline.noTestCases'));
+      return;
+    }
+
+    // 如果已经在运行，不允许重复运行
+    if (running && runningTaskId === taskToRun._id) {
       return;
     }
 
     setRunning(true);
+    setRunningTaskId(taskToRun._id);
     dispatch(setTestPipelineRunning(true));
     try {
       const response = await api.post(`/auto-test/tasks/${taskToRun._id}/run`);
@@ -1377,31 +1502,36 @@ const TestPipeline: React.FC = () => {
               setSelectedResult(result);
               setResultModalVisible(true);
               setRunning(false);
+              setRunningTaskId(null);
               dispatch(setTestPipelineRunning(false));
             } else {
               setRunning(false);
+              setRunningTaskId(null);
               dispatch(setTestPipelineRunning(false));
               messageApi.error('获取测试结果失败：结果数据为空');
             }
           } catch (error: any) {
             setRunning(false);
+            setRunningTaskId(null);
             dispatch(setTestPipelineRunning(false));
-            messageApi.error(error.response?.data?.message || '获取测试结果失败');
+            messageApi.error(error.response?.data?.message || t('admin.test.pipeline.fetchTestResultFailed'));
           }
         };
         pollResult();
       } else {
         setRunning(false);
+        setRunningTaskId(null);
         dispatch(setTestPipelineRunning(false));
         // 提供更详细的错误信息
-        const errorMsg = response.data?.message || '启动测试失败：未返回结果ID';
+        const errorMsg = response.data?.message || t('admin.test.pipeline.startTestFailed');
         messageApi.error(errorMsg);
         console.error('启动测试失败，响应数据：', response.data);
       }
     } catch (error: any) {
       setRunning(false);
+      setRunningTaskId(null);
       dispatch(setTestPipelineRunning(false));
-      const errorMsg = error.response?.data?.message || error.message || '运行测试失败';
+      const errorMsg = error.response?.data?.message || error.message || t('admin.test.pipeline.runTestFailed');
       messageApi.error(errorMsg);
       console.error('运行测试异常：', error);
     }
@@ -1703,7 +1833,7 @@ const TestPipeline: React.FC = () => {
         const statusClass = testCase.status === 'passed' ? 'passed' : 
                            testCase.status === 'failed' ? 'failed' : 'error';
         const interfaceName = testCase.interface_name || 
-                              (testCase.interface_id?.title || testCase.interface_id?.path || '未知接口');
+                              (testCase.interface_id?.title || testCase.interface_id?.path || t('admin.test.pipeline.unknownInterface'));
         return `
         <div class="test-case">
           <div class="test-case-header ${statusClass}">
@@ -1753,12 +1883,12 @@ const TestPipeline: React.FC = () => {
             
             ${testCase.error ? `
             <div class="section">
-              <div class="section-title">错误信息</div>
+              <div class="section-title">${t('admin.test.pipeline.errorInfo')}</div>
               <div class="section-content">
-                <div class="error-message" style="margin-bottom: 10px;"><strong>错误:</strong> ${testCase.error.message || '未知错误'}</div>
-                ${testCase.error.code ? `<div style="margin-bottom: 10px;"><strong>错误码:</strong> ${testCase.error.code}</div>` : ''}
+                <div class="error-message" style="margin-bottom: 10px;"><strong>${t('common.error')}:</strong> ${testCase.error.message || t('admin.test.pipeline.unknownError')}</div>
+                ${testCase.error.code ? `<div style="margin-bottom: 10px;"><strong>${t('admin.test.pipeline.errorCode')}:</strong> ${testCase.error.code}</div>` : ''}
                 ${testCase.error.stack ? `
-                <div style="margin-bottom: 10px;"><strong>堆栈:</strong></div>
+                <div style="margin-bottom: 10px;"><strong>${t('admin.test.pipeline.stackTrace')}:</strong></div>
                 <pre>${testCase.error.stack}</pre>
                 ` : ''}
               </div>
@@ -1825,14 +1955,52 @@ const TestPipeline: React.FC = () => {
 
   // 下载 PDF 报告（通过后端生成）
   const handleDownloadPDFReport = async () => {
-    if (!selectedResult) return;
+    if (!selectedResult) {
+      messageApi.warning('请先选择测试结果');
+      return;
+    }
     
     try {
+      messageApi.loading({ content: '正在生成 PDF 报告，请稍候...', key: 'pdf-export', duration: 0 });
+      
       const response = await api.post(`/auto-test/results/${selectedResult._id}/export`, {
         format: 'pdf'
       }, {
         responseType: 'blob',
+        timeout: 60000, // 增加超时时间到60秒，因为PDF生成可能需要较长时间
       });
+      
+      // 检查响应类型
+      const contentType = response.headers['content-type'] || '';
+      
+      // 如果返回的是 JSON 错误（通常是错误响应）
+      if (contentType.includes('application/json') || response.data.size < 100) {
+        try {
+          const text = await response.data.text();
+          const json = JSON.parse(text);
+          messageApi.destroy('pdf-export');
+          messageApi.error(json.message || json.error || t('admin.test.pipeline.generatePdfFailed'));
+          return;
+        } catch (parseError) {
+          // 如果解析失败，继续尝试作为 PDF 处理
+        }
+      }
+      
+      // 检查是否是 PDF 格式
+      if (!contentType.includes('application/pdf') && !contentType.includes('application/octet-stream')) {
+        // 可能是错误响应，尝试读取为文本
+        try {
+          const text = await response.data.text();
+          const json = JSON.parse(text);
+          messageApi.destroy('pdf-export');
+          messageApi.error(json.message || json.error || t('admin.test.pipeline.generatePdfFailed'));
+          return;
+        } catch (parseError) {
+          messageApi.destroy('pdf-export');
+          messageApi.error('服务器返回了非 PDF 格式的响应');
+          return;
+        }
+      }
       
       const blob = new Blob([response.data], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
@@ -1843,33 +2011,46 @@ const TestPipeline: React.FC = () => {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      messageApi.destroy('pdf-export');
       messageApi.success('PDF 报告下载成功');
     } catch (error: any) {
+      messageApi.destroy('pdf-export');
       console.error('生成 PDF 报告失败:', error);
+      
       // 尝试从响应中获取错误信息
       let errorMessage = '生成 PDF 报告失败';
+      
       if (error.response) {
-        if (error.response.data) {
-          // 如果是 blob 响应，尝试读取为文本
-          if (error.response.data instanceof Blob) {
+        const status = error.response.status;
+        const data = error.response.data;
+        
+        // 如果是 blob 响应，尝试读取为文本
+        if (data instanceof Blob) {
+          try {
+            const text = await data.text();
             try {
-              const text = await error.response.data.text();
               const json = JSON.parse(text);
               errorMessage = json.message || json.error || errorMessage;
             } catch {
-              errorMessage = error.response.statusText || errorMessage;
+              // 如果不是 JSON，使用原始文本
+              errorMessage = text || errorMessage;
             }
-          } else if (typeof error.response.data === 'object') {
-            errorMessage = error.response.data.message || error.response.data.error || errorMessage;
-          } else if (typeof error.response.data === 'string') {
-            errorMessage = error.response.data;
+          } catch (readError) {
+            errorMessage = `服务器错误 (${status})`;
           }
+        } else if (typeof data === 'object' && data !== null) {
+          errorMessage = data.message || data.error || errorMessage;
+        } else if (typeof data === 'string') {
+          errorMessage = data;
         } else {
-          errorMessage = error.response.statusText || errorMessage;
+          errorMessage = error.response.statusText || `服务器错误 (${status})`;
         }
+      } else if (error.request) {
+        errorMessage = '网络错误，请检查网络连接';
       } else if (error.message) {
         errorMessage = error.message;
       }
+      
       messageApi.error(errorMessage);
     }
   };
@@ -1923,7 +2104,7 @@ const TestPipeline: React.FC = () => {
       }, 100);
     } catch (error: any) {
       console.error('获取任务详情失败:', error);
-      messageApi.error(error.response?.data?.message || '获取任务详情失败');
+      messageApi.error(error.response?.data?.message || t('admin.test.pipeline.fetchTaskDetailsFailed'));
     } finally {
       setViewingTaskLoading(false);
     }
@@ -1946,7 +2127,7 @@ const TestPipeline: React.FC = () => {
       document.body.removeChild(a);
       messageApi.success('导出成功');
     } catch (error: any) {
-      messageApi.error(error.response?.data?.message || '导出失败');
+      messageApi.error(error.response?.data?.message || t('admin.test.pipeline.exportFailed'));
     }
   };
 
@@ -1989,7 +2170,7 @@ const TestPipeline: React.FC = () => {
       setImportFile(null);
       fetchTasks();
     } catch (error: any) {
-      messageApi.error(error.response?.data?.message || '导入失败');
+      messageApi.error(error.response?.data?.message || t('admin.test.pipeline.importFailed'));
     } finally {
       setImporting(false);
     }
@@ -2030,8 +2211,8 @@ const TestPipeline: React.FC = () => {
             type="primary"
             icon={<PlayCircleOutlined />}
             onClick={() => handleRunTest(record)}
-            loading={running && selectedTask?._id === record._id}
-            disabled={!record.test_cases || record.test_cases.length === 0 || !record.enabled || (running && selectedTask?._id === record._id)}
+            loading={running && runningTaskId === record._id}
+            disabled={!record.test_cases || record.test_cases.length === 0 || !record.enabled || (running && runningTaskId === record._id)}
             size="small"
             style={{ color: '#ffffff' }}
           >
@@ -2062,15 +2243,15 @@ const TestPipeline: React.FC = () => {
   return (
     <div>
       <Card
-        title={t('test.pipeline.title')}
+        title={t('admin.test.pipeline.title')}
         extra={
           <Space>
             <Select
-              placeholder={t('test.pipeline.selectProject')}
+              placeholder={t('admin.test.pipeline.selectProject')}
               value={selectedProjectId}
               onChange={setSelectedProjectId}
               style={{ width: 200 }}
-              notFoundContent={projects.length === 0 ? '暂无项目，请先创建项目' : '暂无数据'}
+              notFoundContent={projects.length === 0 ? t('admin.test.pipeline.noProjects') : t('common.empty')}
               showSearch
               filterOption={(input, option) =>
                 (option?.children as string)?.toLowerCase().includes(input.toLowerCase())
@@ -2078,12 +2259,12 @@ const TestPipeline: React.FC = () => {
             >
               {projects.length === 0 ? (
                 <Option value="" disabled>
-                  请先创建项目
+                  {t('admin.test.pipeline.createProjectFirst')}
                 </Option>
               ) : !selectedProjectId ? (
                 <>
                   <Option value="" disabled style={{ color: '#999' }}>
-                    请选择项目
+                    {t('admin.test.pipeline.pleaseSelectProject')}
                   </Option>
                   {projects.map((project) => (
                     <Option key={project._id} value={project._id}>
@@ -2137,8 +2318,8 @@ const TestPipeline: React.FC = () => {
                 type="primary"
                 icon={<PlayCircleOutlined />}
                 onClick={() => handleRunTest()}
-                loading={running}
-                disabled={!selectedTask.test_cases || selectedTask.test_cases.length === 0 || !selectedTask.enabled || running}
+                loading={running && runningTaskId === selectedTask._id}
+                disabled={!selectedTask.test_cases || selectedTask.test_cases.length === 0 || !selectedTask.enabled || (running && runningTaskId === selectedTask._id)}
                 style={{ color: '#ffffff' }}
               >
                 一键测试
@@ -2208,8 +2389,39 @@ const TestPipeline: React.FC = () => {
         okButtonProps={{ style: { color: '#ffffff' } }}
       >
         <Form form={form} layout="vertical">
-          <Form.Item name="project_id" hidden>
-            <Input />
+          <Form.Item
+            name="project_id"
+            label="所属项目"
+            rules={[{ required: true, message: '请选择所属项目' }]}
+          >
+            <Select
+              placeholder="请选择所属项目"
+              onChange={(value) => {
+                // 当选择项目时，更新环境、代码仓库等选项
+                if (value) {
+                  fetchEnvironments(value, false);
+                  fetchCodeRepository(value);
+                  // 清空环境和代码仓库的选择，因为项目已变更
+                  form.setFieldsValue({
+                    environment_id: undefined,
+                    code_repository_id: undefined,
+                  });
+                } else {
+                  setEnvironments([]);
+                  setCodeRepositories([]);
+                  form.setFieldsValue({
+                    environment_id: undefined,
+                    code_repository_id: undefined,
+                  });
+                }
+              }}
+            >
+              {projects.map((project: any) => (
+                <Option key={project._id} value={project._id}>
+                  {project.project_name}
+                </Option>
+              ))}
+            </Select>
           </Form.Item>
           <Form.Item
             name="name"
@@ -2221,11 +2433,12 @@ const TestPipeline: React.FC = () => {
           <Form.Item name="description" label="描述">
             <TextArea rows={3} placeholder="请输入描述" />
           </Form.Item>
-          <Form.Item name="environment_id" label="测试环境">
+          <Form.Item name="environment_id" label={t('project.environment.title')}>
             <Select 
-              placeholder={environments.length === 0 ? "暂无测试环境，请先创建" : "选择测试环境"} 
+              placeholder={formProjectId ? (environments.length === 0 ? t('admin.test.pipeline.noTestEnvironment') : t('admin.test.pipeline.selectTestEnvironment')) : "请先选择项目"} 
               allowClear
-              notFoundContent={environments.length === 0 ? "暂无测试环境" : undefined}
+              disabled={!formProjectId}
+              notFoundContent={formProjectId ? (environments.length === 0 ? t('admin.test.pipeline.noTestEnvironment') : undefined) : "请先选择项目"}
             >
               {environments.map((env: any) => (
                 <Option key={env._id} value={env._id}>
@@ -2249,6 +2462,165 @@ const TestPipeline: React.FC = () => {
           </Form.Item>
           <Form.Item name="enabled" valuePropName="checked" label="启用">
             <Switch />
+          </Form.Item>
+          <Divider>代码仓库配置</Divider>
+          <Form.Item 
+            name="code_repository_id" 
+            label="代码仓库"
+            tooltip="选择项目的代码仓库，用于AI分析功能"
+          >
+            <Select 
+              placeholder={formProjectId ? (codeRepositories.length === 0 ? "该项目未配置代码仓库" : "请选择代码仓库") : "请先选择项目"}
+              allowClear
+              disabled={!formProjectId}
+              notFoundContent={formProjectId ? (codeRepositories.length === 0 ? "该项目未配置代码仓库" : undefined) : "请先选择项目"}
+            >
+              {codeRepositories.map((repo: any) => (
+                <Option key={repo._id} value={repo._id}>
+                  {repo.provider} - {repo.repository_url}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Divider>AI分析配置</Divider>
+          <Form.Item 
+            name="ai_config_provider" 
+            label="AI配置"
+            tooltip="选择AI配置，用于测试运行完毕后的AI分析（完善测试用例、修复问题、优化建议）"
+          >
+            <Select 
+              placeholder={aiConfigs.length === 0 ? "未配置可用的AI" : "请选择AI配置（可选）"}
+              allowClear
+              notFoundContent={aiConfigs.length === 0 ? "未配置可用的AI" : undefined}
+            >
+              {aiConfigs.map((config: any) => (
+                <Option key={config.provider} value={config.provider}>
+                  {config.name} ({config.provider})
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Divider>自动运行配置</Divider>
+          <Form.Item 
+            name={['schedule', 'enabled']} 
+            valuePropName="checked" 
+            label="启用定时任务"
+          >
+            <Switch />
+          </Form.Item>
+          <Form.Item
+            noStyle
+            shouldUpdate={(prevValues, currentValues) =>
+              prevValues?.schedule?.enabled !== currentValues?.schedule?.enabled
+            }
+          >
+            {({ getFieldValue }) =>
+              getFieldValue(['schedule', 'enabled']) ? (
+                <>
+                  <Form.Item
+                    name={['schedule', 'cron']}
+                    label="Cron 表达式"
+                    rules={[
+                      { required: true, message: '请输入 Cron 表达式' },
+                      {
+                        validator: (_, value) => {
+                          if (!value) return Promise.resolve();
+                          // 简单的 cron 表达式验证
+                          const cronPattern = /^(\*|([0-9]|[1-5][0-9])|\*\/([0-9]|[1-5][0-9])) (\*|([0-9]|1[0-9]|2[0-3])|\*\/([0-9]|1[0-9]|2[0-3])) (\*|([1-9]|[12][0-9]|3[01])|\*\/([1-9]|[12][0-9]|3[01])) (\*|([1-9]|1[0-2])|\*\/([1-9]|1[0-2])) (\*|([0-6])|\*\/([0-6]))$/;
+                          if (!cronPattern.test(value)) {
+                            return Promise.reject(new Error('Cron 表达式格式不正确，格式: 秒 分 时 日 月 周'));
+                          }
+                          return Promise.resolve();
+                        },
+                      },
+                    ]}
+                    tooltip="格式: 秒 分 时 日 月 周，例如: 0 0 2 * * * 表示每天凌晨2点执行"
+                  >
+                    <Input placeholder="0 0 2 * * * (每天凌晨2点)" />
+                  </Form.Item>
+                  <Form.Item
+                    name={['schedule', 'timezone']}
+                    label="时区"
+                    initialValue="Asia/Shanghai"
+                  >
+                    <Select>
+                      <Option value="Asia/Shanghai">Asia/Shanghai (中国标准时间)</Option>
+                      <Option value="UTC">UTC (协调世界时)</Option>
+                      <Option value="America/New_York">America/New_York (美国东部时间)</Option>
+                      <Option value="Europe/London">Europe/London (英国时间)</Option>
+                    </Select>
+                  </Form.Item>
+                </>
+              ) : null
+            }
+          </Form.Item>
+          <Divider>通知配置</Divider>
+          <Form.Item 
+            name={['notification', 'enabled']} 
+            valuePropName="checked" 
+            label="启用通知"
+          >
+            <Switch />
+          </Form.Item>
+          <Form.Item
+            noStyle
+            shouldUpdate={(prevValues, currentValues) =>
+              prevValues?.notification?.enabled !== currentValues?.notification?.enabled
+            }
+          >
+            {({ getFieldValue }) =>
+              getFieldValue(['notification', 'enabled']) ? (
+                <>
+                  <Form.Item
+                    name={['notification', 'on_success']}
+                    valuePropName="checked"
+                    label="成功时通知"
+                  >
+                    <Switch />
+                  </Form.Item>
+                  <Form.Item
+                    name={['notification', 'on_failure']}
+                    valuePropName="checked"
+                    label="失败时通知"
+                    initialValue={true}
+                  >
+                    <Switch />
+                  </Form.Item>
+                  <Form.Item
+                    name={['notification', 'email_enabled']}
+                    valuePropName="checked"
+                    label="启用邮件通知"
+                  >
+                    <Switch />
+                  </Form.Item>
+                  <Form.Item
+                    noStyle
+                    shouldUpdate={(prevValues, currentValues) =>
+                      prevValues?.notification?.email_enabled !== currentValues?.notification?.email_enabled
+                    }
+                  >
+                    {({ getFieldValue }) =>
+                      getFieldValue(['notification', 'email_enabled']) ? (
+                        <Form.Item
+                          name={['notification', 'email_addresses']}
+                          label="收件人邮箱"
+                          tooltip="多个邮箱用逗号分隔，如果为空则发送到任务创建者邮箱"
+                        >
+                          <Input placeholder="user1@example.com,user2@example.com (留空则使用创建者邮箱)" />
+                        </Form.Item>
+                      ) : null
+                    }
+                  </Form.Item>
+                  <Form.Item
+                    name={['notification', 'webhook_url']}
+                    label="Webhook URL"
+                    tooltip="测试完成后会向此 URL 发送 POST 请求"
+                  >
+                    <Input placeholder="https://example.com/webhook" />
+                  </Form.Item>
+                </>
+              ) : null
+            }
           </Form.Item>
           <Divider>通用配置</Divider>
           <Form.Item 
@@ -2660,6 +3032,30 @@ const TestPipeline: React.FC = () => {
         footer={
           selectedResult ? (
             <Space>
+              {selectedTask && selectedTask.code_repository_id && selectedTask.ai_config_provider && (
+                <Button
+                  icon={<SettingOutlined />}
+                  onClick={async () => {
+                    if (!selectedResult?._id) return;
+                    setAnalyzing(true);
+                    try {
+                      const response = await api.post(`/auto-test/results/${selectedResult._id}/analyze`);
+                      setAiAnalysis(response.data.data);
+                      messageApi.success('AI分析完成');
+                      // 重新获取结果以更新AI分析数据
+                      const resultResponse = await api.get(`/auto-test/results/${selectedResult._id}`);
+                      setSelectedResult(resultResponse.data.data);
+                    } catch (error: any) {
+                      messageApi.error(error.response?.data?.message || 'AI分析失败');
+                    } finally {
+                      setAnalyzing(false);
+                    }
+                  }}
+                  loading={analyzing}
+                >
+                  AI分析
+                </Button>
+              )}
               <Button
                 icon={<DownloadOutlined />}
                 onClick={handleDownloadHTMLReport}
@@ -2953,7 +3349,7 @@ const TestPipeline: React.FC = () => {
                         </div>
                       </Descriptions.Item>
                       {result.error && (
-                        <Descriptions.Item label="错误信息">
+                        <Descriptions.Item label={t('admin.test.pipeline.errorInfo')}>
                           <Typography.Text type="danger">
                             <div style={{ position: 'relative', width: '100%', maxWidth: '100%', overflow: 'hidden' }}>
                               <pre style={{ 
@@ -3020,6 +3416,163 @@ const TestPipeline: React.FC = () => {
                   ),
                 }))}
               />
+              {selectedResult.ai_analysis && (
+                <>
+                  <Divider>AI分析结果</Divider>
+                  <Collapse
+                    items={[
+                      selectedResult.ai_analysis.testCaseImprovement && {
+                        key: 'testCaseImprovement',
+                        label: '测试用例完善建议',
+                        children: (
+                          <div>
+                            {selectedResult.ai_analysis.testCaseImprovement.coverageAnalysis && (
+                              <Descriptions bordered size="small" column={2} style={{ marginBottom: 16 }}>
+                                <Descriptions.Item label="当前覆盖率">
+                                  {selectedResult.ai_analysis.testCaseImprovement.coverageAnalysis.currentCoverage}
+                                </Descriptions.Item>
+                                <Descriptions.Item label="总测试数">
+                                  {selectedResult.ai_analysis.testCaseImprovement.coverageAnalysis.totalTests}
+                                </Descriptions.Item>
+                                <Descriptions.Item label="通过测试">
+                                  {selectedResult.ai_analysis.testCaseImprovement.coverageAnalysis.passedTests}
+                                </Descriptions.Item>
+                                <Descriptions.Item label="失败测试">
+                                  {selectedResult.ai_analysis.testCaseImprovement.coverageAnalysis.failedTests}
+                                </Descriptions.Item>
+                              </Descriptions>
+                            )}
+                            {selectedResult.ai_analysis.testCaseImprovement.suggestions && (
+                              <div>
+                                <Text strong>建议：</Text>
+                                <pre style={{ 
+                                  background: '#f5f5f5', 
+                                  padding: 12, 
+                                  borderRadius: 4, 
+                                  maxHeight: 400, 
+                                  overflow: 'auto',
+                                  whiteSpace: 'pre-wrap',
+                                  wordBreak: 'break-word'
+                                }}>
+                                  {typeof selectedResult.ai_analysis.testCaseImprovement.suggestions === 'string'
+                                    ? selectedResult.ai_analysis.testCaseImprovement.suggestions
+                                    : JSON.stringify(selectedResult.ai_analysis.testCaseImprovement.suggestions, null, 2)}
+                                </pre>
+                              </div>
+                            )}
+                          </div>
+                        ),
+                      },
+                      selectedResult.ai_analysis.bugFixes && {
+                        key: 'bugFixes',
+                        label: '问题修复建议',
+                        children: (
+                          <div>
+                            {selectedResult.ai_analysis.bugFixes.summary && (
+                              <Text strong style={{ display: 'block', marginBottom: 12 }}>
+                                {selectedResult.ai_analysis.bugFixes.summary}
+                              </Text>
+                            )}
+                            {selectedResult.ai_analysis.bugFixes.fixes && Array.isArray(selectedResult.ai_analysis.bugFixes.fixes) && (
+                              <div>
+                                {selectedResult.ai_analysis.bugFixes.fixes.map((fix: any, index: number) => (
+                                  <Card key={index} style={{ marginBottom: 12 }}>
+                                    <Text strong>{fix.testCase || `问题 ${index + 1}`}</Text>
+                                    {fix.rootCause && (
+                                      <div style={{ marginTop: 8 }}>
+                                        <Text type="secondary">根本原因：</Text>
+                                        <Text>{fix.rootCause}</Text>
+                                      </div>
+                                    )}
+                                    {fix.fixCode && (
+                                      <div style={{ marginTop: 8 }}>
+                                        <Text type="secondary">修复代码：</Text>
+                                        <Collapse style={{ marginTop: 8 }}>
+                                          <Panel header="修复前" key="before">
+                                            <pre style={{ background: '#fff1f0', padding: 8, borderRadius: 4 }}>
+                                              {fix.fixCode.before || 'N/A'}
+                                            </pre>
+                                          </Panel>
+                                          <Panel header="修复后" key="after">
+                                            <pre style={{ background: '#f6ffed', padding: 8, borderRadius: 4 }}>
+                                              {fix.fixCode.after || 'N/A'}
+                                            </pre>
+                                          </Panel>
+                                        </Collapse>
+                                      </div>
+                                    )}
+                                    {fix.reason && (
+                                      <div style={{ marginTop: 8 }}>
+                                        <Text type="secondary">修复理由：</Text>
+                                        <Text>{fix.reason}</Text>
+                                      </div>
+                                    )}
+                                  </Card>
+                                ))}
+                              </div>
+                            )}
+                            {selectedResult.ai_analysis.bugFixes.fixes && typeof selectedResult.ai_analysis.bugFixes.fixes === 'object' && !Array.isArray(selectedResult.ai_analysis.bugFixes.fixes) && (
+                              <pre style={{ 
+                                background: '#f5f5f5', 
+                                padding: 12, 
+                                borderRadius: 4, 
+                                maxHeight: 400, 
+                                overflow: 'auto',
+                                whiteSpace: 'pre-wrap',
+                                wordBreak: 'break-word'
+                              }}>
+                                {JSON.stringify(selectedResult.ai_analysis.bugFixes.fixes, null, 2)}
+                              </pre>
+                            )}
+                          </div>
+                        ),
+                      },
+                      selectedResult.ai_analysis.optimizationSuggestions && {
+                        key: 'optimizationSuggestions',
+                        label: '优化建议',
+                        children: (
+                          <div>
+                            {selectedResult.ai_analysis.optimizationSuggestions.performanceAnalysis && (
+                              <Descriptions bordered size="small" column={2} style={{ marginBottom: 16 }}>
+                                <Descriptions.Item label="平均响应时间">
+                                  {selectedResult.ai_analysis.optimizationSuggestions.performanceAnalysis.averageDuration}
+                                </Descriptions.Item>
+                                <Descriptions.Item label="最大响应时间">
+                                  {selectedResult.ai_analysis.optimizationSuggestions.performanceAnalysis.maxDuration}
+                                </Descriptions.Item>
+                                <Descriptions.Item label="最小响应时间">
+                                  {selectedResult.ai_analysis.optimizationSuggestions.performanceAnalysis.minDuration}
+                                </Descriptions.Item>
+                                <Descriptions.Item label="总请求数">
+                                  {selectedResult.ai_analysis.optimizationSuggestions.performanceAnalysis.totalRequests}
+                                </Descriptions.Item>
+                              </Descriptions>
+                            )}
+                            {selectedResult.ai_analysis.optimizationSuggestions.suggestions && (
+                              <div>
+                                <Text strong>建议：</Text>
+                                <pre style={{ 
+                                  background: '#f5f5f5', 
+                                  padding: 12, 
+                                  borderRadius: 4, 
+                                  maxHeight: 400, 
+                                  overflow: 'auto',
+                                  whiteSpace: 'pre-wrap',
+                                  wordBreak: 'break-word'
+                                }}>
+                                  {typeof selectedResult.ai_analysis.optimizationSuggestions.suggestions === 'string'
+                                    ? selectedResult.ai_analysis.optimizationSuggestions.suggestions
+                                    : JSON.stringify(selectedResult.ai_analysis.optimizationSuggestions.suggestions, null, 2)}
+                                </pre>
+                              </div>
+                            )}
+                          </div>
+                        ),
+                      },
+                    ].filter(Boolean)}
+                  />
+                </>
+              )}
             </div>
           );
         })()}

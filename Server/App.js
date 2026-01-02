@@ -917,6 +917,11 @@ async function startServer() {
     logger.info('🔌 Registering plugin routes...');
     await registerPluginRoutes(router);
     
+    // 启动定时任务调度器
+    logger.info('⏰ Starting task scheduler...');
+    const scheduler = (await import('./Utils/scheduler.js')).default;
+    await scheduler.startAllTasks();
+    
     // 标记服务就绪
     serviceReady = true;
     

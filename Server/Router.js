@@ -33,6 +33,8 @@ import APIDesignController from './Controllers/APIDesign.js';
 import CollaborationController from './Controllers/Collaboration.js';
 import AIAssistantController from './Controllers/AIAssistant.js';
 import DocumentCenterController from './Controllers/DocumentCenter.js';
+import CodeRepositoryController from './Controllers/CodeRepository.js';
+import AIConfigController from './Controllers/AIConfigController.js';
 import { projectTokenAuth } from './Middleware/projectTokenAuth.js';
 import { authMiddleware } from './Middleware/auth.js';
 import { apiRateLimiter, authRateLimiter, registerRateLimiter, emailCodeRateLimiter } from './Middleware/rateLimiter.js';
@@ -139,6 +141,11 @@ router.put('/api/admin/project/up', apiRateLimiter, authMiddleware, ProjectContr
 router.delete('/api/admin/project/del', apiRateLimiter, authMiddleware, ProjectController.delete);
 
 router.get('/api/admin/interface/list', apiRateLimiter, authMiddleware, InterfaceController.listAllInterfaces);
+
+// 后台测试管理路由
+router.get('/api/admin/test/collections', apiRateLimiter, authMiddleware, TestController.listAllCollections);
+router.get('/api/admin/test/statistics', apiRateLimiter, authMiddleware, TestController.getTestStatistics);
+router.get('/api/admin/test/results', apiRateLimiter, authMiddleware, TestController.listAllResults);
 
 router.get('/api/admin/environment/list', apiRateLimiter, authMiddleware, ProjectController.listAllProjects);
 
@@ -327,6 +334,8 @@ router.get('/api/projects/:projectId/following', apiRateLimiter, authMiddleware,
 // 操作日志路由
 router.get('/api/logs', apiRateLimiter, authMiddleware, OperationLogController.listLogs);
 router.get('/api/logs/export', apiRateLimiter, authMiddleware, OperationLogController.exportLogs);
+router.delete('/api/logs/:id', apiRateLimiter, authMiddleware, OperationLogController.deleteLog);
+router.delete('/api/logs', apiRateLimiter, authMiddleware, OperationLogController.batchDeleteLogs);
 
 // 登录日志路由
 router.get('/api/login-logs', apiRateLimiter, authMiddleware, LoginLogController.listLogs);
@@ -365,6 +374,7 @@ router.get('/api/auto-test/tasks/:id/export', apiRateLimiter, authMiddleware, Au
 router.post('/api/auto-test/tasks/import', apiRateLimiter, authMiddleware, AutoTestTaskController.importTask);
 router.get('/api/auto-test/results/:resultId', apiRateLimiter, authMiddleware, AutoTestTaskController.getResult);
 router.post('/api/auto-test/results/:resultId/export', apiRateLimiter, authMiddleware, AutoTestTaskController.exportResult);
+router.post('/api/auto-test/results/:id/analyze', apiRateLimiter, authMiddleware, AutoTestTaskController.triggerAIAnalysis);
 
 // 测试环境路由
 router.get('/api/test/environments', apiRateLimiter, authMiddleware, TestEnvironmentController.listEnvironments);
@@ -419,6 +429,36 @@ router.post('/api/document/publish', apiRateLimiter, authMiddleware, DocumentCen
 router.get('/api/document/published', apiRateLimiter, authMiddleware, DocumentCenterController.getPublishedDocument);
 router.get('/api/document/versions', apiRateLimiter, authMiddleware, DocumentCenterController.listDocumentVersions);
 router.get('/api/document/compare', apiRateLimiter, authMiddleware, DocumentCenterController.compareDocumentVersions);
+
+// 代码仓库路由
+router.get('/api/projects/:projectId/repository', apiRateLimiter, authMiddleware, CodeRepositoryController.getRepository);
+router.post('/api/projects/:projectId/repository', apiRateLimiter, authMiddleware, CodeRepositoryController.saveRepository);
+router.delete('/api/projects/:projectId/repository', apiRateLimiter, authMiddleware, CodeRepositoryController.deleteRepository);
+router.post('/api/projects/:projectId/repository/test', apiRateLimiter, authMiddleware, CodeRepositoryController.testConnection);
+router.post('/api/projects/:projectId/repository/pull', apiRateLimiter, authMiddleware, CodeRepositoryController.pullCode);
+router.post('/api/projects/:projectId/repository/generate-tests', apiRateLimiter, authMiddleware, CodeRepositoryController.generateUnitTests);
+router.post('/api/projects/:projectId/repository/fix-issues', apiRateLimiter, authMiddleware, CodeRepositoryController.fixTestIssues);
+
+// AI 配置路由（系统管理）
+router.get('/api/admin/ai/configs', apiRateLimiter, authMiddleware, AIConfigController.listConfigs);
+router.get('/api/admin/ai/configs/:provider', apiRateLimiter, authMiddleware, AIConfigController.getConfig);
+router.post('/api/admin/ai/configs', apiRateLimiter, authMiddleware, AIConfigController.saveConfig);
+router.put('/api/admin/ai/configs/:provider', apiRateLimiter, authMiddleware, AIConfigController.saveConfig);
+router.delete('/api/admin/ai/configs/:provider', apiRateLimiter, authMiddleware, AIConfigController.deleteConfig);
+router.post('/api/admin/ai/configs/:provider/test', apiRateLimiter, authMiddleware, AIConfigController.testConfig);
+
+// 测试分析路由
+router.post('/api/auto-test/results/:resultId/analyze', apiRateLimiter, authMiddleware, async (ctx) => {
+  try {
+    const { resultId } = ctx.params;
+    const { testAnalysisService } = await import('../Utils/testAnalysisService.js');
+    const analysis = await testAnalysisService.analyzeTestResult(resultId);
+    ctx.body = { success: true, data: analysis };
+  } catch (error) {
+    ctx.status = 500;
+    ctx.body = { success: false, message: error.message || '分析失败' };
+  }
+});
 
 export default router;
 

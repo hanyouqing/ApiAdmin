@@ -99,7 +99,7 @@ const EnvironmentManagement: React.FC = () => {
         const project = projects.find((p: any) => p._id === projectId);
         const envsWithProject = envList.map((env: any) => ({
           ...env,
-          project_name: project?.project_name || '未知项目',
+          project_name: project?.project_name || t('admin.environment.unknownProject'),
           // 统一使用 base_url，移除 host 字段的兼容（后端已统一使用 base_url）
           base_url: env.base_url || '',
         }));
@@ -110,6 +110,7 @@ const EnvironmentManagement: React.FC = () => {
         if (projects.length === 0) {
           console.warn('项目列表为空，无法获取环境列表');
           setEnvironments([]);
+          setLoading(false);
           return;
         }
         
@@ -123,7 +124,7 @@ const EnvironmentManagement: React.FC = () => {
             envList.forEach((env: any) => {
               allEnvironments.push({
                 ...env,
-                project_name: project.project_name || '未知项目',
+                project_name: project.project_name || t('admin.environment.unknownProject'),
                 // 统一使用 base_url，移除 host 字段的兼容（后端已统一使用 base_url）
                 base_url: env.base_url || '',
               });
@@ -273,11 +274,11 @@ const EnvironmentManagement: React.FC = () => {
           if (message) {
             message.error(
               variablesFormat === 'json' 
-                ? t('admin.environment.invalidJson') || '无效的 JSON 格式'
+                ? t('admin.environment.invalidJson')
                 : '无效的 key=value 格式'
             );
           } else {
-            console.error('无效的格式:', error);
+            console.error(t('admin.environment.invalidFormat'), error);
           }
           return;
         }
@@ -296,8 +297,8 @@ const EnvironmentManagement: React.FC = () => {
           if (message) {
             message.error(
               headersFormat === 'json'
-                ? 'Headers 格式无效（JSON）'
-                : 'Headers 格式无效（key=value）'
+                ? t('admin.environment.invalidHeadersJson')
+                : t('admin.environment.invalidHeadersKeyValue')
             );
           } else {
             console.error('无效的 Headers 格式:', error);
@@ -411,7 +412,15 @@ const EnvironmentManagement: React.FC = () => {
           </Space>
         }
       >
-        <Table columns={columns} dataSource={environments} rowKey={(record) => record._id || `${record.project_id}-${record.name}`} loading={loading} />
+        <Table 
+          columns={columns} 
+          dataSource={environments || []} 
+          rowKey={(record) => record._id || `${record.project_id}-${record.name}`} 
+          loading={loading}
+          locale={{
+            emptyText: t('common.empty'),
+          }}
+        />
       </Card>
 
       <Modal
@@ -454,7 +463,7 @@ const EnvironmentManagement: React.FC = () => {
             <Input placeholder="http://localhost:8080" />
           </Form.Item>
           <Form.Item name="description" label={t('common.description')}>
-            <TextArea rows={2} placeholder="环境描述（可选）" />
+            <TextArea rows={2} placeholder={t('admin.environment.descriptionPlaceholder')} />
           </Form.Item>
           
           <Form.Item 
@@ -552,7 +561,7 @@ const EnvironmentManagement: React.FC = () => {
               }
             />
           </Form.Item>
-          <Form.Item name="is_default" valuePropName="checked" label="设为默认环境">
+          <Form.Item name="is_default" valuePropName="checked" label={t('admin.environment.setAsDefault')}>
             <Switch />
           </Form.Item>
         </Form>

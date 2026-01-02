@@ -67,7 +67,7 @@ const OperationLog: React.FC = () => {
         total: data.pagination?.total || 0,
       });
     } catch (error: any) {
-      message.error(error.response?.data?.message || t('admin.operationLog.fetchFailed') || '获取操作日志失败');
+      message.error(error.response?.data?.message || t('admin.operationLog.fetchFailed'));
     } finally {
       setLoading(false);
     }
@@ -92,39 +92,39 @@ const OperationLog: React.FC = () => {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-      message.success(t('admin.operationLog.exportSuccess') || '导出成功');
+      message.success(t('admin.operationLog.exportSuccess'));
     } catch (error: any) {
-      message.error(error.response?.data?.message || t('admin.operationLog.exportFailed') || '导出失败');
+      message.error(error.response?.data?.message || t('admin.operationLog.exportFailed'));
     }
   };
 
   const columns = [
     {
-      title: t('admin.operationLog.user') || '用户',
+      title: t('admin.operationLog.user'),
       dataIndex: 'username',
       key: 'username',
       render: (text: string, record: OperationLog) => record.userId?.username || text || '-',
     },
     {
-      title: t('admin.operationLog.type') || '类型',
+      title: t('admin.operationLog.type'),
       dataIndex: 'type',
       key: 'type',
       render: (type: string) => <Tag>{type}</Tag>,
     },
     {
-      title: t('admin.operationLog.action') || '操作',
+      title: t('admin.operationLog.action'),
       dataIndex: 'action',
       key: 'action',
       render: (action: string) => <Tag color="blue">{action}</Tag>,
     },
     {
-      title: t('admin.operationLog.resource') || '资源',
+      title: t('admin.operationLog.resource'),
       dataIndex: 'targetName',
       key: 'targetName',
       render: (text: string, record: OperationLog) => text || record.targetId || '-',
     },
     {
-      title: t('admin.operationLog.uri') || 'URI',
+      title: t('admin.operationLog.uri'),
       dataIndex: 'uri',
       key: 'uri',
       render: (uri: string) => (
@@ -140,12 +140,12 @@ const OperationLog: React.FC = () => {
       ),
     },
     {
-      title: t('admin.operationLog.ip') || 'IP地址',
+      title: t('admin.operationLog.ip'),
       dataIndex: 'ip',
       key: 'ip',
     },
     {
-      title: t('admin.operationLog.time') || '时间',
+      title: t('admin.operationLog.time'),
       dataIndex: 'createdAt',
       key: 'createdAt',
       render: (text: string) => text ? new Date(text).toLocaleString() : '-',
@@ -167,31 +167,31 @@ const OperationLog: React.FC = () => {
     >
       <Space style={{ marginBottom: 16 }} wrap>
         <Select
-          placeholder={t('admin.operationLog.filterByType') || '类型'}
+          placeholder={t('admin.operationLog.filterByType')}
           value={selectedType}
           onChange={setSelectedType}
           style={{ width: 150 }}
           allowClear
         >
-          <Option value="project">项目</Option>
-          <Option value="interface">接口</Option>
-          <Option value="user">用户</Option>
-          <Option value="group">分组</Option>
-          <Option value="test">测试</Option>
-          <Option value="mock">Mock</Option>
+          <Option value="project">{t('admin.operationLog.type.project')}</Option>
+          <Option value="interface">{t('admin.operationLog.type.interface')}</Option>
+          <Option value="user">{t('admin.operationLog.type.user')}</Option>
+          <Option value="group">{t('admin.operationLog.type.group')}</Option>
+          <Option value="test">{t('admin.operationLog.type.test')}</Option>
+          <Option value="mock">{t('admin.operationLog.type.mock')}</Option>
         </Select>
         <Select
-          placeholder={t('admin.operationLog.filterByAction') || '操作'}
+          placeholder={t('admin.operationLog.filterByAction')}
           value={selectedAction}
           onChange={setSelectedAction}
           style={{ width: 150 }}
           allowClear
         >
-          <Option value="create">创建</Option>
-          <Option value="update">更新</Option>
-          <Option value="delete">删除</Option>
-          <Option value="login">登录</Option>
-          <Option value="logout">登出</Option>
+          <Option value="create">{t('admin.operationLog.action.create')}</Option>
+          <Option value="update">{t('admin.operationLog.action.update')}</Option>
+          <Option value="delete">{t('admin.operationLog.action.delete')}</Option>
+          <Option value="login">{t('admin.operationLog.action.login')}</Option>
+          <Option value="logout">{t('admin.operationLog.action.logout')}</Option>
         </Select>
       </Space>
       <Table 

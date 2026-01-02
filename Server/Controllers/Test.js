@@ -454,6 +454,37 @@ class TestController extends BaseController {
 
       logger.info({ userId: user._id, collectionId: collection_id }, 'Test collection run completed');
 
+      // 如果测试失败，发送通知
+      if (report.failed > 0 || report.errors > 0) {
+        try {
+          const { sendTestFailureNotification } = await import('../Utils/notificationService.js');
+          // 构造类似任务和结果的对象结构
+          const mockTask = {
+            _id: collection_id,
+            name: collection.name || '测试集合',
+          };
+          const mockResult = {
+            _id: null,
+            status: report.failed > 0 ? 'failed' : 'error',
+            summary: {
+              total: report.total,
+              passed: report.passed,
+              failed: report.failed,
+              error: report.errors,
+            },
+            completed_at: report.runAt || new Date(),
+            duration: report.duration || 0,
+          };
+          
+          // 异步发送通知，不阻塞响应
+          sendTestFailureNotification(user, mockTask, mockResult).catch((error) => {
+            logger.error({ error, userId: user._id, collectionId: collection_id }, 'Failed to send test failure notification');
+          });
+        } catch (error) {
+          logger.error({ error, userId: user._id }, 'Error sending test failure notification');
+        }
+      }
+
       ctx.body = TestController.success(report, '测试执行完成');
     } catch (error) {
       logger.error({ error }, 'Run test error');
@@ -489,6 +520,237 @@ class TestController extends BaseController {
         process.env.NODE_ENV === 'production'
           ? '获取测试历史失败'
           : error.message || '获取测试历史失败'
+      );
+    }
+  }
+
+  /**
+   * 后台管理：获取所有测试集合（跨项目）
+   */
+  static async listAllCollections(ctx) {
+    try {
+      const { project_id, status, page = 1, pageSize = 20 } = ctx.query;
+      const skip = (parseInt(page) - 1) * parseInt(pageSize);
+      const limit = parseInt(pageSize);
+
+      const query = {};
+      if (project_id && validateObjectId(project_id)) {
+        query.project_id = project_id;
+      }
+
+      const collections = await TestCollection.find(query)
+        .populate('project_id', 'project_name')
+        .populate('uid', 'username email')
+        .sort({ created_at: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean();
+
+      // 获取每个集合的测试用例数量和最新测试结果
+      for (const collection of collections) {
+        const testCaseCount = await TestCase.countDocuments({ collection_id: collection._id });
+        collection.test_case_count = testCaseCount;
+
+        const latestResult = await TestResult.findOne({ collection_id: collection._id })
+          .sort({ run_at: -1 })
+          .select('status run_at')
+          .lean();
+        collection.latest_result = latestResult;
+      }
+
+      const total = await TestCollection.countDocuments(query);
+
+      ctx.body = TestController.success({
+        collections,
+        pagination: {
+          total,
+          page: parseInt(page),
+          pageSize: parseInt(pageSize),
+          totalPages: Math.ceil(total / parseInt(pageSize)),
+        },
+      });
+    } catch (error) {
+      logger.error({ error }, 'List all test collections error');
+      ctx.status = 500;
+      ctx.body = TestController.error(
+        process.env.NODE_ENV === 'production'
+          ? '获取测试集合列表失败'
+          : error.message || '获取测试集合列表失败'
+      );
+    }
+  }
+
+  /**
+   * 后台管理：获取测试统计信息
+   */
+  static async getTestStatistics(ctx) {
+    try {
+      const { project_id, startDate, endDate } = ctx.query;
+
+      const query = {};
+      if (project_id && validateObjectId(project_id)) {
+        query.project_id = project_id;
+      }
+
+      // 测试集合统计
+      const totalCollections = await TestCollection.countDocuments(query);
+      const totalTestCases = await TestCase.countDocuments(
+        project_id ? { collection_id: { $in: await TestCollection.find({ project_id }).distinct('_id') } } : {}
+      );
+
+      // 测试结果统计
+      const resultQuery = {};
+      if (project_id) {
+        const collectionIds = await TestCollection.find({ project_id }).distinct('_id');
+        resultQuery.collection_id = { $in: collectionIds };
+      }
+      if (startDate || endDate) {
+        resultQuery.run_at = {};
+        if (startDate) resultQuery.run_at.$gte = new Date(startDate);
+        if (endDate) resultQuery.run_at.$lte = new Date(endDate);
+      }
+
+      const totalResults = await TestResult.countDocuments(resultQuery);
+      const passedResults = await TestResult.countDocuments({ ...resultQuery, status: 'passed' });
+      const failedResults = await TestResult.countDocuments({ ...resultQuery, status: 'failed' });
+      const errorResults = await TestResult.countDocuments({ ...resultQuery, status: 'error' });
+
+      // 最近7天的测试执行趋势
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const trendQuery = { ...resultQuery, run_at: { $gte: sevenDaysAgo } };
+      
+      const trendData = await TestResult.aggregate([
+        { $match: trendQuery },
+        {
+          $group: {
+            _id: {
+              $dateToString: { format: '%Y-%m-%d', date: '$run_at' },
+            },
+            total: { $sum: 1 },
+            passed: {
+              $sum: { $cond: [{ $eq: ['$status', 'passed'] }, 1, 0] },
+            },
+            failed: {
+              $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 1, 0] },
+            },
+            error: {
+              $sum: { $cond: [{ $eq: ['$status', 'error'] }, 1, 0] },
+            },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ]);
+
+      // 项目测试覆盖率
+      const projectStats = await TestCollection.aggregate([
+        { $match: query },
+        {
+          $group: {
+            _id: '$project_id',
+            collectionCount: { $sum: 1 },
+          },
+        },
+        {
+          $lookup: {
+            from: 'projects',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'project',
+          },
+        },
+        { $unwind: '$project' },
+        {
+          $project: {
+            project_name: '$project.project_name',
+            collectionCount: 1,
+          },
+        },
+        { $sort: { collectionCount: -1 } },
+        { $limit: 10 },
+      ]);
+
+      ctx.body = TestController.success({
+        overview: {
+          totalCollections,
+          totalTestCases,
+          totalResults,
+          passedResults,
+          failedResults,
+          errorResults,
+          passRate: totalResults > 0 ? ((passedResults / totalResults) * 100).toFixed(2) : 0,
+        },
+        trend: trendData,
+        projectStats,
+      });
+    } catch (error) {
+      logger.error({ error }, 'Get test statistics error');
+      ctx.status = 500;
+      ctx.body = TestController.error(
+        process.env.NODE_ENV === 'production'
+          ? '获取测试统计失败'
+          : error.message || '获取测试统计失败'
+      );
+    }
+  }
+
+  /**
+   * 后台管理：获取所有测试结果（跨项目）
+   */
+  static async listAllResults(ctx) {
+    try {
+      const { collection_id, project_id, status, page = 1, pageSize = 20 } = ctx.query;
+      const skip = (parseInt(page) - 1) * parseInt(pageSize);
+      const limit = parseInt(pageSize);
+
+      const query = {};
+      if (collection_id && validateObjectId(collection_id)) {
+        query.collection_id = collection_id;
+      } else if (project_id && validateObjectId(project_id)) {
+        const collectionIds = await TestCollection.find({ project_id }).distinct('_id');
+        query.collection_id = { $in: collectionIds };
+      }
+      if (status) {
+        query.status = status;
+      }
+
+      const results = await TestResult.find(query)
+        .populate('collection_id', 'name project_id')
+        .populate('test_case_id', 'name')
+        .populate('uid', 'username')
+        .sort({ run_at: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean();
+
+      // 填充项目信息
+      for (const result of results) {
+        if (result.collection_id?.project_id) {
+          const project = await Project.findById(result.collection_id.project_id)
+            .select('project_name')
+            .lean();
+          result.project = project;
+        }
+      }
+
+      const total = await TestResult.countDocuments(query);
+
+      ctx.body = TestController.success({
+        results,
+        pagination: {
+          total,
+          page: parseInt(page),
+          pageSize: parseInt(pageSize),
+          totalPages: Math.ceil(total / parseInt(pageSize)),
+        },
+      });
+    } catch (error) {
+      logger.error({ error }, 'List all test results error');
+      ctx.status = 500;
+      ctx.body = TestController.error(
+        process.env.NODE_ENV === 'production'
+          ? '获取测试结果列表失败'
+          : error.message || '获取测试结果列表失败'
       );
     }
   }

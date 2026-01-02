@@ -1,0 +1,104 @@
+name: API Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # 每天凌晨 2 点执行
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+env:
+  APIADMIN_URL: ${{ secrets.APIADMIN_URL }}
+  APIADMIN_TOKEN: ${{ secrets.APIADMIN_TOKEN }}
+  TEST_COLLECTION_ID: ${{ secrets.TEST_COLLECTION_ID }}
+  ENVIRONMENT: ${{ vars.ENVIRONMENT || 'production' }}
+
+jobs:
+  api-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install ApiAdmin CLI
+        run: |
+          npm install -g @apiadmin/cli || echo "CLI not available, using curl"
+      
+      - name: Run API Tests
+        id: run-tests
+        run: |
+          if command -v apiadmin &> /dev/null; then
+            apiadmin test \
+              --collection $TEST_COLLECTION_ID \
+              --env $ENVIRONMENT \
+              --output junit \
+              --file test-results.xml
+          else
+            echo "Using curl to run tests"
+            curl -X POST "$APIADMIN_URL/api/cicd/test/run" \
+              -H "Authorization: Bearer $APIADMIN_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{\"collectionId\": \"$TEST_COLLECTION_ID\", \"environment\": \"$ENVIRONMENT\", \"format\": \"junit\"}" \
+              -o test-results.xml
+          fi
+        continue-on-error: true
+      
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: test-results.xml
+          retention-days: 30
+      
+      - name: Publish Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: test-results.xml
+          check_name: API Test Results
+          comment_mode: create new
+          report_individual_runs: true
+      
+      - name: Generate Allure Report
+        if: always()
+        run: |
+          if command -v apiadmin &> /dev/null; then
+            apiadmin test \
+              --collection $TEST_COLLECTION_ID \
+              --env $ENVIRONMENT \
+              --output allure \
+              --dir allure-results
+          else
+            echo "Allure report generation skipped (CLI not available)"
+          fi
+        continue-on-error: true
+      
+      - name: Upload Allure Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: allure-results
+          path: allure-results/
+          retention-days: 30
+      
+      - name: Notify on Failure
+        if: failure()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: 'API Tests failed! Check the workflow for details.'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+

@@ -10,6 +10,7 @@ import { api } from '../../Utils/api';
 import type { AppDispatch, RootState } from '../../Reducer/Create';
 import type { UploadFile } from 'antd';
 import { getAvatarUrl } from '../../Utils/avatar';
+import TestRules from './TestRules';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -689,6 +690,16 @@ const Setting: React.FC = () => {
                 </Card>
               </div>
             ),
+          },
+          {
+            key: 'testRules',
+            label: t('test.rules.title'),
+            children: <TestRules />,
+          },
+          {
+            key: 'repository',
+            label: t('project.setting.repository'),
+            children: <CodeRepositorySettings projectId={projectId} />,
           },
         ]}
       />

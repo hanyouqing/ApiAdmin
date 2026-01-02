@@ -99,10 +99,32 @@ const autoTestTaskSchema = new mongoose.Schema(
         type: String,
         default: '',
       },
+      email_enabled: {
+        type: Boolean,
+        default: false,
+      },
+      email_addresses: {
+        type: [String],
+        default: [],
+      },
     },
     enabled: {
       type: Boolean,
       default: true,
+    },
+    code_repository_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'CodeRepository',
+      default: null,
+    },
+    ai_config_provider: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    ai_analysis_enabled: {
+      type: Boolean,
+      default: false,
     },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,

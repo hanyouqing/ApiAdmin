@@ -2,6 +2,7 @@ import { VM } from 'vm2';
 import axios from 'axios';
 import { logger } from './logger.js';
 import AutoTestResult from '../Models/AutoTestResult.js';
+import AutoTestTask from '../Models/AutoTestTask.js';
 import Interface from '../Models/Interface.js';
 
 export class AutoTestRunner {
@@ -953,6 +954,17 @@ export class AutoTestRunner {
       await result.save();
 
       logger.info({ taskId: task._id, resultId, status: result.status }, 'Auto test task completed');
+
+      // 如果配置了代码仓库和AI配置，执行AI分析
+      if (task.code_repository_id && task.ai_config_provider) {
+        try {
+          const { testPipelineAIService } = await import('./testPipelineAIService.js');
+          await testPipelineAIService.analyzeTestResult(resultId, task);
+        } catch (error) {
+          logger.error({ error, resultId, taskId: task._id }, 'Failed to run AI analysis after test completion');
+          // 不抛出错误，避免影响测试流程
+        }
+      }
 
       // TODO: 发送通知（如果配置了）
       if (task.notification?.enabled) {

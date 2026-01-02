@@ -8,7 +8,6 @@ import { fetchGroups, createGroup, updateGroup, deleteGroup } from '../../Reduce
 import { api } from '../../Utils/api';
 import type { AppDispatch, RootState } from '../../Reducer/Create';
 import type { Group } from '../../Reducer/Modules/Group';
-import { getAvatarUrl } from '../../Utils/avatar';
 
 const Group: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -152,6 +151,15 @@ const Group: React.FC = () => {
       ),
     },
     {
+      title: t('group.projectCount'),
+      key: 'project_count',
+      render: (_: any, record: Group) => (
+        <Tag color="blue">
+          {record.project_count || 0} {t('group.projects')}
+        </Tag>
+      ),
+    },
+    {
       title: t('common.createdAt'),
       dataIndex: 'created_at',
       key: 'created_at',
@@ -202,9 +210,12 @@ const Group: React.FC = () => {
       >
         <Table
           columns={columns}
-          dataSource={groups}
+          dataSource={groups || []}
           rowKey="_id"
           loading={loading}
+          locale={{
+            emptyText: t('common.empty'),
+          }}
         />
       </Card>
 
@@ -277,7 +288,7 @@ const Group: React.FC = () => {
                       ]}
                     >
                       <List.Item.Meta
-                        avatar={<Avatar src={getAvatarUrl(member.avatar)} icon={<UserOutlined />} />}
+                        avatar={<Avatar src={member.avatar} icon={<UserOutlined />} />}
                         title={member.username || member}
                         description={member.email || ''}
                       />

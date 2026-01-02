@@ -9,6 +9,7 @@ export interface Group {
   member: string[];
   created_at: string;
   updated_at: string;
+  project_count?: number;
 }
 
 interface GroupState {
@@ -71,6 +72,7 @@ const groupSlice = createSlice({
       .addCase(fetchGroups.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || '获取分组列表失败';
+        state.groups = []; // 确保在错误时也设置为空数组
       })
       .addCase(createGroup.fulfilled, (state, action) => {
         state.groups.push(action.payload);

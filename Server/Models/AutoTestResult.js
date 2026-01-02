@@ -166,6 +166,10 @@ const autoTestResultSchema = new mongoose.Schema(
       ref: 'User',
       default: null,
     },
+    ai_analysis: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
+    },
   },
   {
     timestamps: true,

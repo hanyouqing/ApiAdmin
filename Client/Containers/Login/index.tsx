@@ -98,7 +98,7 @@ const Login: React.FC = () => {
       // 刷新页面以更新用户状态
       window.location.href = '/';
     } catch (error: any) {
-      message.error(error.response?.data?.message || t('auth.loginFailed') || '登录失败');
+      message.error(error.response?.data?.message || t('auth.loginFailed'));
     } finally {
       setEmailLoginLoading(false);
     }
@@ -265,14 +265,14 @@ const Login: React.FC = () => {
           {codeSent && (
             <Form.Item
               name="code"
-              label={t('auth.verificationCode') || '验证码'}
+              label={t('auth.verificationCode')}
               rules={[
-                { required: true, message: t('auth.codeRequired') || '请输入验证码' },
-                { len: 6, message: t('auth.codeLength') || '验证码为6位数字' },
+                { required: true, message: t('auth.codeRequired') },
+                { len: 6, message: t('auth.codeLength') },
               ]}
             >
               <Input
-                placeholder={t('auth.verificationCode') || '请输入6位验证码'}
+                placeholder={t('auth.verificationCode')}
                 maxLength={6}
               />
             </Form.Item>
@@ -285,7 +285,7 @@ const Login: React.FC = () => {
               block
               loading={emailLoginLoading}
             >
-              {codeSent ? (t('auth.login') || '登录') : (t('auth.sendCode') || '发送验证码')}
+              {codeSent ? t('auth.login') : t('auth.sendCode')}
             </Button>
           </Form.Item>
 
@@ -296,7 +296,7 @@ const Login: React.FC = () => {
                 onClick={handleSendEmailCode}
                 loading={emailLoginLoading}
               >
-                {t('auth.resendCode') || '重新发送验证码'}
+                {t('auth.resendCode')}
               </Button>
             </div>
           )}
