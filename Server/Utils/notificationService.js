@@ -9,6 +9,80 @@ import axios from 'axios';
  * @param {Object} result - 测试结果
  * @param {Array<string>} emailAddresses - 邮箱地址列表
  */
+/**
+ * 验证邮件配置是否有效（通用验证函数，支持所有邮件提供商）
+ * @param {Object} emailConfig - 邮件配置对象
+ * @returns {Object} - { valid: boolean, reason?: string }
+ */
+function validateEmailConfig(emailConfig) {
+  if (!emailConfig) {
+    return { valid: false, reason: 'Email config is null or undefined' };
+  }
+
+  if (!emailConfig.provider) {
+    return { valid: false, reason: 'Email provider is not specified' };
+  }
+
+  const provider = emailConfig.provider;
+  
+  // 通用验证：检查提供商特定的必需字段
+  const providerConfig = emailConfig[provider];
+  if (!providerConfig || typeof providerConfig !== 'object') {
+    return { valid: false, reason: `Provider config for ${provider} is missing or invalid` };
+  }
+
+  // 根据不同的提供商验证必需字段（与 emailService.js 中的逻辑保持一致）
+  switch (provider) {
+    case 'smtp': {
+      const hasHost = !!providerConfig.host;
+      const hasAuth = !!(providerConfig.auth && providerConfig.auth.user && providerConfig.auth.pass);
+      if (!hasHost || !hasAuth) {
+        return { valid: false, reason: 'SMTP config missing host or auth credentials' };
+      }
+      return { valid: true };
+    }
+    
+    case 'sendgrid':
+    case 'resend': {
+      if (!providerConfig.apiKey) {
+        return { valid: false, reason: `${provider} config missing API key` };
+      }
+      return { valid: true };
+    }
+    
+    case 'oci': {
+      const hasRequired = !!(providerConfig.region && providerConfig.user && providerConfig.pass);
+      if (!hasRequired) {
+        return { valid: false, reason: 'OCI config missing region, user, or password' };
+      }
+      return { valid: true };
+    }
+    
+    case 'ses': {
+      const hasRequired = !!(providerConfig.accessKeyId && 
+                            providerConfig.secretAccessKey && 
+                            providerConfig.region);
+      if (!hasRequired) {
+        return { valid: false, reason: 'AWS SES config missing accessKeyId, secretAccessKey, or region' };
+      }
+      return { valid: true };
+    }
+    
+    case 'aliyun': {
+      const hasRequired = !!(providerConfig.accessKeyId && 
+                            providerConfig.accessKeySecret && 
+                            providerConfig.region);
+      if (!hasRequired) {
+        return { valid: false, reason: 'Aliyun config missing accessKeyId, accessKeySecret, or region' };
+      }
+      return { valid: true };
+    }
+    
+    default:
+      return { valid: false, reason: `Unknown email provider: ${provider}` };
+  }
+}
+
 export async function sendTestNotificationEmail(task, result, emailAddresses) {
   try {
     // 获取邮件配置
@@ -18,26 +92,15 @@ export async function sendTestNotificationEmail(task, result, emailAddresses) {
       return;
     }
 
-    // 检查邮件配置是否有效
-    const provider = emailConfig.provider || 'smtp';
-    let isConfigured = false;
-
-    if (provider === 'smtp') {
-      const smtp = emailConfig.smtp || {};
-      isConfigured = !!(smtp.host && smtp.auth && smtp.auth.user && smtp.auth.pass);
-    } else if (provider === 'sendgrid') {
-      const sendgrid = emailConfig.sendgrid || {};
-      isConfigured = !!sendgrid.apiKey;
-    } else if (provider === 'resend') {
-      const resend = emailConfig.resend || {};
-      isConfigured = !!resend.apiKey;
-    } else if (provider === 'oci') {
-      const oci = emailConfig.oci || {};
-      isConfigured = !!(oci.region && oci.user && oci.pass);
-    }
-
-    if (!isConfigured) {
-      logger.warn({ provider }, 'Email service not properly configured, skipping email notification');
+    // 使用通用验证函数检查邮件配置是否有效
+    const validation = validateEmailConfig(emailConfig);
+    if (!validation.valid) {
+      logger.warn({ 
+        provider: emailConfig.provider, 
+        reason: validation.reason,
+        taskId: task._id,
+        resultId: result._id || result.id 
+      }, 'Email service not properly configured, skipping email notification');
       return;
     }
 
@@ -191,11 +254,33 @@ export async function sendTestNotificationEmail(task, result, emailAddresses) {
       })
     );
 
-    await Promise.allSettled(emailPromises);
-    logger.info({ taskId: task._id, resultId: result._id, emailCount: emailAddresses.length }, 'Test notification emails sent');
+    const results = await Promise.allSettled(emailPromises);
+    const successCount = results.filter(r => r.status === 'fulfilled').length;
+    const failureCount = results.filter(r => r.status === 'rejected').length;
+    
+    logger.info({ 
+      taskId: task._id, 
+      resultId: result._id || result.id, 
+      total: emailAddresses.length,
+      success: successCount,
+      failed: failureCount
+    }, 'Test notification emails sent');
+    
+    if (failureCount > 0) {
+      logger.warn({ 
+        taskId: task._id, 
+        resultId: result._id || result.id,
+        failureCount 
+      }, 'Some email notifications failed to send');
+    }
   } catch (error) {
-    logger.error({ error, taskId: task._id, resultId: result._id }, 'Failed to send test notification email');
-    throw error;
+    logger.error({ 
+      error: error.message || error, 
+      stack: error.stack,
+      taskId: task._id, 
+      resultId: result._id || result.id 
+    }, 'Failed to send test notification email');
+    // 不抛出错误，避免影响测试流程
   }
 }
 
