@@ -966,14 +966,44 @@ export class AutoTestRunner {
         }
       }
 
-      // TODO: 发送通知（如果配置了）
+      // 发送通知（如果配置了）
       if (task.notification?.enabled) {
         const shouldNotify =
           (task.notification.on_success && result.status === 'passed') ||
-          (task.notification.on_failure && result.status === 'failed');
+          (task.notification.on_failure && result.status === 'failed') ||
+          (result.status === 'error');
 
-        if (shouldNotify && task.notification.webhook_url) {
-          // TODO: 发送 webhook 通知
+        if (shouldNotify) {
+          try {
+            // 重新获取完整的测试结果数据（包含所有测试用例详情）
+            const fullResult = await AutoTestResult.findById(result._id || result.id)
+              .populate('task_id', 'name project_id')
+              .lean();
+            
+            // 发送邮件通知
+            if (task.notification.email_enabled && task.notification.email_addresses) {
+              let emailAddresses = [];
+              if (Array.isArray(task.notification.email_addresses)) {
+                emailAddresses = task.notification.email_addresses;
+              } else if (typeof task.notification.email_addresses === 'string') {
+                emailAddresses = task.notification.email_addresses.split(',').map(e => e.trim()).filter(e => e);
+              }
+              
+              if (emailAddresses.length > 0) {
+                const { sendTestNotificationEmail } = await import('./notificationService.js');
+                await sendTestNotificationEmail(task, fullResult || result, emailAddresses);
+              }
+            }
+
+            // 发送 webhook 通知
+            if (task.notification.webhook_url) {
+              const { sendWebhookNotification } = await import('./notificationService.js');
+              await sendWebhookNotification(task, result, task.notification.webhook_url);
+            }
+          } catch (error) {
+            logger.error({ error, taskId: task._id, resultId }, 'Failed to send notification');
+            // 不抛出错误，避免影响测试流程
+          }
         }
       }
     } catch (error) {
@@ -983,6 +1013,39 @@ export class AutoTestRunner {
         result.status = 'error';
         result.completed_at = new Date();
         await result.save();
+
+        // 如果配置了通知，发送错误通知
+        if (task.notification?.enabled && task.notification.on_failure) {
+          try {
+            // 重新获取完整的测试结果数据（包含所有测试用例详情）
+            const fullResult = await AutoTestResult.findById(result._id || result.id)
+              .populate('task_id', 'name project_id')
+              .lean();
+            
+            // 发送邮件通知
+            if (task.notification.email_enabled && task.notification.email_addresses) {
+              let emailAddresses = [];
+              if (Array.isArray(task.notification.email_addresses)) {
+                emailAddresses = task.notification.email_addresses;
+              } else if (typeof task.notification.email_addresses === 'string') {
+                emailAddresses = task.notification.email_addresses.split(',').map(e => e.trim()).filter(e => e);
+              }
+              
+              if (emailAddresses.length > 0) {
+                const { sendTestNotificationEmail } = await import('./notificationService.js');
+                await sendTestNotificationEmail(task, fullResult || result, emailAddresses);
+              }
+            }
+
+            // 发送 webhook 通知
+            if (task.notification.webhook_url) {
+              const { sendWebhookNotification } = await import('./notificationService.js');
+              await sendWebhookNotification(task, result, task.notification.webhook_url);
+            }
+          } catch (notifyError) {
+            logger.error({ error: notifyError, taskId: task._id, resultId }, 'Failed to send error notification');
+          }
+        }
       }
     }
   }

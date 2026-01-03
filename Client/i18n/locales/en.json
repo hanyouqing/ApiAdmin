@@ -128,6 +128,7 @@
     "createSuccess": "Project created successfully",
     "updateSuccess": "Project updated successfully",
     "deleteSuccess": "Project deleted successfully",
+    "deleteFailed": "Failed to delete project",
     "deleteConfirm": "Confirm Delete",
     "deleteConfirmMessage": "Are you sure you want to delete this project? All interfaces under this project will also be deleted.",
     "nameRequired": "Please enter project name",
@@ -845,6 +846,7 @@
       "basepath": "Base Path",
       "color": "Color",
       "envCount": "Environments",
+      "envUnit": "environments",
       "nameRequired": "Please enter project name",
       "nameDuplicate": "A project with this name already exists in this group, please use another name",
       "groupRequired": "Please select a group",
@@ -855,7 +857,10 @@
       "deleteConfirmMessage": "Are you sure you want to delete this project? This action cannot be undone.",
       "fetchFailed": "Failed to fetch project list",
       "deleteFailed": "Failed to delete project",
-      "operationFailed": "Operation failed"
+      "operationFailed": "Operation failed",
+      "noGroup": "Ungrouped",
+      "noProjectsInGroup": "No projects in this group",
+      "filterByGroup": "Filter by Group"
     },
     "interface": {
       "title": "Interface Management",
@@ -997,8 +1002,8 @@
       "appId": "App ID",
       "appSecret": "App Secret",
       "smsProvider": "SMS Provider",
-      "smsProvider.aliyun": "Alibaba Cloud",
-      "smsProvider.tencent": "Tencent Cloud",
+      "smsProviderAliyun": "Alibaba Cloud",
+      "smsProviderTencent": "Tencent Cloud",
       "accessKeyId": "Access Key ID",
       "accessKeySecret": "Access Key Secret",
       "signName": "Sign Name",

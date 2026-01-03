@@ -40,6 +40,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
     if (
       location.pathname.startsWith('/admin/code') || 
       location.pathname === '/project' || 
+      location.pathname === '/project/list' ||
       location.pathname.startsWith('/project/') ||
       location.pathname === '/interface' ||
       location.pathname.startsWith('/interface/') ||
@@ -140,7 +141,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
       label: t('sidebar.project'),
       children: [
         {
-          key: '/project',
+          key: '/project/list',
           icon: <ProjectOutlined />,
           label: t('sidebar.projectManagement'),
         },

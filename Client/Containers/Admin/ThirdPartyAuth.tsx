@@ -218,8 +218,8 @@ const ThirdPartyAuth: React.FC = () => {
       </Form.Item>
       <Form.Item name="provider" label={t('admin.thirdPartyAuth.smsProvider')}>
         <Select>
-          <Option value="aliyun">{t('admin.thirdPartyAuth.smsProvider.aliyun')}</Option>
-          <Option value="tencent">{t('admin.thirdPartyAuth.smsProvider.tencent')}</Option>
+          <Option value="aliyun">{t('admin.thirdPartyAuth.smsProviderAliyun')}</Option>
+          <Option value="tencent">{t('admin.thirdPartyAuth.smsProviderTencent')}</Option>
         </Select>
       </Form.Item>
       <Form.Item name="accessKeyId" label={t('admin.thirdPartyAuth.accessKeyId')}>

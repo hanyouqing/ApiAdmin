@@ -114,7 +114,7 @@ const initEmailService = (emailConfig = null) => {
   currentConfig = null;
 };
 
-export const sendEmail = async (to, subject, html, text, emailConfig = null) => {
+export const sendEmail = async (to, subject, html, text, emailConfig = null, attachments = null) => {
   // If new config provided, reinitialize
   if (emailConfig && JSON.stringify(emailConfig) !== JSON.stringify(currentConfig)) {
     initEmailService(emailConfig);
@@ -147,15 +147,22 @@ export const sendEmail = async (to, subject, html, text, emailConfig = null) => 
       throw new Error('Email "from" address is not configured');
     }
     
-    const info = await transporter.sendMail({
+    const mailOptions = {
       from: fromEmail,
       to,
       subject,
       html,
       text,
-    });
+    };
 
-    logger.info({ to, subject, messageId: info.messageId }, 'Email sent');
+    // 添加附件（如果提供）
+    if (attachments && Array.isArray(attachments) && attachments.length > 0) {
+      mailOptions.attachments = attachments;
+    }
+    
+    const info = await transporter.sendMail(mailOptions);
+
+    logger.info({ to, subject, messageId: info.messageId, hasAttachments: !!attachments?.length }, 'Email sent');
     return info;
   } catch (error) {
     logger.error({ error, to, subject }, 'Failed to send email');

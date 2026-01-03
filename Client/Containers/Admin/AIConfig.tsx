@@ -42,21 +42,11 @@ const AIConfig: React.FC = () => {
     }
   }, [user]);
 
-  const fetchConfigs = async () => {
-    setLoading(true);
-    try {
-      const response = await api.get('/admin/ai/configs');
-      const configList = response.data.data || [];
-      
-      const configMap: Record<string, AIConfigData> = {};
-      configList.forEach((config: AIConfigData) => {
-        configMap[config.provider] = config;
-      });
-      setConfigs(configMap);
-      
-      // 设置表单默认值
+  // 当配置加载完成后，设置表单值
+  useEffect(() => {
+    if (Object.keys(configs).length > 0) {
       const setFormValues = (provider: string, form: any) => {
-        const config = configMap[provider];
+        const config = configs[provider];
         if (config) {
           form.setFieldsValue({
             name: config.name || '',
@@ -82,13 +72,33 @@ const AIConfig: React.FC = () => {
         }
       };
       
-      setFormValues('openai', openaiForm);
-      setFormValues('gemini', geminiForm);
-      setFormValues('deepseek', deepseekForm);
-      setFormValues('doubao', doubaoForm);
-      setFormValues('kimi', kimiForm);
-      setFormValues('aliyun', aliyunForm);
-      setFormValues('custom', customForm);
+      // 使用 setTimeout 确保表单已经渲染
+      const timer = setTimeout(() => {
+        setFormValues('openai', openaiForm);
+        setFormValues('gemini', geminiForm);
+        setFormValues('deepseek', deepseekForm);
+        setFormValues('doubao', doubaoForm);
+        setFormValues('kimi', kimiForm);
+        setFormValues('aliyun', aliyunForm);
+        setFormValues('custom', customForm);
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [configs]);
+
+  const fetchConfigs = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get('/admin/ai/configs');
+      const configList = response.data.data || [];
+      
+      const configMap: Record<string, AIConfigData> = {};
+      configList.forEach((config: AIConfigData) => {
+        configMap[config.provider] = config;
+      });
+      setConfigs(configMap);
     } catch (error: any) {
       message.error(error.response?.data?.message || t('admin.ai.fetchFailed'));
     } finally {

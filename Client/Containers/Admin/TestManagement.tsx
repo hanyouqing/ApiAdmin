@@ -146,13 +146,27 @@ const TestManagement: React.FC = () => {
           pageSize: pagination.pageSize,
         },
       });
-      setCollections(response.data.data.collections || []);
+      
+      // 调试日志
+      console.log('Test Collections API Response:', response.data);
+      
+      // 处理响应数据，兼容不同的响应格式
+      const responseData = response.data?.data || response.data;
+      const collections = responseData?.collections || responseData || [];
+      const paginationData = responseData?.pagination || {};
+      
+      console.log('Parsed Collections:', collections);
+      console.log('Parsed Pagination:', paginationData);
+      
+      setCollections(Array.isArray(collections) ? collections : []);
       setPagination(prev => ({
         ...prev,
-        total: response.data.data.pagination?.total || 0,
+        total: paginationData?.total || collections.length || 0,
       }));
     } catch (error: any) {
+      console.error('Failed to fetch test collections:', error);
       messageApi.error(error.response?.data?.message || t('admin.test.fetchFailed'));
+      setCollections([]);
     } finally {
       setLoading(false);
     }

@@ -84,6 +84,9 @@ Become the **API Collaboration Center** connecting frontend, backend, testing, a
 - Variable parameter support (`$.{key}.{params|body}.{path}`)
 - Test execution and reporting
 - Server-side automated testing (CI/CD integration)
+- **Test Pipeline Management**: Create, edit, execute, and manage test pipelines
+- **AI-Powered Test Analysis**: Automatic test result analysis, bug fixing suggestions, and test case improvement recommendations
+- **Code Repository Integration**: Link test pipelines with code repositories for comprehensive analysis
 - 🚧 Deep CI/CD integration (GitHub Actions, Jenkins, GitLab CI)
 - 🚧 Automated testing for imported interfaces
 
@@ -103,8 +106,23 @@ Become the **API Collaboration Center** connecting frontend, backend, testing, a
 - 🚧 Plugin routing system
 - 🚧 Frontend plugin integration
 
+### 💻 Code Repository Management
+- Code repository configuration (GitHub, GitLab, Gitee, etc.)
+- SSH private key authentication with password support
+- Repository connection testing
+- Code pull and synchronization
+- Integration with test pipelines for AI analysis
+
+### 🤖 AI Configuration & Analysis
+- AI provider configuration (OpenAI, DeepSeek, etc.)
+- AI-powered test result analysis
+- Automatic bug detection and fixing suggestions
+- Test case improvement recommendations
+- Code quality analysis
+
 ### 📊 System Features
 - Operation logs
+- Login logs
 - Internationalization support (Chinese, English)
 - Search functionality
 - User center
@@ -112,6 +130,8 @@ Become the **API Collaboration Center** connecting frontend, backend, testing, a
 - Version information query
 - Swagger integration (UI + JSON)
 - Monitoring and statistics (Prometheus metrics)
+- Email service configuration
+- Whitelist management
 - 🚧 Project following
 - 🚧 Message notifications (in-app messages, email notifications)
 
@@ -133,6 +153,9 @@ Become the **API Collaboration Center** connecting frontend, backend, testing, a
 - Support variable parameters and expressions
 - JavaScript assertion scripts
 - CI/CD integration support
+- Test pipeline management with project association
+- AI-powered test analysis and optimization
+- Code repository integration for comprehensive testing
 
 ### 4. Flexible Import/Export
 - Support multiple format imports (Postman, Swagger, HAR)
@@ -152,9 +175,16 @@ Become the **API Collaboration Center** connecting frontend, backend, testing, a
 
 ### 7. Developer Friendly
 - Complete unit testing framework (Vitest)
+- **High test coverage target** (aiming for near 100%)
 - Swagger API documentation
 - Detailed development documentation
 - Version information query
+
+### 8. AI-Enhanced Workflow
+- AI-powered test analysis and optimization
+- Automatic bug detection and fixing suggestions
+- Test case improvement recommendations
+- Code quality insights
 
 ## 🛠 Technology Stack
 
@@ -371,6 +401,8 @@ ApiAdmin/
 
 ## 🧪 Testing
 
+The project aims for **near 100% test coverage** to ensure code quality and reliability.
+
 ```bash
 # Run tests
 npm test
@@ -387,6 +419,18 @@ npm run test:ui
 ```
 
 ![Test UI](Images/npm-run-test-ui.png)
+
+### Test Coverage Goals
+
+- **Target Coverage**: Near 100% for all critical paths
+- **Current Focus**: 
+  - Unit tests for all Controllers
+  - Unit tests for all Models
+  - Unit tests for all Utils
+  - Integration tests for API endpoints
+  - Frontend component tests
+
+For detailed testing guidelines, see [Testing Documentation](Docs/TESTING.md)
 
 ## 📝 Development Guide
 

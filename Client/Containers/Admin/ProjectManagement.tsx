@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Button, Table, Space, Modal, Form, Input, Select, Tag, App, InputNumber } from 'antd';
+import { Card, Button, Table, Space, Modal, Form, Input, Select, Tag, App } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, EnvironmentOutlined } from '@ant-design/icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
@@ -120,6 +120,29 @@ const ProjectManagement: React.FC = () => {
       title: t('admin.project.name'),
       dataIndex: 'project_name',
       key: 'project_name',
+      render: (text: string, record: Project) => (
+        <Space>
+          {record.color && (
+            <span
+              style={{
+                display: 'inline-block',
+                width: 12,
+                height: 12,
+                borderRadius: '50%',
+                backgroundColor: record.color,
+                verticalAlign: 'middle',
+              }}
+            />
+          )}
+          <span>{text}</span>
+        </Space>
+      ),
+    },
+    {
+      title: t('common.description'),
+      dataIndex: 'project_desc',
+      key: 'project_desc',
+      render: (desc: string) => desc || '-',
     },
     {
       title: t('admin.project.group'),
@@ -128,17 +151,12 @@ const ProjectManagement: React.FC = () => {
       render: (group: any) => (typeof group === 'object' ? group.group_name : '-'),
     },
     {
-      title: t('admin.project.owner'),
-      dataIndex: 'uid',
-      key: 'uid',
-      render: (owner: any) => (typeof owner === 'object' ? owner.username : '-'),
-    },
-    {
       title: t('admin.project.envCount'),
-      dataIndex: 'env',
-      key: 'env',
-      render: (env: any[]) => (
-        <Tag icon={<EnvironmentOutlined />}>{Array.isArray(env) ? env.length : 0}</Tag>
+      key: 'env_count',
+      render: (_: any, record: Project) => (
+        <Tag color="blue" icon={<EnvironmentOutlined />}>
+          {Array.isArray(record.env) ? record.env.length : 0} {t('admin.project.envUnit') || '环境'}
+        </Tag>
       ),
     },
     {
@@ -153,13 +171,26 @@ const ProjectManagement: React.FC = () => {
       width: 250,
       render: (_: any, record: Project) => (
         <Space>
-          <Button type="link" icon={<EyeOutlined />} onClick={() => navigate(`/project/${record._id}`)}>
+          <Button
+            type="link"
+            icon={<EyeOutlined />}
+            onClick={() => navigate(`/project/${record._id}`)}
+          >
             {t('common.view')}
           </Button>
-          <Button type="link" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
+          <Button
+            type="link"
+            icon={<EditOutlined />}
+            onClick={() => handleEdit(record)}
+          >
             {t('common.edit')}
           </Button>
-          <Button type="link" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record._id)}>
+          <Button
+            type="link"
+            danger
+            icon={<DeleteOutlined />}
+            onClick={() => handleDelete(record._id)}
+          >
             {t('common.delete')}
           </Button>
         </Space>
@@ -177,10 +208,10 @@ const ProjectManagement: React.FC = () => {
           </Button>
         }
       >
-        <Table 
-          columns={columns} 
-          dataSource={projects || []} 
-          rowKey="_id" 
+        <Table
+          columns={columns}
+          dataSource={projects || []}
+          rowKey="_id"
           loading={loading}
           locale={{
             emptyText: t('common.empty'),

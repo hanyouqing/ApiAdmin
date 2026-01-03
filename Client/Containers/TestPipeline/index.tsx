@@ -726,10 +726,52 @@ const TestPipeline: React.FC = () => {
   const fetchAIConfigs = async () => {
     try {
       const response = await api.get('/admin/ai/configs');
-      const configs = (response.data.data || []).filter((config: any) => config.enabled);
-      setAiConfigs(configs);
+      
+      // 调试日志
+      console.log('AI Configs API Response:', response.data);
+      
+      // 处理响应数据，兼容不同的响应格式
+      const responseData = response.data?.data || response.data || [];
+      const allConfigs = Array.isArray(responseData) ? responseData : [];
+      
+      // 过滤出已启用的配置
+      // 注意：后端会隐藏敏感信息，api_key 会被截断为 "前8位..."（如果存在）
+      // 如果 api_key 为空字符串，说明没有配置 API key
+      // 所以我们可以通过检查 api_key 是否不为空来判断是否有配置
+      const enabledConfigs = allConfigs.filter((config: any) => {
+        // enabled 可能是 boolean、字符串或数字
+        const isEnabled = config.enabled === true || config.enabled === 'true' || config.enabled === 1 || config.enabled === '1';
+        // 检查是否有 api_key（后端返回的格式：如果存在则为 "前8位..."，如果不存在则为空字符串）
+        const hasApiKey = config.api_key && config.api_key.trim() !== '';
+        const result = isEnabled && hasApiKey;
+        
+        // 调试日志
+        if (!result) {
+          console.log(`Config ${config.provider} filtered out:`, {
+            enabled: config.enabled,
+            isEnabled,
+            api_key: config.api_key,
+            hasApiKey,
+          });
+        }
+        
+        return result;
+      });
+      
+      console.log('All AI Configs:', allConfigs);
+      console.log('Enabled AI Configs:', enabledConfigs);
+      console.log('Config details:', enabledConfigs.map((c: any) => ({
+        provider: c.provider,
+        name: c.name,
+        enabled: c.enabled,
+        hasApiKey: !!(c.api_key && c.api_key.trim() !== ''),
+        apiKeyPreview: c.api_key ? c.api_key.substring(0, 20) : 'none'
+      })));
+      
+      setAiConfigs(enabledConfigs);
     } catch (error: any) {
       console.error('获取AI配置失败:', error);
+      messageApi.error('获取AI配置失败: ' + (error.response?.data?.message || error.message));
       setAiConfigs([]);
     }
   };
