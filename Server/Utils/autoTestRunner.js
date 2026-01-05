@@ -10,6 +10,163 @@ export class AutoTestRunner {
     this.records = [];
   }
 
+  /**
+   * 获取结果 ID（统一处理 _id 和 id）
+   * @param {Object} result - 测试结果对象
+   * @returns {string|Object} - 结果 ID
+   */
+  static getResultId(result) {
+    if (!result) return null;
+    return result._id || result.id || null;
+  }
+
+  /**
+   * 解析邮箱地址列表
+   * @param {string|Array<string>} emailAddresses - 邮箱地址（字符串或数组）
+   * @returns {Array<string>} - 解析后的邮箱地址数组
+   */
+  static parseEmailAddresses(emailAddresses) {
+    if (!emailAddresses) return [];
+    if (Array.isArray(emailAddresses)) {
+      return emailAddresses.filter(e => e && typeof e === 'string');
+    }
+    if (typeof emailAddresses === 'string') {
+      return emailAddresses.split(',').map(e => e.trim()).filter(e => e);
+    }
+    return [];
+  }
+
+  /**
+   * 判断是否应该发送通知
+   * @param {Object} notification - 通知配置
+   * @param {string} status - 测试状态
+   * @returns {boolean} - 是否应该发送通知
+   */
+  static shouldSendNotification(notification, status) {
+    if (!notification?.enabled) return false;
+    
+    const onFailureEnabled = notification.on_failure !== false; // 默认 true
+    const onSuccessEnabled = notification.on_success === true; // 默认 false
+    
+    return (
+      (onSuccessEnabled && status === 'passed') ||
+      (onFailureEnabled && (status === 'failed' || status === 'error'))
+    );
+  }
+
+  /**
+   * 发送测试通知（邮件和 webhook）
+   * @param {Object} task - 测试任务
+   * @param {Object} result - 测试结果
+   * @param {string} resultId - 结果 ID
+   * @param {Object} loggerContext - 日志上下文
+   */
+  static async sendNotifications(task, result, resultId, loggerContext = {}) {
+    if (!task?.notification?.enabled) {
+      logger.debug({ 
+        taskId: task?._id, 
+        taskName: task?.name,
+        resultId,
+        ...loggerContext
+      }, 'Notifications not enabled for this task');
+      return;
+    }
+
+    const status = result?.status || 'unknown';
+    const shouldNotify = AutoTestRunner.shouldSendNotification(task.notification, status);
+
+    if (!shouldNotify) {
+      logger.warn({ 
+        taskId: task._id, 
+        taskName: task.name,
+        resultId,
+        status,
+        onSuccess: task.notification.on_success,
+        onFailure: task.notification.on_failure,
+        ...loggerContext
+      }, 'Notification conditions not met, skipping notifications');
+      return;
+    }
+
+    try {
+      logger.info({ 
+        taskId: task._id, 
+        taskName: task.name,
+        resultId,
+        status,
+        emailEnabled: task.notification.email_enabled,
+        hasEmailAddresses: !!task.notification.email_addresses,
+        hasWebhook: !!task.notification.webhook_url,
+        ...loggerContext
+      }, 'Preparing to send test notifications');
+      
+      // 重新获取完整的测试结果数据（包含所有测试用例详情）
+      const fullResult = await AutoTestResult.findById(resultId)
+        .populate('task_id', 'name project_id')
+        .lean();
+      
+      if (!fullResult) {
+        logger.warn({ taskId: task._id, resultId }, 'Full result not found, skipping notifications');
+        return;
+      }
+
+      // 发送邮件通知
+      if (task.notification.email_enabled && task.notification.email_addresses) {
+        const emailAddresses = AutoTestRunner.parseEmailAddresses(task.notification.email_addresses);
+        
+        if (emailAddresses.length > 0) {
+          logger.info({ 
+            taskId: task._id, 
+            taskName: task.name,
+            resultId,
+            emailCount: emailAddresses.length 
+          }, 'Sending email notifications');
+          
+          const { sendTestNotificationEmail } = await import('./notificationService.js');
+          await sendTestNotificationEmail(task, fullResult, emailAddresses);
+        } else {
+          logger.warn({ 
+            taskId: task._id, 
+            taskName: task.name,
+            resultId,
+            emailAddressesRaw: task.notification.email_addresses
+          }, 'Email notifications enabled but no valid email addresses found');
+        }
+      } else {
+        logger.debug({ 
+          taskId: task._id, 
+          taskName: task.name,
+          resultId,
+          emailEnabled: task.notification.email_enabled,
+          hasEmailAddresses: !!task.notification.email_addresses
+        }, 'Email notifications skipped (not enabled or no addresses)');
+      }
+
+      // 发送 webhook 通知
+      if (task.notification.webhook_url) {
+        logger.info({ 
+          taskId: task._id, 
+          taskName: task.name,
+          resultId,
+          webhookUrl: task.notification.webhook_url 
+        }, 'Sending webhook notification');
+        
+        const { sendWebhookNotification } = await import('./notificationService.js');
+        await sendWebhookNotification(task, fullResult, task.notification.webhook_url);
+      }
+    } catch (error) {
+      logger.error({ 
+        error: error.message || error, 
+        stack: error.stack,
+        taskId: task._id, 
+        taskName: task.name,
+        resultId,
+        ...loggerContext
+      }, 'Failed to send notification');
+      // 不抛出错误，避免影响测试流程
+    }
+  }
+
   async runTask(task, environment, resultId) {
     const result = await AutoTestResult.findById(resultId);
     if (!result) {
@@ -953,6 +1110,13 @@ export class AutoTestRunner {
 
       await result.save();
 
+      // 获取结果 ID（统一处理）
+      const resultId = AutoTestRunner.getResultId(result);
+      if (!resultId) {
+        logger.error({ taskId: task._id }, 'Result ID is null, cannot proceed with notifications');
+        return;
+      }
+
       logger.info({ taskId: task._id, resultId, status: result.status }, 'Auto test task completed');
 
       // 如果配置了代码仓库和AI配置，执行AI分析
@@ -967,277 +1131,58 @@ export class AutoTestRunner {
       }
 
       // 发送通知（如果配置了）
-      if (task.notification?.enabled) {
-        // 注意：on_failure 默认是 true，所以如果未设置或为 true，失败和错误都应该通知
-        // 只有当明确设置为 false 时才不通知失败/错误
-        const onFailureEnabled = task.notification.on_failure !== false; // 默认 true
-        const onSuccessEnabled = task.notification.on_success === true; // 默认 false，需要明确启用
-        
-        const shouldNotify =
-          (onSuccessEnabled && result.status === 'passed') ||
-          (onFailureEnabled && (result.status === 'failed' || result.status === 'error'));
-
-        logger.info({ 
-          taskId: task._id, 
-          taskName: task.name,
-          resultId: result._id || result.id,
-          status: result.status,
-          notificationEnabled: task.notification.enabled,
-          onSuccess: task.notification.on_success,
-          onSuccessEnabled,
-          onFailure: task.notification.on_failure,
-          onFailureEnabled,
-          shouldNotify,
-          emailEnabled: task.notification.email_enabled,
-          hasEmailAddresses: !!task.notification.email_addresses
-        }, 'Checking notification conditions for completed test');
-
-        if (shouldNotify) {
-          try {
-            logger.info({ 
-              taskId: task._id, 
-              resultId: result._id || result.id,
-              status: result.status,
-              emailEnabled: task.notification.email_enabled,
-              hasEmailAddresses: !!task.notification.email_addresses,
-              hasWebhook: !!task.notification.webhook_url
-            }, 'Preparing to send test notifications');
-            
-            // 重新获取完整的测试结果数据（包含所有测试用例详情）
-            const fullResult = await AutoTestResult.findById(result._id || result.id)
-              .populate('task_id', 'name project_id')
-              .lean();
-            
-            // 发送邮件通知
-            if (task.notification.email_enabled && task.notification.email_addresses) {
-              let emailAddresses = [];
-              if (Array.isArray(task.notification.email_addresses)) {
-                emailAddresses = task.notification.email_addresses;
-              } else if (typeof task.notification.email_addresses === 'string') {
-                emailAddresses = task.notification.email_addresses.split(',').map(e => e.trim()).filter(e => e);
-              }
-              
-              if (emailAddresses.length > 0) {
-                logger.info({ 
-                  taskId: task._id, 
-                  resultId: result._id || result.id,
-                  emailCount: emailAddresses.length 
-                }, 'Sending email notifications');
-                
-                const { sendTestNotificationEmail } = await import('./notificationService.js');
-                await sendTestNotificationEmail(task, fullResult || result, emailAddresses);
-              } else {
-                logger.warn({ 
-                  taskId: task._id, 
-                  resultId: result._id || result.id 
-                }, 'Email notifications enabled but no valid email addresses found');
-              }
-            } else {
-              logger.debug({ 
-                taskId: task._id, 
-                resultId: result._id || result.id,
-                emailEnabled: task.notification.email_enabled,
-                hasEmailAddresses: !!task.notification.email_addresses
-              }, 'Email notifications skipped (not enabled or no addresses)');
-            }
-
-            // 发送 webhook 通知
-            if (task.notification.webhook_url) {
-              logger.info({ 
-                taskId: task._id, 
-                resultId: result._id || result.id,
-                webhookUrl: task.notification.webhook_url 
-              }, 'Sending webhook notification');
-              
-              const { sendWebhookNotification } = await import('./notificationService.js');
-              await sendWebhookNotification(task, fullResult || result, task.notification.webhook_url);
-            }
-          } catch (error) {
-            logger.error({ 
-              error: error.message || error, 
-              stack: error.stack,
-              taskId: task._id, 
-              taskName: task.name,
-              resultId: result._id || result.id 
-            }, 'Failed to send notification');
-            // 不抛出错误，避免影响测试流程
-          }
-        } else {
-          logger.warn({ 
-            taskId: task._id, 
-            taskName: task.name,
-            resultId: result._id || result.id,
-            status: result.status,
-            onSuccess: task.notification.on_success,
-            onSuccessEnabled,
-            onFailure: task.notification.on_failure,
-            onFailureEnabled,
-            notificationEnabled: task.notification.enabled
-          }, 'Notification conditions not met, skipping notifications');
-        }
-      } else {
-        logger.debug({ 
-          taskId: task._id, 
-          taskName: task.name,
-          resultId: result._id || result.id,
-          notificationEnabled: task.notification?.enabled
-        }, 'Notifications not enabled for this task');
-      }
+      await AutoTestRunner.sendNotifications(task, result, resultId, {
+        context: 'test_completed'
+      });
     } catch (error) {
+      // resultId 是函数参数，应该始终可用
+      if (!resultId) {
+        logger.error({ 
+          error: error.message || error, 
+          stack: error.stack,
+          taskId: task?._id,
+          taskName: task?.name
+        }, 'Auto test task execution failed, but resultId is not available');
+        return;
+      }
+
       logger.error({ 
         error: error.message || error, 
         stack: error.stack,
-        taskId: task._id,
-        taskName: task.name,
+        taskId: task?._id,
+        taskName: task?.name,
         resultId 
       }, 'Auto test task execution failed');
       
       const result = await AutoTestResult.findById(resultId);
-      if (result) {
-        result.status = 'error';
-        result.completed_at = new Date();
-        if (result.started_at) {
-          result.duration = result.completed_at - result.started_at;
-        }
-        await result.save();
-
-        // 确保 task 对象可用，如果不可用则重新获取
-        let taskForNotification = task;
-        if (!task || !task._id) {
-          logger.warn({ resultId }, 'Task object not available in error handler, fetching from database');
-          const AutoTestTask = (await import('../Models/AutoTestTask.js')).default;
-          taskForNotification = await AutoTestTask.findById(result.task_id).lean();
-          if (!taskForNotification) {
-            logger.error({ resultId, taskId: result.task_id }, 'Task not found for notification');
-            return;
-          }
-        }
-
-        logger.info({ 
-          taskId: taskForNotification._id, 
-          taskName: taskForNotification.name,
-          resultId,
-          status: result.status,
-          notificationEnabled: taskForNotification.notification?.enabled,
-          emailEnabled: taskForNotification.notification?.email_enabled,
-          onFailure: taskForNotification.notification?.on_failure,
-          onSuccess: taskForNotification.notification?.on_success
-        }, 'Test execution failed, checking notification settings');
-
-        // 如果配置了通知，发送错误通知
-        if (taskForNotification.notification?.enabled) {
-          // 对于错误状态，应该总是通知（如果配置了 on_failure 或总是通知错误）
-          // 注意：on_failure 默认是 true，所以错误状态应该总是触发通知
-          const shouldNotify = 
-            taskForNotification.notification.on_failure !== false || // 如果明确设置为 false 才不通知，否则默认通知
-            (result.status === 'error'); // 错误状态总是应该通知
-          
-          logger.info({ 
-            taskId: taskForNotification._id, 
-            taskName: taskForNotification.name,
-            resultId,
-            shouldNotify,
-            status: result.status,
-            onFailure: taskForNotification.notification.on_failure,
-            onFailureDefault: taskForNotification.notification.on_failure === undefined // 如果未设置，使用默认值 true
-          }, 'Notification decision for error status');
-          
-          if (shouldNotify) {
-            try {
-              logger.info({ 
-                taskId: taskForNotification._id, 
-                taskName: taskForNotification.name,
-                resultId,
-                status: result.status,
-                emailEnabled: taskForNotification.notification.email_enabled,
-                hasEmailAddresses: !!taskForNotification.notification.email_addresses,
-                hasWebhook: !!taskForNotification.notification.webhook_url
-              }, 'Preparing to send error notifications');
-              
-              // 重新获取完整的测试结果数据（包含所有测试用例详情）
-              const fullResult = await AutoTestResult.findById(resultId)
-                .populate('task_id', 'name project_id')
-                .lean();
-              
-              // 发送邮件通知
-              if (taskForNotification.notification.email_enabled && taskForNotification.notification.email_addresses) {
-                let emailAddresses = [];
-                if (Array.isArray(taskForNotification.notification.email_addresses)) {
-                  emailAddresses = taskForNotification.notification.email_addresses;
-                } else if (typeof taskForNotification.notification.email_addresses === 'string') {
-                  emailAddresses = taskForNotification.notification.email_addresses.split(',').map(e => e.trim()).filter(e => e);
-                }
-                
-                if (emailAddresses.length > 0) {
-                  logger.info({ 
-                    taskId: taskForNotification._id, 
-                    taskName: taskForNotification.name,
-                    resultId,
-                    emailCount: emailAddresses.length,
-                    emailAddresses: emailAddresses // 记录邮箱地址用于调试
-                  }, 'Sending error email notifications');
-                  
-                  const { sendTestNotificationEmail } = await import('./notificationService.js');
-                  await sendTestNotificationEmail(taskForNotification, fullResult || result, emailAddresses);
-                } else {
-                  logger.warn({ 
-                    taskId: taskForNotification._id, 
-                    taskName: taskForNotification.name,
-                    resultId,
-                    emailAddressesRaw: taskForNotification.notification.email_addresses
-                  }, 'Error email notifications enabled but no valid email addresses found');
-                }
-              } else {
-                logger.debug({ 
-                  taskId: taskForNotification._id, 
-                  taskName: taskForNotification.name,
-                  resultId,
-                  emailEnabled: taskForNotification.notification.email_enabled,
-                  hasEmailAddresses: !!taskForNotification.notification.email_addresses,
-                  emailAddressesValue: taskForNotification.notification.email_addresses
-                }, 'Error email notifications skipped (not enabled or no addresses)');
-              }
-
-              // 发送 webhook 通知
-              if (taskForNotification.notification.webhook_url) {
-                logger.info({ 
-                  taskId: taskForNotification._id, 
-                  taskName: taskForNotification.name,
-                  resultId,
-                  webhookUrl: taskForNotification.notification.webhook_url 
-                }, 'Sending error webhook notification');
-                
-                const { sendWebhookNotification } = await import('./notificationService.js');
-                await sendWebhookNotification(taskForNotification, fullResult || result, taskForNotification.notification.webhook_url);
-              }
-            } catch (notifyError) {
-              logger.error({ 
-                error: notifyError.message || notifyError, 
-                stack: notifyError.stack,
-                taskId: taskForNotification._id, 
-                taskName: taskForNotification.name,
-                resultId 
-              }, 'Failed to send error notification');
-            }
-          } else {
-            logger.debug({ 
-              taskId: taskForNotification._id, 
-              taskName: taskForNotification.name,
-              resultId,
-              status: result.status,
-              onFailure: taskForNotification.notification.on_failure
-            }, 'Error notification conditions not met, skipping notifications');
-          }
-        } else {
-          logger.debug({ 
-            taskId: taskForNotification._id || task?._id, 
-            taskName: taskForNotification.name || task?.name,
-            resultId 
-          }, 'Notifications not enabled for this task');
-        }
-      } else {
-        logger.error({ taskId: task._id, resultId }, 'Test result not found after execution error');
+      if (!result) {
+        logger.error({ resultId }, 'Result not found in error handler, cannot send notifications');
+        return;
       }
+
+      result.status = 'error';
+      result.completed_at = new Date();
+      if (result.started_at) {
+        result.duration = result.completed_at - result.started_at;
+      }
+      await result.save();
+
+      // 确保 task 对象可用，如果不可用则重新获取
+      let taskForNotification = task;
+      if (!task || !task._id) {
+        logger.warn({ resultId }, 'Task object not available in error handler, fetching from database');
+        const AutoTestTask = (await import('../Models/AutoTestTask.js')).default;
+        taskForNotification = await AutoTestTask.findById(result.task_id).lean();
+        if (!taskForNotification) {
+          logger.error({ resultId, taskId: result.task_id }, 'Task not found for notification');
+          return;
+        }
+      }
+
+      // 发送错误通知（使用统一的通知发送方法）
+      await AutoTestRunner.sendNotifications(taskForNotification, result, resultId, {
+        context: 'test_error'
+      });
     }
   }
 

@@ -84,7 +84,15 @@ function validateEmailConfig(emailConfig) {
 }
 
 export async function sendTestNotificationEmail(task, result, emailAddresses) {
+  // 动态导入以避免循环依赖（在函数开始处导入，确保整个函数都可以使用）
+  const { AutoTestRunner } = await import('./autoTestRunner.js');
+  
   try {
+    if (!task || !result) {
+      logger.warn({ taskId: task?._id, resultId: AutoTestRunner.getResultId(result) }, 'Task or result is null, skipping email notification');
+      return;
+    }
+
     // 获取邮件配置
     const emailConfig = await EmailConfig.getConfig();
     if (!emailConfig) {
@@ -95,11 +103,12 @@ export async function sendTestNotificationEmail(task, result, emailAddresses) {
     // 使用通用验证函数检查邮件配置是否有效
     const validation = validateEmailConfig(emailConfig);
     if (!validation.valid) {
+      const resultId = AutoTestRunner.getResultId(result);
       logger.warn({ 
         provider: emailConfig.provider, 
         reason: validation.reason,
         taskId: task._id,
-        resultId: result._id || result.id 
+        resultId
       }, 'Email service not properly configured, skipping email notification');
       return;
     }
@@ -240,9 +249,11 @@ export async function sendTestNotificationEmail(task, result, emailAddresses) {
         },
       ];
       
-      logger.info({ taskId: task._id, resultId: resultData._id || resultData.id, fileName }, 'HTML test report generated for email attachment');
+      const resultId = AutoTestRunner.getResultId(resultData);
+      logger.info({ taskId: task._id, resultId, fileName }, 'HTML test report generated for email attachment');
     } catch (error) {
-      logger.error({ error, taskId: task._id, resultId: result._id || result.id }, 'Failed to generate HTML report for email attachment');
+      const resultId = AutoTestRunner.getResultId(result);
+      logger.error({ error, taskId: task._id, resultId }, 'Failed to generate HTML report for email attachment');
       // 即使生成报告失败，也继续发送邮件（不带附件）
     }
 
@@ -258,9 +269,10 @@ export async function sendTestNotificationEmail(task, result, emailAddresses) {
     const successCount = results.filter(r => r.status === 'fulfilled').length;
     const failureCount = results.filter(r => r.status === 'rejected').length;
     
+    const resultId = AutoTestRunner.getResultId(result);
     logger.info({ 
       taskId: task._id, 
-      resultId: result._id || result.id, 
+      resultId, 
       total: emailAddresses.length,
       success: successCount,
       failed: failureCount
@@ -269,16 +281,18 @@ export async function sendTestNotificationEmail(task, result, emailAddresses) {
     if (failureCount > 0) {
       logger.warn({ 
         taskId: task._id, 
-        resultId: result._id || result.id,
+        resultId,
         failureCount 
       }, 'Some email notifications failed to send');
     }
   } catch (error) {
+    // AutoTestRunner 已在函数开始处导入，可以直接使用
+    const resultId = AutoTestRunner.getResultId(result);
     logger.error({ 
       error: error.message || error, 
       stack: error.stack,
-      taskId: task._id, 
-      resultId: result._id || result.id 
+      taskId: task?._id, 
+      resultId
     }, 'Failed to send test notification email');
     // 不抛出错误，避免影响测试流程
   }
@@ -291,12 +305,21 @@ export async function sendTestNotificationEmail(task, result, emailAddresses) {
  * @param {string} webhookUrl - Webhook URL
  */
 export async function sendWebhookNotification(task, result, webhookUrl) {
+  // 动态导入以避免循环依赖（在函数开始处导入，确保整个函数都可以使用）
+  const { AutoTestRunner } = await import('./autoTestRunner.js');
+  
   try {
+    if (!task || !result || !webhookUrl) {
+      logger.warn({ taskId: task?._id, resultId: AutoTestRunner.getResultId(result), webhookUrl }, 'Task, result, or webhookUrl is null, skipping webhook notification');
+      return;
+    }
+
     const summary = result.summary || {};
     const passRate = summary.total > 0 
       ? ((summary.passed / summary.total) * 100).toFixed(2) 
       : '0.00';
 
+    const resultId = AutoTestRunner.getResultId(result);
     const payload = {
       event: 'test_completed',
       task: {
@@ -305,7 +328,7 @@ export async function sendWebhookNotification(task, result, webhookUrl) {
         project_id: task.project_id,
       },
       result: {
-        id: result._id,
+        id: resultId,
         status: result.status,
         summary: {
           total: summary.total || 0,
@@ -327,9 +350,11 @@ export async function sendWebhookNotification(task, result, webhookUrl) {
       },
     });
 
-    logger.info({ taskId: task._id, resultId: result._id, webhookUrl, status: response.status }, 'Webhook notification sent');
+    logger.info({ taskId: task._id, resultId, webhookUrl, status: response.status }, 'Webhook notification sent');
   } catch (error) {
-    logger.error({ error, taskId: task._id, resultId: result._id, webhookUrl }, 'Failed to send webhook notification');
+    // AutoTestRunner 已在函数开始处导入，可以直接使用
+    const resultId = AutoTestRunner.getResultId(result);
+    logger.error({ error, taskId: task?._id, resultId, webhookUrl }, 'Failed to send webhook notification');
     // 不抛出错误，避免影响测试流程
   }
 }

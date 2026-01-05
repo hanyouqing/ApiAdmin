@@ -17,7 +17,7 @@ class AutoTestTaskController extends BaseController {
   static async createTask(ctx) {
     try {
       const user = ctx.state.user;
-      let { name, description, project_id, test_cases, environment_id, base_url, schedule, notification } = ctx.request.body;
+      let { name, description, project_id, test_cases, environment_id, base_url, schedule, notification, code_repository_id, ai_config_provider } = ctx.request.body;
 
       if (!name || !project_id) {
         ctx.status = 400;
@@ -791,7 +791,14 @@ class AutoTestTaskController extends BaseController {
       // 重新获取完整的结果数据，包含 populate
       try {
         result = await AutoTestResult.findById(resultId)
-          .populate('task_id', 'name')
+          .populate({
+            path: 'task_id',
+            select: 'name description project_id enabled schedule notification',
+            populate: {
+              path: 'project_id',
+              select: 'project_name project_desc basepath',
+            }
+          })
           .populate('environment_id', 'name base_url')
           .lean();
         
@@ -864,10 +871,19 @@ class AutoTestTaskController extends BaseController {
 
       const [results, total] = await Promise.all([
         AutoTestResult.find({ task_id: id })
+          .populate({
+            path: 'task_id',
+            select: 'name description project_id enabled',
+            populate: {
+              path: 'project_id',
+              select: 'project_name project_desc basepath',
+            }
+          })
           .populate('environment_id', 'name base_url')
           .sort({ started_at: -1 })
           .skip(skip)
-          .limit(limit),
+          .limit(limit)
+          .lean(),
         AutoTestResult.countDocuments({ task_id: id }),
       ]);
 
@@ -904,7 +920,14 @@ class AutoTestTaskController extends BaseController {
       }
 
       const result = await AutoTestResult.findById(resultId)
-        .populate('task_id', 'name')
+        .populate({
+          path: 'task_id',
+          select: 'name description project_id enabled schedule notification',
+          populate: {
+            path: 'project_id',
+            select: 'project_name project_desc basepath',
+          }
+        })
         .populate('environment_id', 'name base_url')
         .lean();
 
@@ -1716,7 +1739,14 @@ class AutoTestTaskController extends BaseController {
       }
 
       const result = await AutoTestResult.findById(id)
-        .populate('task_id', 'name project_id code_repository_id ai_config_provider')
+        .populate({
+          path: 'task_id',
+          select: 'name description project_id code_repository_id ai_config_provider enabled',
+          populate: {
+            path: 'project_id',
+            select: 'project_name project_desc basepath',
+          }
+        })
         .lean();
 
       if (!result) {
