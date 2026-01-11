@@ -484,6 +484,126 @@ class InterfaceController extends BaseController {
     }
   }
 
+  // 批量删除接口
+  static async batchDelete(ctx) {
+    try {
+      const user = ctx.state.user;
+      const { ids } = ctx.request.body;
+
+      if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        ctx.status = 400;
+        ctx.body = InterfaceController.error('请选择要删除的接口');
+        return;
+      }
+
+      // 验证所有ID都是有效的ObjectId
+      const validIds = ids.filter(id => validateObjectId(id));
+      if (validIds.length === 0) {
+        ctx.status = 400;
+        ctx.body = InterfaceController.error('无效的接口ID');
+        return;
+      }
+
+      // 获取所有接口数据
+      const interfaces = await Interface.find({ _id: { $in: validIds } });
+      if (interfaces.length === 0) {
+        ctx.status = 404;
+        ctx.body = InterfaceController.error('未找到要删除的接口');
+        return;
+      }
+
+      const Project = (await import('../Models/Project.js')).default;
+      // executeInterfaceDeleteHook, createActivity, logOperation 已在文件顶部导入，直接使用
+
+      const deletedInterfaces = [];
+      const failedInterfaces = [];
+      const isSuperAdmin = user.role === 'super_admin';
+
+      // 逐个删除接口，检查权限
+      for (const interfaceData of interfaces) {
+        try {
+          const project = await Project.findById(interfaceData.project_id);
+          if (!project) {
+            failedInterfaces.push({ id: interfaceData._id, reason: '项目不存在' });
+            continue;
+          }
+
+          const isOwner = interfaceData.uid.toString() === user._id.toString();
+          const isProjectOwner = project.uid.toString() === user._id.toString();
+
+          if (!isOwner && !isProjectOwner && !isSuperAdmin) {
+            failedInterfaces.push({ id: interfaceData._id, reason: '无权限删除此接口' });
+            continue;
+          }
+
+          // 执行删除钩子
+          await executeInterfaceDeleteHook(interfaceData._id, user);
+          
+          // 删除接口
+          await Interface.findByIdAndDelete(interfaceData._id);
+
+          // 记录活动日志
+          if (interfaceData) {
+            await createActivity(
+              interfaceData.project_id,
+              user._id,
+              'interface.deleted',
+              'interface',
+              interfaceData._id,
+              `删除了接口 ${interfaceData.title}`,
+              { interfaceName: interfaceData.title }
+            );
+          }
+
+          // 记录操作日志
+          await logOperation({
+            type: 'interface',
+            action: 'delete',
+            targetId: interfaceData._id,
+            targetName: interfaceData.title,
+            userId: user._id,
+            username: user.username,
+            projectId: interfaceData.project_id,
+            ip: ctx.ip || ctx.request.ip || '',
+            userAgent: ctx.headers['user-agent'] || '',
+            uri: ctx.request.url || '',
+          });
+
+          deletedInterfaces.push(interfaceData._id);
+          logger.info({ userId: user._id, interfaceId: interfaceData._id }, 'Interface deleted in batch');
+        } catch (error) {
+          logger.error({ error, interfaceId: interfaceData._id }, 'Failed to delete interface in batch');
+          failedInterfaces.push({ id: interfaceData._id, reason: error.message || '删除失败' });
+        }
+      }
+
+      if (deletedInterfaces.length === 0) {
+        ctx.status = 400;
+        ctx.body = InterfaceController.error('没有接口被删除');
+        return;
+      }
+
+      const message = failedInterfaces.length > 0
+        ? `成功删除 ${deletedInterfaces.length} 个接口，${failedInterfaces.length} 个接口删除失败`
+        : `成功删除 ${deletedInterfaces.length} 个接口`;
+
+      ctx.body = InterfaceController.success({
+        deleted: deletedInterfaces.length,
+        failed: failedInterfaces.length,
+        deletedIds: deletedInterfaces,
+        failedDetails: failedInterfaces,
+      }, message);
+    } catch (error) {
+      logger.error({ error }, 'Batch delete interface error');
+      ctx.status = 500;
+      ctx.body = InterfaceController.error(
+        process.env.NODE_ENV === 'production'
+          ? '批量删除失败'
+          : error.message || '批量删除失败'
+      );
+    }
+  }
+
   static async get(ctx) {
     try {
       const { _id } = ctx.query;

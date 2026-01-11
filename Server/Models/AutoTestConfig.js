@@ -72,3 +72,4 @@ const AutoTestConfig = mongoose.model('AutoTestConfig', autoTestConfigSchema);
 
 export default AutoTestConfig;
 
+

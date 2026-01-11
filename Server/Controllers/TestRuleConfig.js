@@ -240,3 +240,4 @@ class TestRuleConfigController extends BaseController {
 
 export default TestRuleConfigController;
 
+

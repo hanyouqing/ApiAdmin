@@ -259,3 +259,4 @@ export async function generateAllureReport(allureResults, outputDir) {
   }
 }
 
+

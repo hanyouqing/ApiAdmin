@@ -191,6 +191,7 @@ router.get('/api/interface/list', apiRateLimiter, authMiddleware, InterfaceContr
 router.post('/api/interface/add', apiRateLimiter, authMiddleware, InterfaceController.add);
 router.put('/api/interface/up', apiRateLimiter, authMiddleware, InterfaceController.update);
 router.delete('/api/interface/del', apiRateLimiter, authMiddleware, InterfaceController.delete);
+router.post('/api/interface/batch-delete', apiRateLimiter, authMiddleware, InterfaceController.batchDelete);
 router.get('/api/interface/get', apiRateLimiter, authMiddleware, InterfaceController.get);
 router.post('/api/interface/run', apiRateLimiter, authMiddleware, InterfaceController.run);
 

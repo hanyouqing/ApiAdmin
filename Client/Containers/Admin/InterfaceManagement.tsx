@@ -36,6 +36,7 @@ const InterfaceManagement: React.FC = () => {
   const [searchText, setSearchText] = useState('');
   const [projectFilter, setProjectFilter] = useState<string | undefined>(undefined);
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
 
   const fetchProjects = async () => {
     try {
@@ -140,6 +141,44 @@ const InterfaceManagement: React.FC = () => {
             message.error(error.response?.data?.message || t('admin.interface.deleteFailed'));
           } else {
             console.error('删除接口失败:', error.response?.data?.message || t('admin.interface.deleteFailed'));
+          }
+        }
+      },
+    });
+  };
+
+  const handleBatchDelete = () => {
+    if (selectedRowKeys.length === 0) {
+      if (message) {
+        message.warning(t('admin.interface.noSelection'));
+      }
+      return;
+    }
+
+    Modal.confirm({
+      title: t('admin.interface.batchDeleteConfirm'),
+      content: t('admin.interface.batchDeleteConfirmMessage', { count: selectedRowKeys.length }),
+      onOk: async () => {
+        try {
+          const response = await api.post('/interface/batch-delete', { ids: selectedRowKeys });
+          if (message) {
+            const data = response.data?.data;
+            if (data?.failed > 0) {
+              message.warning(response.data?.message || t('admin.interface.batchDeletePartialSuccess', { 
+                success: data.deleted, 
+                failed: data.failed 
+              }));
+            } else {
+              message.success(t('admin.interface.batchDeleteSuccess', { count: data?.deleted || selectedRowKeys.length }));
+            }
+          }
+          setSelectedRowKeys([]);
+          fetchInterfaces();
+        } catch (error: any) {
+          if (message) {
+            message.error(error.response?.data?.message || t('admin.interface.batchDeleteFailed'));
+          } else {
+            console.error('批量删除接口失败:', error.response?.data?.message || t('admin.interface.batchDeleteFailed'));
           }
         }
       },
@@ -296,6 +335,15 @@ const InterfaceManagement: React.FC = () => {
               <Option value="tested">{t('interface.status.tested')}</Option>
               <Option value="online">{t('interface.status.online')}</Option>
             </Select>
+            {selectedRowKeys.length > 0 && (
+              <Button
+                danger
+                icon={<DeleteOutlined />}
+                onClick={handleBatchDelete}
+              >
+                {t('admin.interface.batchDelete', { count: selectedRowKeys.length })}
+              </Button>
+            )}
           </Space>
         </Space>
         <Table 
@@ -303,6 +351,12 @@ const InterfaceManagement: React.FC = () => {
           dataSource={interfaces || []} 
           rowKey="_id" 
           loading={loading}
+          rowSelection={{
+            selectedRowKeys,
+            onChange: (newSelectedRowKeys) => {
+              setSelectedRowKeys(newSelectedRowKeys);
+            },
+          }}
           locale={{
             emptyText: t('common.empty'),
           }}

@@ -123,3 +123,4 @@ const TestRuleConfig = mongoose.model('TestRuleConfig', testRuleConfigSchema);
 
 export default TestRuleConfig;
 
+

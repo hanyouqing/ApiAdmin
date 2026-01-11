@@ -1252,7 +1252,41 @@
       "pullSuccess": "Code pulled successfully",
       "pullFailed": "Failed to pull code"
     },
-    "noPermission": "You do not have permission to access the admin panel"
+    "noPermission": "You do not have permission to access the admin panel",
+    "interface": {
+      "title": "Interface Management",
+      "create": "Create Interface",
+      "edit": "Edit Interface",
+      "delete": "Delete Interface",
+      "name": "Interface Name",
+      "method": "Request Method",
+      "path": "Interface Path",
+      "project": "Project",
+      "status": "Status",
+      "searchPlaceholder": "Search interface name or path",
+      "filterByProject": "Filter by Project",
+      "filterByStatus": "Filter by Status",
+      "projectPlaceholder": "Please select project",
+      "projectRequired": "Please select project",
+      "titleRequired": "Please enter interface name",
+      "methodRequired": "Please select request method",
+      "pathRequired": "Please enter interface path",
+      "deleteConfirm": "Confirm Delete",
+      "deleteConfirmMessage": "Are you sure you want to delete this interface?",
+      "deleteSuccess": "Deleted successfully",
+      "deleteFailed": "Failed to delete",
+      "createSuccess": "Created successfully",
+      "updateSuccess": "Updated successfully",
+      "operationFailed": "Operation failed",
+      "fetchFailed": "Failed to fetch interface list",
+      "batchDelete": "Batch Delete ({{count}})",
+      "batchDeleteConfirm": "Confirm Batch Delete",
+      "batchDeleteConfirmMessage": "Are you sure you want to delete {{count}} selected interfaces? This action cannot be undone.",
+      "batchDeleteSuccess": "Successfully deleted {{count}} interfaces",
+      "batchDeletePartialSuccess": "Successfully deleted {{success}} interfaces, {{failed}} interfaces failed to delete",
+      "batchDeleteFailed": "Batch delete failed",
+      "noSelection": "Please select interfaces to delete"
+    }
   }
 }
 

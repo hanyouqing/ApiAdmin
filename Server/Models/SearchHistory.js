@@ -38,3 +38,4 @@ const SearchHistory = mongoose.model('SearchHistory', searchHistorySchema);
 
 export default SearchHistory;
 
+

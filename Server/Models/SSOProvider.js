@@ -50,3 +50,4 @@ const SSOProvider = mongoose.model('SSOProvider', ssoProviderSchema);
 export default SSOProvider;
 
 
+
