@@ -30,14 +30,17 @@ export const deepMerge = <T extends Record<string, any>>(target: T, ...sources: 
     for (const key in source) {
       if (isObject(source[key])) {
         if (!target[key]) Object.assign(target, { [key]: {} });
-        deepMerge(target[key], source[key]);
+        deepMerge(target[key] as any, source[key] as any);
       } else {
         Object.assign(target, { [key]: source[key] });
       }
     }
   }
 
-  return deepMerge(target, ...sources);
+  if (sources.length > 0) {
+    return deepMerge(target, ...sources);
+  }
+  return target;
 };
 
 /**
@@ -107,4 +110,3 @@ export const omitEmpty = <T extends Record<string, any>>(obj: T): Partial<T> => 
   }
   return result;
 };
-

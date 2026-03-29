@@ -1,5 +1,5 @@
 // 使用环境变量加载器（支持文件监听和自动刷新）
-import { initEnvLoader, loadEnvFiles } from './Utils/envLoader';
+import { initEnvLoader, loadEnvFiles } from './Utils/envLoader.js';
 import { fileURLToPath } from 'url';
 import path from 'path';
 
@@ -14,7 +14,7 @@ let loadedFiles: string[] = [];
 let varSources = new Map<string, string>();
 
 // 先加载环境变量（不启用监听，等 logger 初始化后再启用）
-// 必须在导入 config 之前加载，确保环境变量可用
+// 必须在导入 config.js 之前加载，确保环境变量可用
 const envLoadResult = loadEnvFiles();
 loadedFiles = envLoadResult.loadedFiles;
 varSources = envLoadResult.varSources;
@@ -25,16 +25,16 @@ import cors from '@koa/cors';
 import helmet from 'koa-helmet';
 import serve from 'koa-static';
 import mongoose from 'mongoose';
-import router from './Router';
-import { errorHandler } from './Middleware/errorHandler';
-import { logger } from './Utils/logger';
-import config, { reloadConfig } from './Utils/config';
-import { swaggerWhitelistMiddleware } from './Middleware/swaggerWhitelist';
-import { checkDependencies, waitForDependencies, isReady } from './Utils/dependencyChecker';
-import { pluginManager } from './Utils/pluginManager';
-import { registerPluginRoutes } from './Utils/pluginRouter';
-import { pluginHookMiddleware } from './Middleware/pluginHook';
-import './Models/index';
+import router from './Router.js';
+import { errorHandler } from './Middleware/errorHandler.js';
+import { logger } from './Utils/logger.js';
+import config, { reloadConfig } from './Utils/config.js';
+import { swaggerWhitelistMiddleware } from './Middleware/swaggerWhitelist.js';
+import { checkDependencies, waitForDependencies, isReady } from './Utils/dependencyChecker.js';
+import { pluginManager } from './Utils/pluginManager.js';
+import { registerPluginRoutes } from './Utils/pluginRouter.js';
+import { pluginHookMiddleware } from './Middleware/pluginHook.js';
+import './Models/index.js';
 
 // 现在 logger 已初始化，重新初始化环境变量加载器并启用文件监听
 // 同时重新加载配置以确保使用从 .env.local 加载的环境变量
@@ -48,7 +48,7 @@ envLoader = initEnvLoader({
     }, '✅ Environment variables reloaded');
     
     // 重新加载配置
-    const { reloadConfig: reload } = await import('./Utils/config');
+    const { reloadConfig: reload } = await import('./Utils/config.js');
     reload();
     
     logger.info({
@@ -109,11 +109,10 @@ const app = new Koa();
 app.proxy = true;
 
 // 错误处理中间层（最外层）
-// app.use(errorHandler);
+app.use(errorHandler);
 
 // 依赖检测中间件
 // 如果依赖未就绪，业务 API 返回 503 Service Unavailable
-/*
 app.use(async (ctx, next) => {
   // 排除系统端点（健康检查、版本信息、Swagger）
   const isSystemEndpoint = 
@@ -121,7 +120,7 @@ app.use(async (ctx, next) => {
     ctx.path === '/api/version' || 
     ctx.path === '/version' || 
     ctx.path.startsWith('/swagger') || 
-    ctx.path === '/swaggeron';
+    ctx.path === '/swagger.json';
 
   if (!isReady() && !isSystemEndpoint) {
     ctx.status = 503;
@@ -134,20 +133,16 @@ app.use(async (ctx, next) => {
   }
   await next();
 });
-*/
 
 // 插件 Hook 中间件（请求前）
-// app.use(pluginHookMiddleware as any);
+app.use(pluginHookMiddleware as any);
 
 // 安全中间件
-/*
 app.use(helmet({
   contentSecurityPolicy: false, // 如果需要自定义 CSP，请在此配置
 }));
-*/
 
 // CORS 配置
-/*
 if (config.CORS_ORIGIN && config.CORS_ORIGIN !== '*') {
   const origins = config.CORS_ORIGIN.split(',').map((origin: string) => origin.trim()).filter((origin: string) => origin.length > 0);
   
@@ -176,21 +171,18 @@ if (config.CORS_ORIGIN && config.CORS_ORIGIN !== '*') {
     allowHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With', 'X-Project-Token'],
   }));
 }
-*/
 
 // 基础中间件
-/*
 app.use(bodyParser({
   enableTypes: ['json', 'form', 'text'],
   jsonLimit: '10mb',
   formLimit: '10mb',
   textLimit: '10mb',
 }));
-*/
 
 // 静态资源服务
-// app.use(serve(path.join(__dirname, '../Static')));
-// app.use(serve(path.join(__dirname, '../uploads'), { defer: true }));
+app.use(serve(path.join(__dirname, '../Static')));
+app.use(serve(path.join(__dirname, '../uploads'), { defer: true }));
 
 // Swagger 集成
 const swaggerEnabled = config.SWAGGER_ENABLED === true || config.SWAGGER_ENABLED === 'true' || config.SWAGGER_ENABLED === '1';
@@ -201,9 +193,9 @@ if (swaggerEnabled) {
 
   // 1. Swagger JSON 端点
   app.use(async (ctx, next) => {
-    if (ctx.path === '/swaggeron' || ctx.path === '/api-docs') {
+    if (ctx.path === '/swagger.json' || ctx.path === '/api-docs') {
       try {
-        const swaggerDefinition = (await import('./Utils/swagger')).default;
+        const swaggerDefinition = (await import('./Utils/swagger.js')).default;
         ctx.body = swaggerDefinition;
       } catch (err: any) {
         logger.error({ error: err.message }, 'Error generating swagger spec');
@@ -234,15 +226,15 @@ if (swaggerEnabled) {
         // 设置 Content-Type
         if (ext === '.html') ctx.type = 'text/html';
         else if (ext === '.css') ctx.type = 'text/css';
-        else if (ext === '') ctx.type = 'application/javascript';
+        else if (ext === '.js') ctx.type = 'application/javascript';
         else if (ext === '.png') ctx.type = 'image/png';
         
         // 如果是 index.html，替换 Swagger JSON URL
         if (fileName === 'index.html') {
           let html = content.toString();
           html = html.replace(
-            'url: "https://petstore.swagger.io/v2/swaggeron"',
-            'url: "/swaggeron"'
+            'url: "https://petstore.swagger.io/v2/swagger.json"',
+            'url: "/swagger.json"'
           );
           ctx.body = html;
         } else {
@@ -270,13 +262,13 @@ app.use(serve(path.join(__dirname, '../uploads'), { prefix: '/uploads' } as any)
 import Router from 'koa-router';
 const swaggerRouter = new Router();
 
-swaggerRouter.get('/swaggeron', swaggerWhitelistMiddleware as any, async (ctx) => {
+swaggerRouter.get('/swagger.json', swaggerWhitelistMiddleware as any, async (ctx) => {
   if (!swaggerEnabled) {
     ctx.status = 404;
     ctx.body = { error: 'Not Found' };
     return;
   }
-  const swaggerDefinition = (await import('./Utils/swagger')).default;
+  const swaggerDefinition = (await import('./Utils/swagger.js')).default;
   ctx.body = swaggerDefinition;
 });
 
@@ -304,12 +296,12 @@ const swaggerHtml = `
 </head>
 <body>
   <div id="swagger-ui"></div>
-  <script src="/swagger-ui-dist/swagger-ui-bundle"></script>
-  <script src="/swagger-ui-dist/swagger-ui-standalone-preset"></script>
+  <script src="/swagger-ui-dist/swagger-ui-bundle.js"></script>
+  <script src="/swagger-ui-dist/swagger-ui-standalone-preset.js"></script>
   <script>
     window.onload = function() {
       const ui = SwaggerUIBundle({
-        url: "/swaggeron",
+        url: "/swagger.json",
         dom_id: '#swagger-ui',
         deepLinking: true,
         presets: [
@@ -356,7 +348,7 @@ if (swaggerEnabled) {
 }
 
 // Mock 服务
-const { mockServer } = await import('./Middleware/mockServer');
+const { mockServer } = await import('./Middleware/mockServer.js');
 app.use(mockServer);
 
 const PORT = config.PORT;
@@ -728,7 +720,7 @@ async function startServer() {
     await registerPluginRoutes(router);
     
     logger.info('⏰ Starting task scheduler...');
-    const scheduler = (await import('./Utils/scheduler')).default;
+    const scheduler = (await import('./Utils/scheduler.js')).default;
     await (scheduler as any).startAllTasks();
     
     serviceReady = true;

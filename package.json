@@ -23,6 +23,8 @@
     "test": "vitest",
     "test:coverage": "vitest --coverage",
     "test:ui": "vitest --ui",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "check:node": "node scripts/check-node-version.js",
     "fix:audit": "node scripts/fix-npm-audit.js",
     "fix:audit:simple": "bash scripts/fix-npm-audit-simple.sh",
@@ -40,12 +42,14 @@
   "license": "MIT",
   "devDependencies": {
     "@eslint/js": "^9.15.0",
+    "@playwright/test": "^1.58.2",
     "@types/node": "^22.10.5",
     "@typescript-eslint/eslint-plugin": "^8.18.2",
     "@typescript-eslint/parser": "^8.18.2",
     "@vitest/coverage-v8": "^2.1.9",
     "@vitest/ui": "^2.1.9",
     "concurrently": "^9.1.0",
+    "dotenv": "^17.3.1",
     "eslint": "^9.15.0",
     "eslint-plugin-react-hooks": "^5.1.0",
     "eslint-plugin-react-refresh": "^0.4.16",
@@ -64,6 +68,6 @@
     "jpeg-js": ">=0.4.4",
     "minimist": ">=1.2.8",
     "tough-cookie": ">=4.1.3",
-    "url-regex": "npm:url-regex-safe@^5.0.0"
+    "url-regex": "npm:url-regex-safe@^4.0.0"
   }
 }

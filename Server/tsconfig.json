@@ -1,0 +1,25 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "..",
+    "target": "ESNext",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "allowImportingTsExtensions": false,
+    "noEmit": false,
+    "allowJs": true,
+    "checkJs": false,
+    "baseUrl": ".",
+    "strict": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noFallthroughCasesInSwitch": false,
+    "paths": {
+      "@/*": ["./*"],
+      "@utils/*": ["../Utils/*"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.js", "test-server.ts", "../Utils/**/*.ts", "../Utils/**/*.js"],
+  "exclude": ["node_modules", "dist"]
+}
