@@ -35,9 +35,22 @@ export const checkPermission = (requiredRole) => {
   };
 };
 
+function resolveResourceId(ctx, ...keys) {
+  for (const key of keys) {
+    const fromParams = ctx.params?.[key];
+    const fromQuery = ctx.query?.[key];
+    const fromBody = ctx.request?.body?.[key];
+    const value = fromParams || fromQuery || fromBody;
+    if (value && typeof value === 'string') {
+      return value;
+    }
+  }
+  return null;
+}
+
 export const checkGroupPermission = async (ctx, next) => {
   const user = ctx.state.user;
-  const { _id } = ctx.params._id || ctx.query._id || ctx.request.body._id;
+  const _id = resolveResourceId(ctx, '_id', 'group_id', 'id');
 
   if (!_id) {
     ctx.status = 400;
@@ -82,7 +95,7 @@ export const checkGroupPermission = async (ctx, next) => {
 
 export const checkProjectPermission = async (ctx, next) => {
   const user = ctx.state.user;
-  const { _id } = ctx.params._id || ctx.query._id || ctx.request.body._id || ctx.request.body.project_id;
+  const _id = resolveResourceId(ctx, '_id', 'project_id', 'id');
 
   if (!_id) {
     ctx.status = 400;
@@ -124,6 +137,3 @@ export const checkProjectPermission = async (ctx, next) => {
   ctx.state.project = project;
   await next();
 };
-
-
-

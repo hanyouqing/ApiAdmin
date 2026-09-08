@@ -34,6 +34,24 @@ export const config = {} as Config;
 
 let configInitialized = false;
 
+const WEAK_JWT_SECRETS = new Set([
+  'your-secret-key',
+  'your-secret-key-change-this-in-production',
+  'change-me',
+  'change-me-in-production',
+  'dev-secret-key-change-in-production',
+  'secret',
+  'jwt-secret',
+]);
+
+function isWeakJwtSecret(secret: string | undefined | null): boolean {
+  if (!secret || typeof secret !== 'string') return true;
+  const normalized = secret.trim().toLowerCase();
+  if (WEAK_JWT_SECRETS.has(normalized)) return true;
+  if (secret.length < 32) return true;
+  return false;
+}
+
 /**
  * 初始化配置（延迟初始化，确保环境变量已加载）
  */
@@ -48,13 +66,9 @@ function ensureConfigInitialized() {
  * 重新加载配置（当环境变量变化时调用）
  */
 export function reloadConfig() {
-  // 清空当前配置
   Object.keys(config).forEach(key => delete (config as any)[key]);
-  
-  // 重新验证和加载配置
   validateConfig();
   configInitialized = true;
-  
   return config;
 }
 
@@ -105,22 +119,37 @@ export const validateConfig = () => {
     }
   }
 
-  if (isProduction && config.JWT_SECRET === 'your-secret-key') {
+  (config as any).ALLOW_PUBLIC_REGISTRATION =
+    process.env.ALLOW_PUBLIC_REGISTRATION === 'true' ||
+    (!isProduction && process.env.ALLOW_PUBLIC_REGISTRATION !== 'false');
+
+  if (isProduction && isWeakJwtSecret(config.JWT_SECRET)) {
     throw new Error(
-      'JWT_SECRET must be set to a secure value in production'
+      'JWT_SECRET must be a strong random value (>=32 chars) in production'
     );
   }
 
-  if (isProduction && config.CORS_ORIGIN === '*') {
+  if (isProduction && (!config.CORS_ORIGIN || config.CORS_ORIGIN === '*')) {
+    throw new Error(
+      'CORS_ORIGIN must be set to explicit origin(s) in production (wildcard is not allowed)'
+    );
+  }
+
+  if (isProduction && !config.REDIS_URL && process.env.REQUIRE_REDIS !== 'false') {
+    throw new Error(
+      'REDIS_URL is required in production for rate limiting and shared auth codes. Set REQUIRE_REDIS=false only for single-instance emergency mode.'
+    );
+  }
+
+  if (isProduction && process.env.ALLOW_MOCK_SCRIPTS === 'true' && process.env.ALLOW_UNSAFE_MOCK_SCRIPTS !== 'true') {
     console.warn(
-      'Warning: CORS_ORIGIN is set to "*" in production. This is insecure.'
+      'Warning: ALLOW_MOCK_SCRIPTS=true without ALLOW_UNSAFE_MOCK_SCRIPTS=true; custom mock scripts remain disabled in production.'
     );
   }
 
   return config;
 };
 
-// 使用 Proxy 来延迟初始化配置
 const configProxy = new Proxy(config, {
   get(target, prop) {
     ensureConfigInitialized();

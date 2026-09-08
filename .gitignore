@@ -50,9 +50,6 @@ temp/
 uploads/
 Static/uploads/
 
-# Docker
-.dockerignore
-
 # Misc
 .cache/
 .parcel-cache/

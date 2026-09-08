@@ -347,6 +347,47 @@ class InterfaceController extends BaseController {
     }
   }
 
+  static async batchDelete(ctx: AuthenticatedContext) {
+    try {
+      const user = ctx.state.user;
+      const { ids } = ctx.request.body as any;
+      if (!Array.isArray(ids) || ids.length === 0) {
+        ctx.status = 400;
+        ctx.body = InterfaceController.error('请提供要删除的接口ID列表');
+        return;
+      }
+
+      const validIds = ids.filter((id: string) => validateObjectId(id));
+      if (validIds.length === 0) {
+        ctx.status = 400;
+        ctx.body = InterfaceController.error('无效的接口ID');
+        return;
+      }
+
+      const Project = (await import('../Models/Project.js')).default;
+      const interfaces = await Interface.find({ _id: { $in: validIds } });
+      for (const iface of interfaces) {
+        const project = await Project.findById(iface.project_id);
+        if (!project) continue;
+        const allowed =
+          project.uid.toString() === user._id.toString() ||
+          project.member.map((m: any) => m.toString()).includes(user._id.toString()) ||
+          user.role === 'super_admin';
+        if (!allowed) {
+          ctx.status = 403;
+          ctx.body = InterfaceController.error('无权限删除部分接口');
+          return;
+        }
+      }
+
+      await Interface.deleteMany({ _id: { $in: validIds } });
+      ctx.body = InterfaceController.success({ deleted: validIds.length }, '批量删除成功');
+    } catch (error: any) {
+      ctx.status = 500;
+      ctx.body = InterfaceController.error(error.message || '批量删除失败');
+    }
+  }
+
   static async get(ctx: Koa.Context) {
     try {
       const { _id } = ctx.query;
@@ -401,7 +442,17 @@ class InterfaceController extends BaseController {
         path = path.replace(`{${key}}`, pathParams[key]);
       });
 
-      const url = `${baseUrl}${path}`;
+      const rawUrl = `${baseUrl}${path}`;
+      const { assertSafeOutboundUrl } = await import('../Utils/security.js');
+      let url: string;
+      try {
+        url = assertSafeOutboundUrl(rawUrl);
+      } catch (ssrfError: any) {
+        ctx.status = 400;
+        ctx.body = InterfaceController.error(ssrfError.message || '目标地址不安全');
+        return;
+      }
+
       const query = { ...params.query };
       const body = params.body;
       const headers = {
@@ -417,6 +468,7 @@ class InterfaceController extends BaseController {
         const response = await axios({
           method: interfaceData.method,
           url,
+          maxRedirects: 0,
           params: query,
           data: body,
           headers,

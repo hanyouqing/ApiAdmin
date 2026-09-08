@@ -11,29 +11,41 @@ This Helm chart deploys ApiAdmin API Management Platform on a Kubernetes cluster
 
 ## Installation
 
+### Prerequisites secrets (required)
+
+Before install, prepare strong values:
+
+```bash
+export JWT_SECRET="$(openssl rand -base64 48)"
+export MONGO_PASSWORD="$(openssl rand -base64 24)"
+export REDIS_PASSWORD="$(openssl rand -base64 24)"
+```
+
 ### Quick Start
 
 ```bash
-# Add the repository (if using a chart repository)
-helm repo add apiadmin https://charts.apiadmin.com
-helm repo update
-
-# Install with default values
-helm install apiadmin ./helm/apiadmin \
+helm install apiadmin ./Helm/apiadmin \
   --namespace apiadmin \
-  --create-namespace
+  --create-namespace \
+  --set config.jwtSecret="$JWT_SECRET" \
+  --set mongodb.auth.rootPassword="$MONGO_PASSWORD" \
+  --set redis.auth.password="$REDIS_PASSWORD" \
+  --set env.CORS_ORIGIN=https://apiadmin.example.com \
+  --set image.tag=0.0.1
 ```
+
+Chart validation will fail if `jwtSecret` / Mongo / Redis passwords are empty, or if `CORS_ORIGIN` is `*`.
 
 ### Custom Installation
 
 ```bash
-# Install with custom values
-helm install apiadmin ./helm/apiadmin \
+helm install apiadmin ./Helm/apiadmin \
   --namespace apiadmin \
   --create-namespace \
   --set mongodb.auth.rootPassword=your-password \
   --set redis.auth.password=your-redis-password \
-  --set config.jwtSecret=your-jwt-secret \
+  --set config.jwtSecret="$(openssl rand -base64 48)" \
+  --set env.CORS_ORIGIN=https://apiadmin.yourdomain.com \
   --set ingress.hosts[0].host=apiadmin.yourdomain.com
 ```
 

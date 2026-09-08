@@ -438,7 +438,307 @@ class ProjectController extends BaseController {
     }
   }
 
-  // ... (Other methods similarly migrated)
+  static async canManageProject(project: any, user: AuthenticatedContext['state']['user']) {
+    return (
+      project.uid.toString() === user._id.toString() ||
+      project.member.map((m: any) => m.toString()).includes(user._id.toString()) ||
+      user.role === 'super_admin'
+    );
+  }
+
+  static async updateEnvironment(ctx: AuthenticatedContext) {
+    try {
+      const user = ctx.state.user;
+      const { project_id, env_name, name, host, variables } = ctx.request.body as any;
+
+      if (!validateObjectId(project_id) || !env_name) {
+        ctx.status = 400;
+        ctx.body = ProjectController.error('项目ID和环境名称不能为空');
+        return;
+      }
+
+      const project = await Project.findById(project_id);
+      if (!project) {
+        ctx.status = 404;
+        ctx.body = ProjectController.error('项目不存在');
+        return;
+      }
+
+      if (!(await ProjectController.canManageProject(project, user))) {
+        ctx.status = 403;
+        ctx.body = ProjectController.error('无权限修改此项目');
+        return;
+      }
+
+      const env = (project.env as any[]).find((e: any) => e.name === env_name);
+      if (!env) {
+        ctx.status = 404;
+        ctx.body = ProjectController.error('环境不存在');
+        return;
+      }
+
+      if (name && name !== env_name && (project.env as any[]).some((e: any) => e.name === name)) {
+        ctx.status = 400;
+        ctx.body = ProjectController.error('环境名称已存在');
+        return;
+      }
+
+      if (name) env.name = sanitizeInput(name);
+      if (host !== undefined) env.host = sanitizeInput(host);
+      if (variables !== undefined) env.variables = variables;
+
+      await project.save();
+      await createActivity(project._id, user._id, 'environment.updated', 'environment', null, `更新了环境 ${env.name}`, { envName: env.name });
+      ctx.body = ProjectController.success(project, '环境更新成功');
+    } catch (error: any) {
+      ctx.status = 500;
+      ctx.body = ProjectController.error(error.message || '更新环境失败');
+    }
+  }
+
+  static async deleteEnvironment(ctx: AuthenticatedContext) {
+    try {
+      const user = ctx.state.user;
+      const project_id = (ctx.query.project_id || (ctx.request.body as any)?.project_id) as string;
+      const env_name = (ctx.query.env_name || (ctx.request.body as any)?.env_name) as string;
+
+      if (!validateObjectId(project_id) || !env_name) {
+        ctx.status = 400;
+        ctx.body = ProjectController.error('项目ID和环境名称不能为空');
+        return;
+      }
+
+      const project = await Project.findById(project_id);
+      if (!project) {
+        ctx.status = 404;
+        ctx.body = ProjectController.error('项目不存在');
+        return;
+      }
+
+      if (!(await ProjectController.canManageProject(project, user))) {
+        ctx.status = 403;
+        ctx.body = ProjectController.error('无权限修改此项目');
+        return;
+      }
+
+      const before = project.env.length;
+      project.env = (project.env as any[]).filter((e: any) => e.name !== env_name) as any;
+      if (project.env.length === before) {
+        ctx.status = 404;
+        ctx.body = ProjectController.error('环境不存在');
+        return;
+      }
+
+      await project.save();
+      await createActivity(project._id, user._id, 'environment.deleted', 'environment', null, `删除了环境 ${env_name}`, { envName: env_name });
+      ctx.body = ProjectController.success(project, '环境删除成功');
+    } catch (error: any) {
+      ctx.status = 500;
+      ctx.body = ProjectController.error(error.message || '删除环境失败');
+    }
+  }
+
+  static async addMember(ctx: AuthenticatedContext) {
+    try {
+      const user = ctx.state.user;
+      const { project_id, member_email } = ctx.request.body as any;
+
+      if (!validateObjectId(project_id) || !member_email) {
+        ctx.status = 400;
+        ctx.body = ProjectController.error('项目ID和成员邮箱不能为空');
+        return;
+      }
+
+      const project = await Project.findById(project_id);
+      if (!project) {
+        ctx.status = 404;
+        ctx.body = ProjectController.error('项目不存在');
+        return;
+      }
+
+      if (!(await ProjectController.canManageProject(project, user))) {
+        ctx.status = 403;
+        ctx.body = ProjectController.error('无权限管理项目成员');
+        return;
+      }
+
+      const User = (await import('../Models/User.js')).default;
+      const member = await User.findOne({ email: sanitizeInput(member_email).toLowerCase() });
+      if (!member) {
+        ctx.status = 404;
+        ctx.body = ProjectController.error('用户不存在');
+        return;
+      }
+
+      if (project.member.map((m: any) => m.toString()).includes(member._id.toString())) {
+        ctx.status = 400;
+        ctx.body = ProjectController.error('用户已经是项目成员');
+        return;
+      }
+
+      project.member.push(member._id as any);
+      await project.save();
+      await createActivity(project._id, user._id, 'member.added', 'member', member._id, `添加了成员 ${member.username}`);
+      ctx.body = ProjectController.success(project, '成员添加成功');
+    } catch (error: any) {
+      ctx.status = 500;
+      ctx.body = ProjectController.error(error.message || '添加成员失败');
+    }
+  }
+
+  static async removeMember(ctx: AuthenticatedContext) {
+    try {
+      const user = ctx.state.user;
+      const project_id = (ctx.query.project_id || (ctx.request.body as any)?.project_id) as string;
+      const member_id = (ctx.query.member_id || (ctx.request.body as any)?.member_id) as string;
+
+      if (!validateObjectId(project_id) || !validateObjectId(member_id)) {
+        ctx.status = 400;
+        ctx.body = ProjectController.error('项目ID和成员ID不能为空');
+        return;
+      }
+
+      const project = await Project.findById(project_id);
+      if (!project) {
+        ctx.status = 404;
+        ctx.body = ProjectController.error('项目不存在');
+        return;
+      }
+
+      if (!(await ProjectController.canManageProject(project, user))) {
+        ctx.status = 403;
+        ctx.body = ProjectController.error('无权限管理项目成员');
+        return;
+      }
+
+      project.member = project.member.filter((m: any) => m.toString() !== member_id) as any;
+      await project.save();
+      await createActivity(project._id, user._id, 'member.removed', 'member', member_id, `移除了项目成员`);
+      ctx.body = ProjectController.success(project, '成员移除成功');
+    } catch (error: any) {
+      ctx.status = 500;
+      ctx.body = ProjectController.error(error.message || '移除成员失败');
+    }
+  }
+
+  static async getActivities(ctx: AuthenticatedContext) {
+    try {
+      const project_id = ctx.query.project_id as string;
+      if (!validateObjectId(project_id)) {
+        ctx.status = 400;
+        ctx.body = ProjectController.error('无效的项目ID');
+        return;
+      }
+
+      const project = await Project.findById(project_id);
+      if (!project) {
+        ctx.status = 404;
+        ctx.body = ProjectController.error('项目不存在');
+        return;
+      }
+
+      const Activity = (await import('../Models/Activity.js')).default;
+      const activities = await Activity.find({ project_id })
+        .populate('user_id', 'username email avatar')
+        .sort({ createdAt: -1 })
+        .limit(100);
+
+      ctx.body = ProjectController.success(activities);
+    } catch (error: any) {
+      ctx.status = 500;
+      ctx.body = ProjectController.error(error.message || '获取项目动态失败');
+    }
+  }
+
+  static async migrate(ctx: AuthenticatedContext) {
+    try {
+      const user = ctx.state.user;
+      const { project_id, target_group_id } = ctx.request.body as any;
+
+      if (!validateObjectId(project_id) || !validateObjectId(target_group_id)) {
+        ctx.status = 400;
+        ctx.body = ProjectController.error('项目ID和目标分组ID不能为空');
+        return;
+      }
+
+      const project = await Project.findById(project_id);
+      if (!project) {
+        ctx.status = 404;
+        ctx.body = ProjectController.error('项目不存在');
+        return;
+      }
+
+      if (!(await ProjectController.canManageProject(project, user))) {
+        ctx.status = 403;
+        ctx.body = ProjectController.error('无权限迁移此项目');
+        return;
+      }
+
+      const Group = (await import('../Models/Group.js')).default;
+      const group = await Group.findById(target_group_id);
+      if (!group) {
+        ctx.status = 404;
+        ctx.body = ProjectController.error('目标分组不存在');
+        return;
+      }
+
+      project.group_id = target_group_id;
+      await project.save();
+      await createActivity(project._id, user._id, 'project.migrated', 'project', project._id, `迁移项目到分组 ${group.group_name}`);
+      ctx.body = ProjectController.success(project, '项目迁移成功');
+    } catch (error: any) {
+      ctx.status = 500;
+      ctx.body = ProjectController.error(error.message || '迁移失败');
+    }
+  }
+
+  static async copy(ctx: AuthenticatedContext) {
+    try {
+      const user = ctx.state.user;
+      const { project_id, new_project_name, target_group_id } = ctx.request.body as any;
+
+      if (!validateObjectId(project_id) || !new_project_name) {
+        ctx.status = 400;
+        ctx.body = ProjectController.error('项目ID和新项目名称不能为空');
+        return;
+      }
+
+      const source = await Project.findById(project_id);
+      if (!source) {
+        ctx.status = 404;
+        ctx.body = ProjectController.error('项目不存在');
+        return;
+      }
+
+      const Interface = (await import('../Models/Interface.js')).default;
+      const copied = new Project({
+        project_name: sanitizeInput(new_project_name),
+        project_desc: source.project_desc,
+        group_id: target_group_id || source.group_id,
+        uid: user._id,
+        member: [user._id],
+        basepath: source.basepath,
+        env: source.env,
+      });
+      await copied.save();
+
+      const interfaces = await Interface.find({ project_id: source._id });
+      for (const iface of interfaces) {
+        const data = iface.toObject() as any;
+        delete data._id;
+        delete data.__v;
+        data.project_id = copied._id;
+        data.uid = user._id;
+        await Interface.create(data);
+      }
+
+      await createActivity(copied._id, user._id, 'project.copied', 'project', copied._id, `复制项目自 ${source.project_name}`);
+      ctx.body = ProjectController.success(copied, '项目复制成功');
+    } catch (error: any) {
+      ctx.status = 500;
+      ctx.body = ProjectController.error(error.message || '复制失败');
+    }
+  }
 }
 
 export default ProjectController;

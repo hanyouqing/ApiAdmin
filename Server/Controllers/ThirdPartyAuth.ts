@@ -7,19 +7,14 @@ import User from '../Models/User.js';
 import WhitelistConfig from '../Models/WhitelistConfig.js';
 import Whitelist from '../Models/Whitelist.js';
 import ThirdPartyAuthConfig from '../Models/ThirdPartyAuthConfig.js';
-import EmailConfigModel from '../Models/EmailConfig.js';
 import config from '../Utils/config.js';
 import { sendEmail } from '../Utils/emailService.js';
-import { logLogin } from '../Utils/loginLogger.js';
 import crypto from 'crypto';
-import mongoose from 'mongoose';
-
-// 内存存储（Redis 不可用时的降级方案）
-const memoryStore = new Map<string, any>();
+import { kvSet, kvGet, kvDel } from '../Utils/kvStore.js';
 
 function getJWTSecret() {
   const secret = config.JWT_SECRET;
-  if (!secret || secret === 'your-secret-key') {
+  if (!secret) {
     if (process.env.NODE_ENV === 'production') {
       throw new Error('JWT_SECRET must be set in production environment');
     }
@@ -32,16 +27,15 @@ function getJWTExpiresIn() {
 }
 
 async function storeCode(key: string, code: string, ttl: number = 300) {
-  memoryStore.set(key, code);
-  setTimeout(() => memoryStore.delete(key), ttl * 1000);
+  await kvSet(key, code, ttl);
 }
 
 async function getCode(key: string) {
-  return memoryStore.get(key) || null;
+  return await kvGet(key);
 }
 
 async function deleteCode(key: string) {
-  memoryStore.delete(key);
+  await kvDel(key);
 }
 
 async function checkWhitelist(platform: string, value: string) {
@@ -60,7 +54,8 @@ async function checkWhitelist(platform: string, value: string) {
     return !!entry;
   } catch (error) {
     logger.error({ error, platform, value }, 'Check whitelist error');
-    return true;
+    // Fail closed: if whitelist cannot be evaluated, deny third-party login
+    return false;
   }
 }
 
@@ -101,6 +96,54 @@ class ThirdPartyAuthController extends BaseController {
     } catch (error: any) {
       ctx.status = 500;
       ctx.body = ThirdPartyAuthController.error('GitHub 登录跳转失败');
+    }
+  }
+
+  static async sendEmailCode(ctx: Koa.Context) {
+    try {
+      const { email } = ctx.request.body as any;
+      if (!email || !validateEmail(email)) {
+        ctx.status = 400;
+        ctx.body = ThirdPartyAuthController.error('邮箱格式不正确');
+        return;
+      }
+
+      const normalizedEmail = email.toLowerCase();
+      const allowed = await checkWhitelist('email', normalizedEmail);
+      if (!allowed) {
+        ctx.status = 403;
+        ctx.body = ThirdPartyAuthController.error('该邮箱不在白名单中');
+        return;
+      }
+
+      const code = String(Math.floor(100000 + Math.random() * 900000));
+      await storeCode(`email:code:${normalizedEmail}`, code, 300);
+
+      try {
+        await sendEmail(
+          normalizedEmail,
+          'ApiAdmin 登录验证码',
+          `<p>您的验证码是 <strong>${code}</strong>，5 分钟内有效。</p>`,
+          `您的验证码是 ${code}，5 分钟内有效。`
+        );
+      } catch (mailError: any) {
+        if (process.env.NODE_ENV !== 'production') {
+          logger.warn({ email: normalizedEmail, code }, 'Email send failed; code logged for development');
+        } else {
+          logger.error({ error: mailError.message }, 'Failed to send login email code');
+          ctx.status = 500;
+          ctx.body = ThirdPartyAuthController.error('验证码发送失败');
+          return;
+        }
+      }
+
+      ctx.body = ThirdPartyAuthController.success(
+        process.env.NODE_ENV === 'production' ? null : { debugCode: code },
+        '验证码已发送'
+      );
+    } catch (error: any) {
+      ctx.status = 500;
+      ctx.body = ThirdPartyAuthController.error(error.message || '验证码发送失败');
     }
   }
 
@@ -147,6 +190,69 @@ class ThirdPartyAuthController extends BaseController {
     } catch (error: any) {
       ctx.status = 500;
       ctx.body = ThirdPartyAuthController.error(error.message || '邮箱登录失败');
+    }
+  }
+
+  static async getAdminConfigs(ctx: Koa.Context) {
+    try {
+      if (ctx.state.user?.role !== 'super_admin') {
+        ctx.status = 403;
+        ctx.body = ThirdPartyAuthController.error('只有超级管理员可以查看第三方登录配置');
+        return;
+      }
+
+      const configs = await ThirdPartyAuthConfig.find({}).sort({ provider: 1 });
+      const result: Record<string, any> = {};
+      for (const cfg of configs) {
+        result[cfg.provider] = {
+          enabled: cfg.enabled,
+          ...(cfg.config || {}),
+        };
+      }
+      ctx.body = ThirdPartyAuthController.success(result);
+    } catch (error: any) {
+      ctx.status = 500;
+      ctx.body = ThirdPartyAuthController.error(error.message || '获取配置失败');
+    }
+  }
+
+  static async saveAdminConfig(ctx: Koa.Context) {
+    try {
+      if (ctx.state.user?.role !== 'super_admin') {
+        ctx.status = 403;
+        ctx.body = ThirdPartyAuthController.error('只有超级管理员可以更新第三方登录配置');
+        return;
+      }
+
+      const provider = ctx.params.provider;
+      const allowed = ['github', 'gitlab', 'google', 'wechat', 'phone', 'email'];
+      if (!allowed.includes(provider)) {
+        ctx.status = 400;
+        ctx.body = ThirdPartyAuthController.error('不支持的提供者');
+        return;
+      }
+
+      const body = ctx.request.body as any;
+      const enabled = !!body.enabled;
+      const { enabled: _ignored, ...configFields } = body;
+
+      let cfg = await ThirdPartyAuthConfig.findOne({ provider });
+      if (!cfg) {
+        cfg = new ThirdPartyAuthConfig({ provider, enabled, config: configFields });
+      } else {
+        cfg.enabled = enabled;
+        cfg.config = { ...(cfg.config || {}), ...configFields };
+      }
+      await cfg.save();
+
+      ctx.body = ThirdPartyAuthController.success({
+        provider,
+        enabled: cfg.enabled,
+        ...(cfg.config || {}),
+      }, '配置已保存');
+    } catch (error: any) {
+      ctx.status = 500;
+      ctx.body = ThirdPartyAuthController.error(error.message || '保存配置失败');
     }
   }
 }

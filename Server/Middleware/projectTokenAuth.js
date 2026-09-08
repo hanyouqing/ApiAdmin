@@ -1,10 +1,24 @@
 import ProjectToken from '../Models/ProjectToken.js';
 import { logger } from '../Utils/logger.js';
+import { hashToken } from '../Utils/security.js';
 
 export const projectTokenAuth = async (ctx, next) => {
   try {
     const authHeader = ctx.headers.authorization;
-    const token = authHeader?.replace(/^Bearer\s+/i, '') || ctx.query.token;
+    const headerToken = authHeader?.replace(/^Bearer\s+/i, '') || ctx.get('X-Project-Token');
+    let token = headerToken || null;
+
+    if (!token && ctx.query.token) {
+      if (process.env.NODE_ENV === 'production') {
+        ctx.status = 401;
+        ctx.body = {
+          success: false,
+          message: '请使用 Authorization 或 X-Project-Token Header 传递项目 Token',
+        };
+        return;
+      }
+      token = ctx.query.token;
+    }
 
     if (!token) {
       ctx.status = 401;
@@ -15,7 +29,12 @@ export const projectTokenAuth = async (ctx, next) => {
       return;
     }
 
-    const projectToken = await ProjectToken.findOne({ token });
+    const tokenHash = hashToken(token);
+    let projectToken = await ProjectToken.findOne({ tokenHash });
+    if (!projectToken) {
+      // Backward compatibility for legacy plaintext tokens
+      projectToken = await ProjectToken.findOne({ token }).select('+token');
+    }
 
     if (!projectToken) {
       ctx.status = 401;
@@ -35,7 +54,6 @@ export const projectTokenAuth = async (ctx, next) => {
       return;
     }
 
-    // 更新最后使用时间
     await projectToken.updateLastUsed();
 
     ctx.state.projectToken = projectToken;
@@ -43,7 +61,7 @@ export const projectTokenAuth = async (ctx, next) => {
 
     await next();
   } catch (error) {
-    logger.error({ error }, 'Project token auth error');
+    logger.error({ error: error.message }, 'Project token auth error');
     ctx.status = 401;
     ctx.body = {
       success: false,
@@ -51,6 +69,3 @@ export const projectTokenAuth = async (ctx, next) => {
     };
   }
 };
-
-
-

@@ -36,9 +36,11 @@ class ProjectTokenController extends BaseController {
       const expiresAtDate = expiresAt ? new Date(expiresAt) : null;
 
       const token = ProjectToken.generateToken();
+      const tokenHash = ProjectToken.hashToken(token);
 
       const projectToken = new ProjectToken({
-        token,
+        tokenHash,
+        tokenPrefix: token.slice(0, 8),
         name,
         projectId,
         expiresAt: expiresAtDate,
@@ -51,7 +53,8 @@ class ProjectTokenController extends BaseController {
 
       ctx.body = ProjectTokenController.success({
         id: projectToken._id,
-        token, // 仅返回一次
+        token, // 仅返回一次明文
+        tokenPrefix: projectToken.tokenPrefix,
         name: projectToken.name,
         expiresAt: projectToken.expiresAt,
         createdAt: projectToken.createdAt,
@@ -85,6 +88,7 @@ class ProjectTokenController extends BaseController {
       const tokensData = tokens.map(t => ({
         id: t._id,
         name: t.name,
+        tokenPrefix: t.tokenPrefix,
         expiresAt: t.expiresAt,
         lastUsedAt: t.lastUsedAt,
         createdAt: t.createdAt,

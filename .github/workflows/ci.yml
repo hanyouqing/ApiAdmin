@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install root dependencies
+        run: SKIP_PREINSTALL=true npm ci --ignore-scripts
+
+      - name: Install Server dependencies
+        working-directory: Server
+        run: npm ci --ignore-scripts
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: 'true'
+
+      - name: Install Client dependencies
+        working-directory: Client
+        run: npm ci --ignore-scripts
+
+      - name: Typecheck / build Server
+        working-directory: Server
+        run: npm run build
+
+      - name: Build Client
+        working-directory: Client
+        run: npm run build
+
+      - name: Run unit tests
+        run: npx vitest run --reporter=verbose
+        env:
+          NODE_ENV: test
+          JWT_SECRET: ci-test-secret-key-at-least-32-chars-long
+          MONGODB_URL: mongodb://127.0.0.1:27017/apiadmin_ci
+          ALLOW_MOCK_SCRIPTS: 'true'
+
+  docker-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: build-and-test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build production image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: apiadmin:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            APP_VERSION=0.0.1
+            BUILD_COMMIT=${{ github.sha }}
+            BUILD_BRANCH=${{ github.ref_name }}
