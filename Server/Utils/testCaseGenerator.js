@@ -1,4 +1,4 @@
-import Mock from 'mockjs';
+import Mock from './safeMock.js';
 import JSON5 from 'json5';
 import { logger } from './logger.js';
 

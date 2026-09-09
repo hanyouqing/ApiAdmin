@@ -1,6 +1,6 @@
 import { VM } from 'vm2';
 import axios from 'axios';
-import Mock from 'mockjs';
+import Mock from './safeMock.js';
 import { logger } from './logger.js';
 import TestCase from '../Models/TestCase.js';
 import Interface from '../Models/Interface.js';

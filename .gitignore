@@ -53,3 +53,4 @@ Static/uploads/
 # Misc
 .cache/
 .parcel-cache/
+.pnpm-store/

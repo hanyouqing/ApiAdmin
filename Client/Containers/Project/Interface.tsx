@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { Card, Button, Table, Space, Modal, Form, Input, Select, Tag, message, InputNumber, Switch, Tabs, Descriptions, Typography, Collapse } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, PlayCircleOutlined, ApiOutlined, SearchOutlined, EyeOutlined } from '@ant-design/icons';
 import Editor from '@monaco-editor/react';
-import Mock from 'mockjs';
+import Mock from '../../Utils/safeMock';
 import JSON5 from 'json5';
 import { useDispatch, useSelector } from 'react-redux';
 import { useParams, useLocation, useMatch, useNavigate } from 'react-router-dom';

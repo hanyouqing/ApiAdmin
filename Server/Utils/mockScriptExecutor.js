@@ -1,5 +1,5 @@
 import vm from 'node:vm';
-import Mock from 'mockjs';
+import Mock from './safeMock.js';
 import { logger } from './logger.js';
 
 function isMockScriptAllowed() {
