@@ -5,8 +5,10 @@ import TestCollection from '../../Server/Models/TestCollection.js';
 import Interface from '../../Server/Models/Interface.js';
 import Project from '../../Server/Models/Project.js';
 import Group from '../../Server/Models/Group.js';
+import User from '../../Server/Models/User.js';
 
 describe('TestCase Model', () => {
+  let testUser;
   let testGroup;
   let testProject;
   let testInterface;
@@ -21,29 +23,38 @@ describe('TestCase Model', () => {
     await Interface.deleteMany({});
     await Project.deleteMany({});
     await Group.deleteMany({});
+    await User.deleteMany({});
 
-    testGroup = new Group({ group_name: 'Test Group' });
-    await testGroup.save();
+    testUser = await User.create({
+      username: 'testuser',
+      email: 'test@example.com',
+      password: 'Test1234',
+    });
 
-    testProject = new Project({
+    testGroup = await Group.create({
+      group_name: 'Test Group',
+      uid: testUser._id,
+    });
+
+    testProject = await Project.create({
       project_name: 'Test Project',
       group_id: testGroup._id,
+      uid: testUser._id,
     });
-    await testProject.save();
 
-    testInterface = new Interface({
+    testInterface = await Interface.create({
       title: 'Test Interface',
       path: '/api/test',
       method: 'GET',
       project_id: testProject._id,
+      uid: testUser._id,
     });
-    await testInterface.save();
 
-    testCollection = new TestCollection({
+    testCollection = await TestCollection.create({
       name: 'Test Collection',
       project_id: testProject._id,
+      uid: testUser._id,
     });
-    await testCollection.save();
   });
 
   afterEach(async () => {
@@ -52,17 +63,10 @@ describe('TestCase Model', () => {
     await Interface.deleteMany({});
     await Project.deleteMany({});
     await Group.deleteMany({});
+    await User.deleteMany({});
   });
 
   it('should create a test case with valid data', async () => {
-    const User = (await import('../../Server/Models/User.js')).default;
-    const user = new User({
-      username: 'testuser',
-      email: 'test@example.com',
-      password: 'Test1234',
-    });
-    await user.save();
-
     const testCaseData = {
       name: 'Test Case',
       collection_id: testCollection._id,
@@ -71,7 +75,7 @@ describe('TestCase Model', () => {
         method: 'GET',
         path: '/api/test',
       },
-      uid: user._id,
+      uid: testUser._id,
     };
 
     const testCase = new TestCase(testCaseData);
@@ -91,4 +95,3 @@ describe('TestCase Model', () => {
     await expect(testCase.save()).rejects.toThrow();
   });
 });
-

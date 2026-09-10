@@ -75,6 +75,7 @@ describe('AnalyticsController', () => {
       path: '/api/test',
       method: 'GET',
       project_id: testProject._id,
+      uid: testUser._id,
       desc: 'Test description',
       res_body: '{"test": "data"}',
     });
@@ -128,6 +129,7 @@ describe('AnalyticsController', () => {
         path: '/api/undoc',
         method: 'GET',
         project_id: testProject._id,
+      uid: testUser._id,
       });
 
       const ctx = createMockCtx({ projectId: testProject._id.toString() }, {}, {}, testUser);
@@ -172,16 +174,20 @@ describe('AnalyticsController', () => {
       const testCollection = await TestCollection.create({
         name: 'Test Collection',
         project_id: testProject._id,
+        uid: testUser._id,
       });
 
       const testCase = await TestCase.create({
         name: 'Test Case',
         collection_id: testCollection._id,
         interface_id: testInterface._id,
+        uid: testUser._id,
+        request: { method: 'GET', path: '/api/test' },
       });
 
       await TestResult.create({
         test_case_id: testCase._id,
+        uid: testUser._id,
         collection_id: testCollection._id,
         status: 'passed',
         duration: 100,
@@ -210,16 +216,20 @@ describe('AnalyticsController', () => {
       const testCollection = await TestCollection.create({
         name: 'Test Collection',
         project_id: testProject._id,
+        uid: testUser._id,
       });
 
       const testCase = await TestCase.create({
         name: 'Test Case',
         collection_id: testCollection._id,
         interface_id: testInterface._id,
+        uid: testUser._id,
+        request: { method: 'GET', path: '/api/test' },
       });
 
       await TestResult.create({
         test_case_id: testCase._id,
+        uid: testUser._id,
         collection_id: testCollection._id,
         status: 'passed',
         duration: 100,
@@ -228,6 +238,7 @@ describe('AnalyticsController', () => {
 
       await TestResult.create({
         test_case_id: testCase._id,
+        uid: testUser._id,
         collection_id: testCollection._id,
         status: 'failed',
         duration: 50,
@@ -245,16 +256,20 @@ describe('AnalyticsController', () => {
       const testCollection = await TestCollection.create({
         name: 'Test Collection',
         project_id: testProject._id,
+        uid: testUser._id,
       });
 
       const testCase = await TestCase.create({
         name: 'Test Case',
         collection_id: testCollection._id,
         interface_id: testInterface._id,
+        uid: testUser._id,
+        request: { method: 'GET', path: '/api/test' },
       });
 
       await TestResult.create({
         test_case_id: testCase._id,
+        uid: testUser._id,
         collection_id: testCollection._id,
         status: 'passed',
         duration: 100,
@@ -263,6 +278,7 @@ describe('AnalyticsController', () => {
 
       await TestResult.create({
         test_case_id: testCase._id,
+        uid: testUser._id,
         collection_id: testCollection._id,
         status: 'passed',
         duration: 200,

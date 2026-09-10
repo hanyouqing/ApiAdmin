@@ -89,7 +89,7 @@ const MyStars: React.FC = () => {
   ];
 
   return (
-    <Card title={t('user.stars.title')} icon={<StarFilled />}>
+    <Card title={<><StarFilled /> {t('user.stars.title')}</>}>
       <Table columns={columns} dataSource={projects} rowKey="_id" loading={loading} />
     </Card>
   );

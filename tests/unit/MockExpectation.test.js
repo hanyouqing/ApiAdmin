@@ -4,8 +4,10 @@ import MockExpectation from '../../Server/Models/MockExpectation.js';
 import Interface from '../../Server/Models/Interface.js';
 import Project from '../../Server/Models/Project.js';
 import Group from '../../Server/Models/Group.js';
+import User from '../../Server/Models/User.js';
 
 describe('MockExpectation Model', () => {
+  let testUser;
   let testGroup;
   let testProject;
   let testInterface;
@@ -18,23 +20,32 @@ describe('MockExpectation Model', () => {
     await Interface.deleteMany({});
     await Project.deleteMany({});
     await Group.deleteMany({});
+    await User.deleteMany({});
 
-    testGroup = new Group({ group_name: 'Test Group' });
-    await testGroup.save();
+    testUser = await User.create({
+      username: 'testuser',
+      email: 'test@example.com',
+      password: 'Test1234',
+    });
 
-    testProject = new Project({
+    testGroup = await Group.create({
+      group_name: 'Test Group',
+      uid: testUser._id,
+    });
+
+    testProject = await Project.create({
       project_name: 'Test Project',
       group_id: testGroup._id,
+      uid: testUser._id,
     });
-    await testProject.save();
 
-    testInterface = new Interface({
+    testInterface = await Interface.create({
       title: 'Test Interface',
       path: '/api/test',
       method: 'GET',
       project_id: testProject._id,
+      uid: testUser._id,
     });
-    await testInterface.save();
   });
 
   afterEach(async () => {
@@ -42,15 +53,18 @@ describe('MockExpectation Model', () => {
     await Interface.deleteMany({});
     await Project.deleteMany({});
     await Group.deleteMany({});
+    await User.deleteMany({});
   });
 
   it('should create a mock expectation with valid data', async () => {
     const expectationData = {
       name: 'Test Expectation',
       interface_id: testInterface._id,
+      project_id: testProject._id,
+      uid: testUser._id,
       response: {
         status: 200,
-        body: { message: 'test' },
+        body: JSON.stringify({ message: 'test' }),
       },
     };
 
@@ -70,6 +84,3 @@ describe('MockExpectation Model', () => {
     await expect(expectation.save()).rejects.toThrow();
   });
 });
-
-
-

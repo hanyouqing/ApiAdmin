@@ -1,0 +1,12 @@
+---
+description: Mongoose VersionError and AutoTest result persistence
+globs: Server/Utils/autoTestRunner.js,Server/Models/AutoTestResult.ts,Server/Controllers/AutoTestTask.js
+alwaysApply: false
+---
+
+# AutoTest Result Persistence
+
+- Frequent progress writes on `AutoTestResult` must **not** rely on `document.save()` (triggers `VersionError` on `__v` / concurrent deletes).
+- Use atomic updates: `findByIdAndUpdate` / `$set` (e.g. `persistResult`) for `results`, `summary`, `status`, timestamps.
+- If the result doc is missing (test teardown or cancel), log a warning and skip — do not throw VersionError noise.
+- Controller `runTask` creates the result then runs the runner asynchronously; unit tests should mock `AutoTestRunner.runTask`.

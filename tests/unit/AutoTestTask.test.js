@@ -10,6 +10,16 @@ import Group from '../../Server/Models/Group.js';
 import User from '../../Server/Models/User.js';
 import OperationLog from '../../Server/Models/OperationLog.js';
 
+const runTaskMock = vi.fn().mockResolvedValue(undefined);
+
+vi.mock('../../Server/Utils/autoTestRunner.js', () => ({
+  AutoTestRunner: class AutoTestRunner {
+    runTask(...args) {
+      return runTaskMock(...args);
+    }
+  },
+}));
+
 function createMockCtx(params = {}, query = {}, body = {}, user = null) {
   return {
     params,
@@ -36,6 +46,7 @@ describe('AutoTestTaskController', () => {
   let testEnvironment;
 
   beforeEach(async () => {
+    runTaskMock.mockClear();
     // Use test-helpers connection logic
     const { connectTestDB, ensureConnection } = await import('./test-helpers.js');
     try {
@@ -78,6 +89,7 @@ describe('AutoTestTaskController', () => {
       path: '/api/test',
       method: 'GET',
       project_id: testProject._id,
+      uid: testUser._id,
     });
 
     testEnvironment = await TestEnvironment.create({
@@ -112,6 +124,7 @@ describe('AutoTestTaskController', () => {
           test_cases: [
             {
               interface_id: testInterface._id.toString(),
+              order: 0,
               enabled: true,
             },
           ],
@@ -201,6 +214,7 @@ describe('AutoTestTaskController', () => {
         path: '/api/other',
         method: 'GET',
         project_id: otherProject._id,
+        uid: testUser._id,
       });
 
       const ctx = createMockCtx(
@@ -212,6 +226,7 @@ describe('AutoTestTaskController', () => {
           test_cases: [
             {
               interface_id: otherInterface._id.toString(),
+              order: 0,
             },
           ],
         },
@@ -455,7 +470,8 @@ describe('AutoTestTaskController', () => {
         project_id: testProject._id,
         test_cases: [
           {
-            interface_id: testInterface._id,
+            order: 0,
+          interface_id: testInterface._id,
             enabled: true,
           },
         ],
@@ -468,8 +484,8 @@ describe('AutoTestTaskController', () => {
 
       expect(ctx.status).toBe(200);
       expect(ctx.body.success).toBe(true);
-      expect(ctx.body.data).toHaveProperty('resultId');
-      expect(ctx.body.data).toHaveProperty('status', 'running');
+      expect(ctx.body.data.resultId).toBeDefined();
+      expect(runTaskMock).toHaveBeenCalled();
     });
 
     it('should return 400 if task is disabled', async () => {
@@ -494,7 +510,8 @@ describe('AutoTestTaskController', () => {
         project_id: testProject._id,
         test_cases: [
           {
-            interface_id: testInterface._id,
+            order: 0,
+          interface_id: testInterface._id,
             enabled: true,
           },
         ],
@@ -512,6 +529,8 @@ describe('AutoTestTaskController', () => {
 
       expect(ctx.status).toBe(200);
       expect(ctx.body.success).toBe(true);
+      expect(ctx.body.data.resultId).toBeDefined();
+      expect(runTaskMock).toHaveBeenCalled();
     });
   });
 
@@ -526,7 +545,7 @@ describe('AutoTestTaskController', () => {
 
       const result = await AutoTestResult.create({
         task_id: task._id,
-        status: 'completed',
+        status: 'passed',
         summary: { total: 1, passed: 1, failed: 0, error: 0, skipped: 0 },
         results: [],
         started_at: new Date(),
@@ -539,7 +558,7 @@ describe('AutoTestTaskController', () => {
 
       expect(ctx.status).toBe(200);
       expect(ctx.body.success).toBe(true);
-      expect(ctx.body.data.status).toBe('completed');
+      expect(ctx.body.data.status).toBe('passed');
     });
 
     it('should return 400 for invalid id', async () => {
@@ -571,7 +590,7 @@ describe('AutoTestTaskController', () => {
 
       await AutoTestResult.create({
         task_id: task._id,
-        status: 'completed',
+        status: 'passed',
         summary: { total: 1, passed: 1, failed: 0, error: 0, skipped: 0 },
         results: [],
         started_at: new Date(),

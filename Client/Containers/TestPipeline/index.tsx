@@ -85,6 +85,7 @@ const DraggableTestCaseItem: React.FC<DraggableTestCaseItemProps> = ({
   isFirst,
   isLast,
 }) => {
+  const { t } = useTranslation();
   const { message: messageApi } = App.useApp();
   const ref = React.useRef<HTMLDivElement>(null);
   const lastHoverIndex = React.useRef<number>(-1);
@@ -304,7 +305,7 @@ const DraggableTestCaseItem: React.FC<DraggableTestCaseItemProps> = ({
 
 interface TestCase {
   _id?: string;
-  interface_id: string;
+  interface_id: string | { _id?: string; title?: string; path?: string; method?: string; [key: string]: any };
   order: number;
   enabled: boolean;
   custom_headers?: Record<string, any>;
@@ -354,7 +355,7 @@ interface TestResult {
     error: number;
   };
   results: Array<{
-    interface_id: string;
+    interface_id: string | { _id?: string; title?: string; path?: string; method?: string; [key: string]: any };
     interface_name: string;
     order: number;
     status: string;
@@ -1874,8 +1875,10 @@ const TestPipeline: React.FC = () => {
       ${(result.results || []).map((testCase, index) => {
         const statusClass = testCase.status === 'passed' ? 'passed' : 
                            testCase.status === 'failed' ? 'failed' : 'error';
-        const interfaceName = testCase.interface_name || 
-                              (testCase.interface_id?.title || testCase.interface_id?.path || t('admin.test.pipeline.unknownInterface'));
+        const interfaceName = testCase.interface_name ||
+                              (typeof testCase.interface_id === 'object' && testCase.interface_id
+                                ? (testCase.interface_id.title || testCase.interface_id.path || t('admin.test.pipeline.unknownInterface'))
+                                : t('admin.test.pipeline.unknownInterface'));
         return `
         <div class="test-case">
           <div class="test-case-header ${statusClass}">
@@ -2013,7 +2016,7 @@ const TestPipeline: React.FC = () => {
       });
       
       // 检查响应类型
-      const contentType = response.headers['content-type'] || '';
+      const contentType = String(response.headers['content-type'] || '');
       
       // 如果返回的是 JSON 错误（通常是错误响应）
       if (contentType.includes('application/json') || response.data.size < 100) {
@@ -2296,7 +2299,7 @@ const TestPipeline: React.FC = () => {
               notFoundContent={projects.length === 0 ? t('admin.test.pipeline.noProjects') : t('common.empty')}
               showSearch
               filterOption={(input, option) =>
-                (option?.children as string)?.toLowerCase().includes(input.toLowerCase())
+                (String(option?.children ?? '')).toLowerCase().includes(input.toLowerCase())
               }
             >
               {projects.length === 0 ? (

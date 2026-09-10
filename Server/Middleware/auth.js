@@ -3,10 +3,9 @@ import User from '../Models/User.js';
 import config from '../Utils/config.js';
 import { logger } from '../Utils/logger.js';
 
-// 在运行时获取 JWT_SECRET，而不是在模块加载时
 function getJWTSecret() {
   const secret = config.JWT_SECRET;
-  if (!secret || secret === 'your-secret-key') {
+  if (!secret) {
     if (process.env.NODE_ENV === 'production') {
       throw new Error('JWT_SECRET must be set in production environment');
     }
@@ -16,10 +15,8 @@ function getJWTSecret() {
 
 export const authMiddleware = async (ctx, next) => {
   try {
-    // 在运行时获取 JWT_SECRET，确保使用最新的配置
     const JWT_SECRET = getJWTSecret();
-    
-    // 检查 JWT_SECRET 是否配置
+
     if (!JWT_SECRET) {
       logger.error('JWT_SECRET is not configured');
       ctx.status = 500;
@@ -31,17 +28,33 @@ export const authMiddleware = async (ctx, next) => {
     }
 
     const authHeader = ctx.headers.authorization;
-    const token = 
-      authHeader?.replace(/^Bearer\s+/i, '') || 
-      ctx.query.token ||
-      ctx.cookies.get('token');
+    const queryToken = ctx.query.token;
+    const cookieToken = ctx.cookies.get('token');
+
+    // Prefer Authorization / Cookie. Query-string tokens are rejected in production (leak via logs/Referer).
+    let token =
+      authHeader?.replace(/^Bearer\s+/i, '') ||
+      cookieToken ||
+      null;
+
+    if (!token && queryToken) {
+      if (process.env.NODE_ENV === 'production') {
+        logger.warn({ path: ctx.path }, 'Rejected query-string token in production');
+        ctx.status = 401;
+        ctx.body = {
+          success: false,
+          message: '请使用 Authorization Header 或 Cookie 传递认证令牌',
+        };
+        return;
+      }
+      token = queryToken;
+    }
 
     if (!token) {
       logger.debug({
         hasAuthHeader: !!authHeader,
-        authHeader: authHeader ? `${authHeader.substring(0, 20)}...` : null,
-        hasQueryToken: !!ctx.query.token,
-        hasCookieToken: !!ctx.cookies.get('token'),
+        hasQueryToken: !!queryToken,
+        hasCookieToken: !!cookieToken,
       }, 'No token provided');
       ctx.status = 401;
       ctx.body = {
@@ -58,7 +71,6 @@ export const authMiddleware = async (ctx, next) => {
       if (err.name === 'TokenExpiredError') {
         logger.debug({
           expiredAt: err.expiredAt,
-          currentTime: new Date(),
         }, 'Token expired');
         ctx.status = 401;
         ctx.body = {
@@ -68,15 +80,11 @@ export const authMiddleware = async (ctx, next) => {
         return;
       }
       if (err.name === 'JsonWebTokenError') {
-        // 检查是否是签名错误，可能是 JWT_SECRET 不匹配
         const isSignatureError = err.message === 'invalid signature';
         logger.warn({
           error: err.message,
-          tokenPrefix: token.substring(0, 20),
           isSignatureError,
-          currentJWTSecret: JWT_SECRET ? `${JWT_SECRET.substring(0, 10)}...` : 'NOT SET',
-          hint: isSignatureError ? 'Token signature mismatch. This may indicate JWT_SECRET changed or token was signed with different secret.' : null,
-        }, isSignatureError ? 'Invalid token signature (JWT_SECRET mismatch)' : 'Invalid token format');
+        }, isSignatureError ? 'Invalid token signature' : 'Invalid token format');
         ctx.status = 401;
         ctx.body = {
           success: false,
@@ -88,16 +96,12 @@ export const authMiddleware = async (ctx, next) => {
         error: {
           name: err.name,
           message: err.message,
-          stack: err.stack,
         },
       }, 'JWT verification error');
       throw err;
     }
 
     if (!decoded.userId) {
-      logger.warn({
-        decoded,
-      }, 'Token decoded but missing userId');
       ctx.status = 401;
       ctx.body = {
         success: false,
@@ -108,12 +112,9 @@ export const authMiddleware = async (ctx, next) => {
 
     let user;
     try {
-      user = await User.findById(decoded.userId).lean();
-      
+      user = await User.findById(decoded.userId);
+
       if (!user) {
-        logger.warn({
-          userId: decoded.userId,
-        }, 'User not found');
         ctx.status = 401;
         ctx.body = {
           success: false,
@@ -123,8 +124,7 @@ export const authMiddleware = async (ctx, next) => {
       }
     } catch (dbError) {
       logger.error({
-        error: dbError,
-        stack: dbError.stack,
+        error: dbError.message,
         userId: decoded.userId,
       }, 'Failed to fetch user from database');
       ctx.status = 500;
@@ -142,8 +142,6 @@ export const authMiddleware = async (ctx, next) => {
       error: {
         name: error?.name,
         message: error?.message,
-        stack: error?.stack,
-        code: error?.code,
       },
       url: ctx.url,
       method: ctx.method,
@@ -155,4 +153,3 @@ export const authMiddleware = async (ctx, next) => {
     };
   }
 };
-

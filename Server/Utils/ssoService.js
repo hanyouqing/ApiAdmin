@@ -1,7 +1,7 @@
 import axios from 'axios';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
-import { SAML } from 'passport-saml';
+import { SAML } from '@node-saml/node-saml';
 import ldap from 'ldapjs';
 import User from '../Models/User.js';
 import { logger } from './logger.js';
@@ -144,15 +144,15 @@ export async function initiateSAMLAuth(provider, redirectUrl) {
     const samlOptions = {
       entryPoint,
       issuer,
-      cert: cert || null,
+      idpCert: cert || 'dummy-cert-replace-in-production',
       callbackUrl: callback,
       signatureAlgorithm: 'sha256',
       wantAssertionsSigned: false,
-      wantMessageSigned: false,
+      wantAuthnResponseSigned: false,
     };
 
     const saml = new SAML(samlOptions);
-    const loginUrl = saml.getAuthorizeUrl(callback, {}, false);
+    const loginUrl = await saml.getAuthorizeUrlAsync(redirectUrl || '', undefined);
 
     return {
       redirectUrl: loginUrl,
@@ -180,50 +180,38 @@ export async function handleSAMLCallback(provider, samlResponse, relayState) {
     const samlOptions = {
       entryPoint: entryPoint || '',
       issuer,
-      cert: cert || null,
+      idpCert: cert || 'dummy-cert-replace-in-production',
       callbackUrl: callback,
       signatureAlgorithm: 'sha256',
       wantAssertionsSigned: false,
-      wantMessageSigned: false,
+      wantAuthnResponseSigned: false,
     };
 
     const saml = new SAML(samlOptions);
-
-    return new Promise((resolve, reject) => {
-      saml.validatePostResponse(
-        { SAMLResponse: samlResponse, RelayState: relayState },
-        (err, profile) => {
-          if (err) {
-            logger.error({ error: err }, 'SAML assertion validation failed');
-            reject(err);
-            return;
-          }
-
-          if (!profile) {
-            reject(new Error('SAML profile is empty'));
-            return;
-          }
-
-          const email = profile.email || profile.mail || profile['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'] || profile.nameID;
-          const username = profile.username || profile.name || profile['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] || email?.split('@')[0];
-          const name = profile.displayName || profile.name || profile.cn || username;
-          const ssoId = profile.nameID || profile.userPrincipalName || email;
-
-          if (!email && !ssoId) {
-            reject(new Error('SAML response missing email or name_id'));
-            return;
-          }
-
-          resolve({
-            email,
-            username,
-            name,
-            ssoId,
-            ssoAttributes: profile,
-          });
-        }
-      );
+    const { profile } = await saml.validatePostResponseAsync({
+      SAMLResponse: samlResponse,
+      RelayState: relayState,
     });
+
+    if (!profile) {
+      throw new Error('SAML profile is empty');
+    }
+
+    const email = profile.email || profile.mail || profile['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'] || profile.nameID;
+    const username = profile.username || profile.name || profile['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] || email?.split('@')[0];
+    const name = profile.displayName || profile.name || profile.cn || username;
+
+    if (!email && !profile.nameID) {
+      throw new Error('SAML response missing email or name_id');
+    }
+
+    return {
+      email: email || `${profile.nameID}@saml.sso`,
+      username: username || String(profile.nameID || 'saml-user'),
+      name,
+      ssoId: profile.nameID || email,
+      attributes: profile,
+    };
   } catch (error) {
     logger.error({ error, providerId: provider._id }, 'SAML callback handling failed');
     throw error;

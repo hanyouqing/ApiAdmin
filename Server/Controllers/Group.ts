@@ -282,6 +282,149 @@ class GroupController extends BaseController {
       ctx.body = GroupController.error(error.message || '获取分组详情失败');
     }
   }
+
+  static async canManageGroup(group: any, user: AuthenticatedContext['state']['user']) {
+    return (
+      group.uid.toString() === user._id.toString() ||
+      user.role === 'super_admin' ||
+      (user.role === 'group_leader' && group.member.map((m: any) => m.toString()).includes(user._id.toString()))
+    );
+  }
+
+  static async addMember(ctx: AuthenticatedContext) {
+    try {
+      const user = ctx.state.user;
+      const { group_id, member_email } = ctx.request.body as any;
+
+      if (!validateObjectId(group_id) || !member_email) {
+        ctx.status = 400;
+        ctx.body = GroupController.error('分组ID和成员邮箱不能为空');
+        return;
+      }
+
+      const group = await Group.findById(group_id);
+      if (!group) {
+        ctx.status = 404;
+        ctx.body = GroupController.error('分组不存在');
+        return;
+      }
+
+      if (!(await GroupController.canManageGroup(group, user))) {
+        ctx.status = 403;
+        ctx.body = GroupController.error('无权限管理分组成员');
+        return;
+      }
+
+      const User = (await import('../Models/User.js')).default;
+      const member = await User.findOne({ email: sanitizeInput(member_email).toLowerCase() });
+      if (!member) {
+        ctx.status = 404;
+        ctx.body = GroupController.error('用户不存在');
+        return;
+      }
+
+      if (group.member.map((m: any) => m.toString()).includes(member._id.toString())) {
+        ctx.status = 400;
+        ctx.body = GroupController.error('用户已经是分组成员');
+        return;
+      }
+
+      group.member.push(member._id as any);
+      await group.save();
+      ctx.body = GroupController.success(group, '成员添加成功');
+    } catch (error: any) {
+      ctx.status = 500;
+      ctx.body = GroupController.error(error.message || '添加成员失败');
+    }
+  }
+
+  static async removeMember(ctx: AuthenticatedContext) {
+    try {
+      const user = ctx.state.user;
+      const group_id = (ctx.query.group_id || (ctx.request.body as any)?.group_id) as string;
+      const member_id = (ctx.query.member_id || (ctx.request.body as any)?.member_id) as string;
+
+      if (!validateObjectId(group_id) || !validateObjectId(member_id)) {
+        ctx.status = 400;
+        ctx.body = GroupController.error('分组ID和成员ID不能为空');
+        return;
+      }
+
+      const group = await Group.findById(group_id);
+      if (!group) {
+        ctx.status = 404;
+        ctx.body = GroupController.error('分组不存在');
+        return;
+      }
+
+      if (!(await GroupController.canManageGroup(group, user))) {
+        ctx.status = 403;
+        ctx.body = GroupController.error('无权限管理分组成员');
+        return;
+      }
+
+      if (group.uid.toString() === member_id) {
+        ctx.status = 400;
+        ctx.body = GroupController.error('不能移除分组所有者');
+        return;
+      }
+
+      group.member = group.member.filter((m: any) => m.toString() !== member_id) as any;
+      await group.save();
+      ctx.body = GroupController.success(group, '成员移除成功');
+    } catch (error: any) {
+      ctx.status = 500;
+      ctx.body = GroupController.error(error.message || '移除成员失败');
+    }
+  }
+
+  static async setLeader(ctx: AuthenticatedContext) {
+    try {
+      const user = ctx.state.user;
+      const { group_id, member_id } = ctx.request.body as any;
+
+      if (!validateObjectId(group_id) || !validateObjectId(member_id)) {
+        ctx.status = 400;
+        ctx.body = GroupController.error('分组ID和成员ID不能为空');
+        return;
+      }
+
+      const group = await Group.findById(group_id);
+      if (!group) {
+        ctx.status = 404;
+        ctx.body = GroupController.error('分组不存在');
+        return;
+      }
+
+      if (group.uid.toString() !== user._id.toString() && user.role !== 'super_admin') {
+        ctx.status = 403;
+        ctx.body = GroupController.error('只有分组所有者或超级管理员可以设置组长');
+        return;
+      }
+
+      if (!group.member.map((m: any) => m.toString()).includes(member_id) && group.uid.toString() !== member_id) {
+        ctx.status = 400;
+        ctx.body = GroupController.error('目标用户不是分组成员');
+        return;
+      }
+
+      const previousOwner = group.uid;
+      group.uid = member_id as any;
+      if (!group.member.map((m: any) => m.toString()).includes(previousOwner.toString())) {
+        group.member.push(previousOwner as any);
+      }
+      group.member = group.member.filter((m: any) => m.toString() !== member_id) as any;
+      await group.save();
+
+      const User = (await import('../Models/User.js')).default;
+      await User.findByIdAndUpdate(member_id, { role: 'group_leader' });
+
+      ctx.body = GroupController.success(group, '组长设置成功');
+    } catch (error: any) {
+      ctx.status = 500;
+      ctx.body = GroupController.error(error.message || '设置组长失败');
+    }
+  }
 }
 
 export default GroupController;

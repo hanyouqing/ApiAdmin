@@ -58,6 +58,7 @@ describe('OpenAPIController', () => {
     testCat = await InterfaceCat.create({
       name: 'Test Category',
       project_id: testProject._id,
+      uid: testUser._id,
     });
 
     testInterface = await Interface.create({
@@ -65,8 +66,9 @@ describe('OpenAPIController', () => {
       path: '/api/test',
       method: 'GET',
       project_id: testProject._id,
+      uid: testUser._id,
       catid: testCat._id,
-      status: 'done',
+      status: 'online',
     });
   });
 
@@ -108,6 +110,7 @@ describe('OpenAPIController', () => {
       const otherCat = await InterfaceCat.create({
         name: 'Other Category',
         project_id: testProject._id,
+      uid: testUser._id,
       });
 
       await Interface.create({
@@ -115,6 +118,7 @@ describe('OpenAPIController', () => {
         path: '/api/other',
         method: 'GET',
         project_id: testProject._id,
+      uid: testUser._id,
         catid: otherCat._id,
       });
 
@@ -141,7 +145,8 @@ describe('OpenAPIController', () => {
         path: '/api/tagged',
         method: 'GET',
         project_id: testProject._id,
-        tags: ['important'],
+      uid: testUser._id,
+        tag: ['important'],
       });
 
       const ctx = createMockCtx({}, { tag: 'important' }, {}, testUser, testProject._id);
@@ -149,7 +154,7 @@ describe('OpenAPIController', () => {
 
       expect(ctx.status).toBe(200);
       expect(ctx.body.success).toBe(true);
-      expect(ctx.body.data.list.every(i => i.tags && i.tags.includes('important'))).toBe(true);
+      expect(ctx.body.data.list.every(i => i.tag && i.tag.includes('important'))).toBe(true);
     });
 
     it('should return empty list when tag does not match', async () => {
@@ -167,15 +172,16 @@ describe('OpenAPIController', () => {
         path: '/api/pending',
         method: 'GET',
         project_id: testProject._id,
-        status: 'pending',
+      uid: testUser._id,
+        status: 'developing',
       });
 
-      const ctx = createMockCtx({}, { status: 'done' }, {}, testUser, testProject._id);
+      const ctx = createMockCtx({}, { status: 'online' }, {}, testUser, testProject._id);
       await OpenAPIController.listInterfaces(ctx);
 
       expect(ctx.status).toBe(200);
       expect(ctx.body.success).toBe(true);
-      expect(ctx.body.data.list.every(i => i.status === 'done')).toBe(true);
+      expect(ctx.body.data.list.every(i => i.status === 'online')).toBe(true);
     });
 
     it('should support pagination', async () => {
@@ -185,6 +191,7 @@ describe('OpenAPIController', () => {
           path: `/api/test${i}`,
           method: 'GET',
           project_id: testProject._id,
+      uid: testUser._id,
         });
       }
 
@@ -206,6 +213,7 @@ describe('OpenAPIController', () => {
           path: `/api/test${i}`,
           method: 'GET',
           project_id: testProject._id,
+      uid: testUser._id,
         });
       }
 
@@ -240,6 +248,7 @@ describe('OpenAPIController', () => {
         path: '/api/other',
         method: 'GET',
         project_id: otherProject._id,
+      uid: testUser._id
       });
 
       const ctx = createMockCtx({}, {}, {}, testUser, testProject._id);
@@ -263,20 +272,26 @@ describe('OpenAPIController', () => {
     });
 
     it('should sort by createdAt descending', async () => {
-      const oldInterface = await Interface.create({
+      // Schema timestamps use created_at; rely on insertion order + controller sort
+      await Interface.deleteMany({ project_id: testProject._id });
+
+      const older = await Interface.create({
         title: 'Old Interface',
         path: '/api/old',
         method: 'GET',
         project_id: testProject._id,
-        createdAt: new Date(Date.now() - 10000),
+        uid: testUser._id,
       });
 
-      const newInterface = await Interface.create({
+      // ensure newer timestamp
+      await new Promise(r => setTimeout(r, 20));
+
+      const newer = await Interface.create({
         title: 'New Interface',
         path: '/api/new',
         method: 'GET',
         project_id: testProject._id,
-        createdAt: new Date(),
+        uid: testUser._id,
       });
 
       const ctx = createMockCtx({}, {}, {}, testUser, testProject._id);
@@ -284,8 +299,8 @@ describe('OpenAPIController', () => {
 
       expect(ctx.status).toBe(200);
       expect(ctx.body.success).toBe(true);
-      const firstInterface = ctx.body.data.list[0];
-      expect(firstInterface._id.toString()).toBe(newInterface._id.toString());
+      const ids = ctx.body.data.list.map(i => i._id.toString());
+      expect(ids.indexOf(newer._id.toString())).toBeLessThan(ids.indexOf(older._id.toString()));
     });
   });
 
@@ -352,6 +367,7 @@ describe('OpenAPIController', () => {
         path: '/api/other',
         method: 'GET',
         project_id: otherProject._id,
+      uid: testUser._id
       });
 
       const ctx = createMockCtx({ id: otherInterface._id.toString() }, {}, {}, testUser, testProject._id);
@@ -407,7 +423,7 @@ describe('OpenAPIController', () => {
           catid: testCat._id.toString(),
           desc: 'Complete description',
           tag: ['tag1', 'tag2'],
-          status: 'done',
+          status: 'online',
           req_query: [{ name: 'param1', desc: 'Parameter 1' }],
           req_headers: [{ name: 'Content-Type', value: 'application/json' }],
           req_body_type: 'json',
@@ -425,7 +441,7 @@ describe('OpenAPIController', () => {
       expect(ctx.body.data.title).toBe('Complete Interface');
       expect(ctx.body.data.desc).toBe('Complete description');
       expect(ctx.body.data.tag).toEqual(['tag1', 'tag2']);
-      expect(ctx.body.data.status).toBe('done');
+      expect(ctx.body.data.status).toBe('online');
       expect(ctx.body.data.req_query).toHaveLength(1);
       expect(ctx.body.data.req_headers).toHaveLength(1);
     });
@@ -550,6 +566,7 @@ describe('OpenAPIController', () => {
       const otherCat = await InterfaceCat.create({
         name: 'Other Category',
         project_id: otherProject._id,
+      uid: testUser._id
       });
 
       const ctx = createMockCtx(
@@ -712,7 +729,7 @@ describe('OpenAPIController', () => {
           title: 'Updated Interface',
           path: '/api/updated',
           desc: 'Updated description',
-          status: 'done',
+          status: 'online',
         },
         testUser,
         testProject._id
@@ -724,7 +741,7 @@ describe('OpenAPIController', () => {
       expect(ctx.body.data.title).toBe('Updated Interface');
       expect(ctx.body.data.path).toBe('/api/updated');
       expect(ctx.body.data.desc).toBe('Updated description');
-      expect(ctx.body.data.status).toBe('done');
+      expect(ctx.body.data.status).toBe('online');
     });
 
     it('should return 400 for invalid id', async () => {
@@ -770,6 +787,7 @@ describe('OpenAPIController', () => {
         path: '/api/other',
         method: 'GET',
         project_id: otherProject._id,
+      uid: testUser._id
       });
 
       const ctx = createMockCtx(
@@ -840,6 +858,7 @@ describe('OpenAPIController', () => {
       const otherCat = await InterfaceCat.create({
         name: 'Other Category',
         project_id: otherProject._id,
+      uid: testUser._id
       });
 
       const ctx = createMockCtx(
@@ -1026,6 +1045,7 @@ describe('OpenAPIController', () => {
         path: '/api/other',
         method: 'GET',
         project_id: otherProject._id,
+      uid: testUser._id
       });
 
       const ctx = createMockCtx({ id: otherInterface._id.toString() }, {}, {}, testUser, testProject._id);

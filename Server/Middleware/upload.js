@@ -1,4 +1,4 @@
-import multer from 'koa-multer';
+import multer from '@koa/multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
@@ -55,7 +55,7 @@ export const handleUploadError = async (ctx, next) => {
   try {
     await next();
   } catch (error) {
-    if (error instanceof multer.MulterError) {
+    if (error?.code === 'LIMIT_FILE_SIZE' || error?.name === 'MulterError') {
       if (error.code === 'LIMIT_FILE_SIZE') {
         ctx.status = 400;
         ctx.body = {
@@ -75,6 +75,3 @@ export const handleUploadError = async (ctx, next) => {
     throw error;
   }
 };
-
-
-

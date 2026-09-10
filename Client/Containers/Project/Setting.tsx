@@ -11,6 +11,7 @@ import type { AppDispatch, RootState } from '../../Reducer/Create';
 import type { UploadFile } from 'antd';
 import { getAvatarUrl } from '../../Utils/avatar';
 import TestRules from './TestRules';
+import CodeRepositorySettings from './CodeRepositorySettings';
 
 const { TextArea } = Input;
 const { Option } = Select;

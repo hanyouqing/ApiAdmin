@@ -3,7 +3,8 @@ replicaCount: 2
 image:
   repository: apiadmin/apiadmin
   pullPolicy: IfNotPresent
-  tag: "latest"
+  # 生产请固定版本，禁止使用 latest
+  tag: "0.0.1"
 
 imagePullSecrets: []
 
@@ -73,7 +74,9 @@ mongodb:
   enabled: true
   auth:
     enabled: true
-    rootPassword: "change-me"
+    # 部署前必须通过 --set 或 values 覆盖
+    rootUsername: "apiadmin"
+    rootPassword: ""
     database: "apiadmin"
   persistence:
     enabled: true
@@ -91,7 +94,8 @@ redis:
   enabled: true
   auth:
     enabled: true
-    password: "change-me"
+    # 部署前必须通过 --set 或 values 覆盖
+    password: ""
   persistence:
     enabled: true
     size: 10Gi
@@ -107,9 +111,16 @@ redis:
 env:
   NODE_ENV: production
   PORT: "3000"
+  APP_ROOT: "/app"
+  ALLOW_PUBLIC_REGISTRATION: "false"
+  ALLOW_PRIVATE_OUTBOUND: "false"
+  ALLOW_MOCK_SCRIPTS: "false"
+  SWAGGER_ENABLED: "false"
+  CORS_ORIGIN: "https://apiadmin.example.com"
 
 config:
-  jwtSecret: "change-me"
+  # 部署前必须覆盖为 >=32 字符随机值
+  jwtSecret: ""
   jwtExpiresIn: "7d"
   uploadMaxSize: "10485760"
 
@@ -118,4 +129,3 @@ persistence:
   storageClass: ""
   accessMode: ReadWriteOnce
   size: 10Gi
-

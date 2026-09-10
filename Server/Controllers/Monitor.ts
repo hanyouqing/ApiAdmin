@@ -65,6 +65,17 @@ class MonitorController extends BaseController {
 
   static async getMetrics(ctx: Koa.Context) {
     try {
+      const metricsToken = process.env.METRICS_TOKEN;
+      const authHeader = ctx.headers.authorization?.replace(/^Bearer\s+/i, '');
+      const isSuperAdmin = ctx.state.user?.role === 'super_admin';
+      const tokenOk = metricsToken && (authHeader === metricsToken || ctx.get('X-Metrics-Token') === metricsToken);
+
+      if (!isSuperAdmin && !tokenOk) {
+        ctx.status = 403;
+        ctx.body = MonitorController.error('无权访问指标');
+        return;
+      }
+
       const promClient = await import('prom-client');
       ctx.set('Content-Type', promClient.register.contentType);
       ctx.body = await promClient.register.metrics();

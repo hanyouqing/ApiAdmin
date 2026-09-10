@@ -1,0 +1,16 @@
+---
+description: Vitest and MongoDB unit test practices
+globs: tests/**/*.{js,ts},vitest.config.js,tests/setup.js
+alwaysApply: false
+---
+
+# Unit Tests (Vitest)
+
+- Use in-memory Mongo via `tests/setup.js` + `mongodb-memory-server` (do not require local mongod).
+- Alias **one** mongoose in `vitest.config.js` to `Server/node_modules/mongoose`. Dual mongoose copies cause buffering timeouts and silent disconnects.
+- `fileParallelism: false`, high `hookTimeout` for MMS startup.
+- Exclude Playwright e2e from Vitest (`tests/e2e/**`).
+- Fix broken connect blocks; prefer `connectTestDB` / setup URI over hard-coded localhost.
+- Align fixtures with schemas (`uid` required on Group, etc.) and controller APIs (`_id`, `group_id`, …).
+- Mock async background runners in controller tests so `beforeEach` `deleteMany` cannot race live jobs.
+- Constructable model mocks for importers (`new Interface()` + `findOne`), not plain `{ findOne }` objects.
