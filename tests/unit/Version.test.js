@@ -29,7 +29,7 @@ describe('Version Utils', () => {
       const info = getVersionInfo();
       
       expect(info).toBeDefined();
-      expect(info.app_version).toBe('1.0.0');
+      expect(info.app_version).toBe('0.0.1');
       expect(info.node_version).toBe(process.version);
     });
 
@@ -51,7 +51,7 @@ describe('Version Utils', () => {
       const info = getVersionInfo();
       
       expect(info).toBeDefined();
-      expect(info.app_version).toBe('1.0.0');
+      expect(info.app_version).toBe('0.0.1');
     });
 
     it('should handle file read errors', () => {
@@ -63,7 +63,7 @@ describe('Version Utils', () => {
       const info = getVersionInfo();
       
       expect(info).toBeDefined();
-      expect(info.app_version).toBe('1.0.0');
+      expect(info.app_version).toBe('0.0.1');
     });
   });
 
@@ -74,7 +74,7 @@ describe('Version Utils', () => {
       const info = getVersionInfoFormatted();
       
       expect(info).toBeDefined();
-      expect(info.appVersion).toBe('1.0.0');
+      expect(info.appVersion).toBe('0.0.1');
       expect(info.nodeVersion).toBe(process.version);
       expect(info.buildTime).toBe('unknown');
     });

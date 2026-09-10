@@ -3,8 +3,10 @@ import mongoose from 'mongoose';
 import InterfaceCat from '../../Server/Models/InterfaceCat.js';
 import Project from '../../Server/Models/Project.js';
 import Group from '../../Server/Models/Group.js';
+import User from '../../Server/Models/User.js';
 
 describe('InterfaceCat Model', () => {
+  let testUser;
   let testGroup;
   let testProject;
 
@@ -15,21 +17,31 @@ describe('InterfaceCat Model', () => {
     await InterfaceCat.deleteMany({});
     await Project.deleteMany({});
     await Group.deleteMany({});
+    await User.deleteMany({});
 
-    testGroup = new Group({ group_name: 'Test Group' });
-    await testGroup.save();
+    testUser = await User.create({
+      username: 'testuser',
+      email: 'test@example.com',
+      password: 'Test1234',
+    });
 
-    testProject = new Project({
+    testGroup = await Group.create({
+      group_name: 'Test Group',
+      uid: testUser._id,
+    });
+
+    testProject = await Project.create({
       project_name: 'Test Project',
       group_id: testGroup._id,
+      uid: testUser._id,
     });
-    await testProject.save();
   });
 
   afterEach(async () => {
     await InterfaceCat.deleteMany({});
     await Project.deleteMany({});
     await Group.deleteMany({});
+    await User.deleteMany({});
   });
 
   it('should create an interface category with valid data', async () => {
@@ -37,6 +49,7 @@ describe('InterfaceCat Model', () => {
       name: 'Test Category',
       desc: 'Test Description',
       project_id: testProject._id,
+      uid: testUser._id,
     };
 
     const cat = new InterfaceCat(catData);
@@ -57,17 +70,10 @@ describe('InterfaceCat Model', () => {
   });
 
   it('should have default index of 0', async () => {
-    const user = new (await import('../../Server/Models/User.js')).default({
-      username: 'testuser',
-      email: 'test@example.com',
-      password: 'Test1234',
-    });
-    await user.save();
-
     const cat = new InterfaceCat({
       name: 'Test Category',
       project_id: testProject._id,
-      uid: user._id,
+      uid: testUser._id,
     });
     await cat.save();
 
@@ -75,21 +81,13 @@ describe('InterfaceCat Model', () => {
   });
 
   it('should have default empty desc', async () => {
-    const user = new (await import('../../Server/Models/User.js')).default({
-      username: 'testuser',
-      email: 'test@example.com',
-      password: 'Test1234',
-    });
-    await user.save();
-
     const cat = new InterfaceCat({
       name: 'Test Category',
       project_id: testProject._id,
-      uid: user._id,
+      uid: testUser._id,
     });
     await cat.save();
 
     expect(cat.desc).toBe('');
   });
 });
-

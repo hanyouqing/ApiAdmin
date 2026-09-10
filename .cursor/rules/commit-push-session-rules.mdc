@@ -1,0 +1,14 @@
+---
+description: Before any commit+push, distill session learnings into .cursor/rules
+alwaysApply: true
+---
+
+# Commit / Push Gate
+
+When the user asks to **commit** and/or **push**:
+
+1. **First** update `.cursor/rules/` with durable lessons from the current session (new `.mdc` or amend existing ones). Keep rules concise, actionable, one concern each.
+2. **Then** run the normal git commit / push flow (status, diff, log → stage → commit → status → push if asked).
+3. Include rule file changes in the same commit unless the user forbids docs/rules in that commit.
+4. Never skip step 1 for “just commit/push” requests in this repo.
+5. Do not force-push `main`/`master`. Do not amend unless the user explicitly asks and amend rules are met.

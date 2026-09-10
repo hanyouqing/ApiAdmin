@@ -1,14 +1,48 @@
-// Test setup file - runs before all tests
-// This ensures Mongoose configuration is set before any models are imported
 import mongoose from 'mongoose';
+import { beforeAll, afterAll } from 'vitest';
 
-// Configure Mongoose for tests BEFORE any models are imported
 mongoose.set('strictQuery', false);
-// Increase buffer timeout for tests (default is 10000ms, increase to 60000ms)
 mongoose.set('bufferTimeoutMS', 60000);
-// Enable buffering for commands when not connected
 mongoose.set('bufferCommands', true);
 
-// Export mongoose instance for use in tests
-export { mongoose };
+let mongoServer = null;
 
+beforeAll(async () => {
+  process.env.NODE_ENV = 'test';
+  process.env.JWT_SECRET =
+    process.env.JWT_SECRET || 'test-jwt-secret-key-at-least-32-chars';
+  process.env.ALLOW_MOCK_SCRIPTS = process.env.ALLOW_MOCK_SCRIPTS || 'true';
+
+  if (!process.env.MONGODB_URL && !process.env.TEST_MONGODB_URL) {
+    const { MongoMemoryServer } = await import('mongodb-memory-server');
+    mongoServer = await MongoMemoryServer.create();
+    const uri = mongoServer.getUri('apiadmin_test');
+    process.env.MONGODB_URL = uri;
+    process.env.TEST_MONGODB_URL = uri;
+  } else if (!process.env.MONGODB_URL && process.env.TEST_MONGODB_URL) {
+    process.env.MONGODB_URL = process.env.TEST_MONGODB_URL;
+  }
+
+  if (mongoose.connection.readyState === 0) {
+    await mongoose.connect(process.env.MONGODB_URL, {
+      serverSelectionTimeoutMS: 15000,
+      socketTimeoutMS: 45000,
+    });
+  }
+}, 120000);
+
+afterAll(async () => {
+  try {
+    if (mongoose.connection.readyState !== 0) {
+      await mongoose.disconnect();
+    }
+  } catch {
+    /* ignore */
+  }
+  if (mongoServer) {
+    await mongoServer.stop();
+    mongoServer = null;
+  }
+}, 60000);
+
+export { mongoose };

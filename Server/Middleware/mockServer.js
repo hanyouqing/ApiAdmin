@@ -86,7 +86,7 @@ export const mockServer = async (ctx, next) => {
           parsedMockData = beforeMockResult.mockData;
         } else {
           if (interfaceData.res_body_type === 'json') {
-            const Mock = (await import('mockjs')).default;
+            const Mock = (await import('../Utils/safeMock.js')).default;
             const JSON5 = (await import('json5')).default;
 
             if (project.enable_json5) {

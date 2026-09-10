@@ -241,7 +241,8 @@ const PostmanImport: React.FC = () => {
       title: t('admin.postmanImport.description'),
       dataIndex: 'description',
       key: 'description',
-      render: (text: string) => (text ? (typeof text === 'string' ? text : text.content || '-') : '-'),
+      render: (text: string | { content?: string } | undefined) =>
+        text ? (typeof text === 'string' ? text : text.content || '-') : '-',
     },
   ];
 

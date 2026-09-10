@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateSecureToken, hashToken, sanitizeHtml, validateUrl, escapeRegex } from '../../Server/Utils/security.js';
+import { generateSecureToken, hashToken, sanitizeHtml, validateUrl, escapeRegex, assertSafeOutboundUrl, isPrivateOrLocalHost } from '../../Server/Utils/security.js';
 
 describe('Security Utils', () => {
   describe('generateSecureToken', () => {
@@ -107,6 +107,23 @@ describe('Security Utils', () => {
 
     it('should handle empty strings', () => {
       expect(escapeRegex('')).toBe('');
+    });
+  });
+
+  describe('assertSafeOutboundUrl', () => {
+    it('should allow public https URLs', () => {
+      expect(assertSafeOutboundUrl('https://example.com/api')).toContain('https://example.com/api');
+    });
+
+    it('should block localhost and private IPs by default', () => {
+      expect(() => assertSafeOutboundUrl('http://127.0.0.1/admin')).toThrow();
+      expect(() => assertSafeOutboundUrl('http://10.0.0.5/x')).toThrow();
+      expect(() => assertSafeOutboundUrl('http://192.168.1.1/x')).toThrow();
+      expect(isPrivateOrLocalHost('localhost')).toBe(true);
+    });
+
+    it('should reject non-http protocols', () => {
+      expect(() => assertSafeOutboundUrl('file:///etc/passwd')).toThrow();
     });
   });
 });

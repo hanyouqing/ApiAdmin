@@ -1,4 +1,4 @@
-import { VM } from 'vm2';
+import vm from 'node:vm';
 import axios from 'axios';
 import { logger } from './logger.js';
 import AutoTestResult from '../Models/AutoTestResult.js';
@@ -18,6 +18,41 @@ export class AutoTestRunner {
   static getResultId(result) {
     if (!result) return null;
     return result._id || result.id || null;
+  }
+
+  /**
+   * Persist AutoTestResult without optimistic-lock conflicts.
+   * Frequent progress writes + concurrent readers/tests deleting docs make document.save() fragile.
+   */
+  async persistResult(result) {
+    const resultId = AutoTestRunner.getResultId(result);
+    if (!resultId) {
+      return null;
+    }
+
+    const updated = await AutoTestResult.findByIdAndUpdate(
+      resultId,
+      {
+        $set: {
+          results: result.results,
+          summary: result.summary,
+          status: result.status,
+          duration: result.duration,
+          started_at: result.started_at,
+          completed_at: result.completed_at,
+          ai_analysis: result.ai_analysis,
+        },
+      },
+      { new: true, runValidators: true }
+    );
+
+    if (!updated) {
+      logger.warn({ resultId }, 'AutoTestResult missing during persist (deleted or never committed)');
+      return null;
+    }
+
+    result.__v = updated.__v;
+    return updated;
   }
 
   /**
@@ -333,7 +368,7 @@ export class AutoTestRunner {
             interfaceIdStr: interfaceIdStr,
             interfaceIdObj: interfaceIdObj,
             availableIds: Array.from(interfaceMap.keys()),
-            totalInterfaces: interfaces.length,
+            totalInterfaces: interfaceMap.size,
           }, 'Interface not found in map during initialization');
         }
         
@@ -425,7 +460,7 @@ export class AutoTestRunner {
         };
       });
 
-      await result.save();
+      await this.persistResult(result);
 
       // 执行每个测试用例
       for (let i = 0; i < sortedCases.length; i++) {
@@ -492,7 +527,7 @@ export class AutoTestRunner {
             };
             resultItem.completed_at = new Date();
             result.summary.error++;
-            await result.save();
+            await this.persistResult(result);
             continue;
           }
 
@@ -530,7 +565,7 @@ export class AutoTestRunner {
           }
           resultItem.status = 'running';
           resultItem.started_at = new Date();
-          await result.save();
+          await this.persistResult(result);
 
           // 构建请求
           const method = interfaceData.method?.toUpperCase() || 'GET';
@@ -909,7 +944,7 @@ export class AutoTestRunner {
             query: queryParams,
           };
 
-          await result.save();
+          await this.persistResult(result);
 
           // 发送请求
           const startTime = Date.now();
@@ -1100,7 +1135,7 @@ export class AutoTestRunner {
           result.summary.error++;
         }
 
-        await result.save();
+        await this.persistResult(result);
       }
 
       // 更新最终状态
@@ -1108,7 +1143,7 @@ export class AutoTestRunner {
       result.completed_at = new Date();
       result.duration = result.completed_at - result.started_at;
 
-      await result.save();
+      await this.persistResult(result);
 
       // 获取结果 ID（统一处理）
       const resultId = AutoTestRunner.getResultId(result);
@@ -1165,7 +1200,7 @@ export class AutoTestRunner {
       if (result.started_at) {
         result.duration = result.completed_at - result.started_at;
       }
-      await result.save();
+      await this.persistResult(result);
 
       // 确保 task 对象可用，如果不可用则重新获取
       let taskForNotification = task;
@@ -1892,16 +1927,15 @@ export class AutoTestRunner {
         bodyKeys: typeof response.data === 'object' && response.data !== null ? Object.keys(response.data) : null,
       }, 'Assertion sandbox prepared');
 
-      // 使用 VM2 安全执行断言脚本
-      const vm = new VM({
-        timeout: 10000,
-        sandbox,
-        eval: false,
-        wasm: false,
+      // 使用 Node vm 执行断言脚本（非安全边界，仅限受控脚本）
+      const contextified = vm.createContext(sandbox, {
+        name: 'ApiAdminAutoTestAssertion',
+        codeGeneration: { strings: false, wasm: false },
       });
 
       const wrappedScript = `
         (function() {
+          "use strict";
           try {
             ${script}
             return { passed: true, message: 'All assertions passed' };
@@ -1911,7 +1945,11 @@ export class AutoTestRunner {
         })();
       `;
 
-      const result = vm.run(wrappedScript);
+      const result = vm.runInContext(wrappedScript, contextified, {
+        timeout: 10000,
+        displayErrors: true,
+        breakOnSigint: true,
+      });
 
       return {
         passed: result.passed || false,

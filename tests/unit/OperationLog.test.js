@@ -61,6 +61,7 @@ describe('OperationLogController', () => {
     it('should list logs', async () => {
       await OperationLog.create({
         userId: testUser._id,
+        username: testUser.username,
         projectId: testProject._id,
         type: 'interface',
         action: 'create',
@@ -81,6 +82,7 @@ describe('OperationLogController', () => {
     it('should filter by type', async () => {
       await OperationLog.create({
         userId: testUser._id,
+        username: testUser.username,
         projectId: testProject._id,
         type: 'interface',
         action: 'create',
@@ -91,6 +93,7 @@ describe('OperationLogController', () => {
 
       await OperationLog.create({
         userId: testUser._id,
+        username: testUser.username,
         projectId: testProject._id,
         type: 'project',
         action: 'update',
@@ -116,6 +119,7 @@ describe('OperationLogController', () => {
 
       await OperationLog.create({
         userId: testUser._id,
+        username: testUser.username,
         projectId: testProject._id,
         type: 'interface',
         action: 'create',
@@ -126,6 +130,7 @@ describe('OperationLogController', () => {
 
       await OperationLog.create({
         userId: testUser._id,
+        username: testUser.username,
         projectId: otherProject._id,
         type: 'interface',
         action: 'create',
@@ -151,6 +156,7 @@ describe('OperationLogController', () => {
 
       await OperationLog.create({
         userId: testUser._id,
+        username: testUser.username,
         projectId: testProject._id,
         type: 'interface',
         action: 'create',
@@ -161,6 +167,7 @@ describe('OperationLogController', () => {
 
       await OperationLog.create({
         userId: otherUser._id,
+        username: otherUser.username,
         projectId: testProject._id,
         type: 'interface',
         action: 'create',
@@ -180,6 +187,7 @@ describe('OperationLogController', () => {
     it('should filter by action', async () => {
       await OperationLog.create({
         userId: testUser._id,
+        username: testUser.username,
         projectId: testProject._id,
         type: 'interface',
         action: 'create',
@@ -190,6 +198,7 @@ describe('OperationLogController', () => {
 
       await OperationLog.create({
         userId: testUser._id,
+        username: testUser.username,
         projectId: testProject._id,
         type: 'interface',
         action: 'update',
@@ -213,6 +222,7 @@ describe('OperationLogController', () => {
 
       await OperationLog.create({
         userId: testUser._id,
+        username: testUser.username,
         projectId: testProject._id,
         type: 'interface',
         action: 'create',
@@ -224,6 +234,7 @@ describe('OperationLogController', () => {
 
       await OperationLog.create({
         userId: testUser._id,
+        username: testUser.username,
         projectId: testProject._id,
         type: 'interface',
         action: 'create',
@@ -252,6 +263,7 @@ describe('OperationLogController', () => {
       for (let i = 0; i < 15; i++) {
         await OperationLog.create({
           userId: testUser._id,
+        username: testUser.username,
           projectId: testProject._id,
           type: 'interface',
           action: 'create',
@@ -274,6 +286,7 @@ describe('OperationLogController', () => {
     it('should export logs as CSV', async () => {
       await OperationLog.create({
         userId: testUser._id,
+        username: testUser.username,
         projectId: testProject._id,
         type: 'interface',
         action: 'create',
@@ -293,6 +306,7 @@ describe('OperationLogController', () => {
     it('should export logs as JSON', async () => {
       await OperationLog.create({
         userId: testUser._id,
+        username: testUser.username,
         projectId: testProject._id,
         type: 'interface',
         action: 'create',
@@ -312,6 +326,7 @@ describe('OperationLogController', () => {
     it('should filter by type when exporting', async () => {
       await OperationLog.create({
         userId: testUser._id,
+        username: testUser.username,
         projectId: testProject._id,
         type: 'interface',
         action: 'create',
@@ -322,6 +337,7 @@ describe('OperationLogController', () => {
 
       await OperationLog.create({
         userId: testUser._id,
+        username: testUser.username,
         projectId: testProject._id,
         type: 'project',
         action: 'update',
@@ -342,6 +358,7 @@ describe('OperationLogController', () => {
       for (let i = 0; i < 10001; i++) {
         await OperationLog.create({
           userId: testUser._id,
+        username: testUser.username,
           projectId: testProject._id,
           type: 'interface',
           action: 'create',

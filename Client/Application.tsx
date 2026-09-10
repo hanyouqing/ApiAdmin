@@ -143,12 +143,7 @@ const Application: React.FC = () => {
     <ConfigProvider locale={getAntdLocale(locale)} theme={antdTheme}>
       <App>
         <AppContent>
-          <BrowserRouter
-            future={{
-              v7_startTransition: true,
-              v7_relativeSplatPath: true,
-            }}
-          >
+          <BrowserRouter>
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />

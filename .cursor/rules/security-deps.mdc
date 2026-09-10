@@ -1,0 +1,12 @@
+---
+description: Security and dependency hygiene for ApiAdmin
+alwaysApply: true
+---
+
+# Security & Dependencies
+
+- Do **not** reintroduce `vm2`. Use `node:vm` with tight timeouts/`codeGeneration` limits (see `MockScriptExecutor`, `testRunner`, `autoTestRunner`). Treat VM as non-boundary.
+- Prefer maintained replacements (`@faker-js/faker`, `@koa/multer`, `@node-saml/node-saml`) over abandoned packages.
+- Keep npm `overrides` for known transitive CVEs; verify with `npm audit` on root/Client/Server after upgrades.
+- Production config: strong JWT, no `CORS_ORIGIN=*`, SSRF checks on outbound URLs, hashed project tokens.
+- Never log JWT secrets or enable query-string tokens in production.

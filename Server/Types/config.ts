@@ -7,6 +7,7 @@ export interface Config {
   LOG_LEVEL: string;
   REDIS_URL: string | null;
   CORS_ORIGIN: string;
+  ALLOW_PUBLIC_REGISTRATION?: boolean;
   UPLOAD_MAX_SIZE: number | string;
   UPLOAD_PATH: string;
   SWAGGER_ENABLED: boolean | string;

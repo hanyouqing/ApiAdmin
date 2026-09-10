@@ -41,7 +41,7 @@ describe('NotificationController', () => {
     it('should list notifications for user', async () => {
       await Notification.create({
         userId: testUser._id,
-        type: 'interface_change',
+        type: 'interface-change',
         title: 'Test Notification',
         content: 'Test content',
         read: false,
@@ -60,7 +60,7 @@ describe('NotificationController', () => {
     it('should filter unread notifications', async () => {
       await Notification.create({
         userId: testUser._id,
-        type: 'interface_change',
+        type: 'interface-change',
         title: 'Unread',
         content: 'Test',
         read: false,
@@ -68,7 +68,7 @@ describe('NotificationController', () => {
 
       await Notification.create({
         userId: testUser._id,
-        type: 'interface_change',
+        type: 'interface-change',
         title: 'Read',
         content: 'Test',
         read: true,
@@ -85,7 +85,7 @@ describe('NotificationController', () => {
     it('should filter by type', async () => {
       await Notification.create({
         userId: testUser._id,
-        type: 'interface_change',
+        type: 'interface-change',
         title: 'Interface Change',
         content: 'Test',
         read: false,
@@ -93,25 +93,25 @@ describe('NotificationController', () => {
 
       await Notification.create({
         userId: testUser._id,
-        type: 'test_failed',
+        type: 'test-failed',
         title: 'Test Failed',
         content: 'Test',
         read: false,
       });
 
-      const ctx = createMockCtx({}, { type: 'interface_change' }, {}, testUser);
+      const ctx = createMockCtx({}, { type: 'interface-change' }, {}, testUser);
       await NotificationController.listNotifications(ctx);
 
       expect(ctx.status).toBe(200);
       expect(ctx.body.success).toBe(true);
-      expect(ctx.body.data.list.every(n => n.type === 'interface_change')).toBe(true);
+      expect(ctx.body.data.list.every(n => n.type === 'interface-change')).toBe(true);
     });
 
     it('should support pagination', async () => {
       for (let i = 0; i < 15; i++) {
         await Notification.create({
           userId: testUser._id,
-          type: 'interface_change',
+          type: 'interface-change',
           title: `Notification ${i}`,
           content: 'Test',
           read: false,
@@ -131,7 +131,7 @@ describe('NotificationController', () => {
     it('should mark notification as read', async () => {
       const notification = await Notification.create({
         userId: testUser._id,
-        type: 'interface_change',
+        type: 'interface-change',
         title: 'Test',
         content: 'Test',
         read: false,
@@ -174,7 +174,7 @@ describe('NotificationController', () => {
 
       const notification = await Notification.create({
         userId: otherUser._id,
-        type: 'interface_change',
+        type: 'interface-change',
         title: 'Test',
         content: 'Test',
         read: false,
@@ -192,7 +192,7 @@ describe('NotificationController', () => {
     it('should mark all notifications as read', async () => {
       await Notification.create({
         userId: testUser._id,
-        type: 'interface_change',
+        type: 'interface-change',
         title: 'Unread 1',
         content: 'Test',
         read: false,
@@ -200,7 +200,7 @@ describe('NotificationController', () => {
 
       await Notification.create({
         userId: testUser._id,
-        type: 'interface_change',
+        type: 'interface-change',
         title: 'Unread 2',
         content: 'Test',
         read: false,
@@ -222,7 +222,7 @@ describe('NotificationController', () => {
     it('should delete notification', async () => {
       const notification = await Notification.create({
         userId: testUser._id,
-        type: 'interface_change',
+        type: 'interface-change',
         title: 'Test',
         content: 'Test',
         read: false,

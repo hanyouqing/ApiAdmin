@@ -31,8 +31,6 @@ describe('UserCenterController', () => {
     if (mongoose.connection.readyState !== 1) {
       throw new Error('MongoDB connection failed');
     }
-      await mongoose.connect(process.env.MONGODB_URL || 'mongodb://localhost:27017/apiadmin_test');
-    }
     await OperationLog.deleteMany({});
     await Project.deleteMany({});
     await Group.deleteMany({});
@@ -96,7 +94,7 @@ describe('UserCenterController', () => {
         project_name: 'Other Project',
         group_id: testGroup._id,
         uid: otherUser._id,
-        member: [{ uid: testUser._id, role: 'developer' }],
+        member: [testUser._id],
       });
 
       const ctx = createMockCtx({}, {}, {}, testUser);
@@ -143,7 +141,7 @@ describe('UserCenterController', () => {
         project_name: 'Member Project',
         group_id: testGroup._id,
         uid: otherUser._id,
-        member: [{ uid: testUser._id, role: 'developer' }],
+        member: [testUser._id],
       });
 
       const ctx = createMockCtx({}, { role: 'project_leader' }, {}, testUser);
@@ -157,6 +155,7 @@ describe('UserCenterController', () => {
     it('should return user statistics', async () => {
       await OperationLog.create({
         userId: testUser._id,
+        username: testUser.username,
         projectId: testProject._id,
         type: 'interface',
         action: 'create',
@@ -167,6 +166,7 @@ describe('UserCenterController', () => {
 
       await OperationLog.create({
         userId: testUser._id,
+        username: testUser.username,
         projectId: testProject._id,
         type: 'interface',
         action: 'update',
@@ -191,6 +191,7 @@ describe('UserCenterController', () => {
     it('should count actions by type', async () => {
       await OperationLog.create({
         userId: testUser._id,
+        username: testUser.username,
         projectId: testProject._id,
         type: 'interface',
         action: 'create',
@@ -201,6 +202,7 @@ describe('UserCenterController', () => {
 
       await OperationLog.create({
         userId: testUser._id,
+        username: testUser.username,
         projectId: testProject._id,
         type: 'interface',
         action: 'create',
@@ -211,6 +213,7 @@ describe('UserCenterController', () => {
 
       await OperationLog.create({
         userId: testUser._id,
+        username: testUser.username,
         projectId: testProject._id,
         type: 'interface',
         action: 'update',
@@ -231,6 +234,7 @@ describe('UserCenterController', () => {
       const today = new Date();
       await OperationLog.create({
         userId: testUser._id,
+        username: testUser.username,
         projectId: testProject._id,
         type: 'interface',
         action: 'create',
@@ -254,6 +258,7 @@ describe('UserCenterController', () => {
 
       await OperationLog.create({
         userId: testUser._id,
+        username: testUser.username,
         projectId: testProject._id,
         type: 'interface',
         action: 'create',
@@ -281,6 +286,7 @@ describe('UserCenterController', () => {
     it('should count interfaces created', async () => {
       await OperationLog.create({
         userId: testUser._id,
+        username: testUser.username,
         projectId: testProject._id,
         type: 'interface',
         action: 'create',
@@ -299,6 +305,7 @@ describe('UserCenterController', () => {
     it('should count tests run', async () => {
       await OperationLog.create({
         userId: testUser._id,
+        username: testUser.username,
         projectId: testProject._id,
         type: 'test',
         action: 'run',

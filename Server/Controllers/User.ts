@@ -34,6 +34,12 @@ function getJWTExpiresIn() {
 class UserController extends BaseController {
   static async register(ctx: Koa.Context) {
     try {
+      if (!(config as any).ALLOW_PUBLIC_REGISTRATION) {
+        ctx.status = 403;
+        ctx.body = UserController.error('公开注册已关闭，请联系管理员');
+        return;
+      }
+
       let { email, password, username } = ctx.request.body as any;
 
       if (!email || !password || !username) {
@@ -346,6 +352,192 @@ class UserController extends BaseController {
     } catch (error: any) {
       ctx.status = 500;
       ctx.body = UserController.error(error.message || '获取用户列表失败');
+    }
+  }
+
+  static async createUser(ctx: AuthenticatedContext) {
+    try {
+      if (ctx.state.user.role !== 'super_admin') {
+        ctx.status = 403;
+        ctx.body = UserController.error('只有超级管理员可以创建用户');
+        return;
+      }
+
+      let { email, password, username, role } = ctx.request.body as any;
+      if (!email || !password || !username) {
+        ctx.status = 400;
+        ctx.body = UserController.error('邮箱、密码和用户名不能为空');
+        return;
+      }
+
+      email = sanitizeInput(email);
+      username = sanitizeInput(username);
+      if (!validateEmail(email)) {
+        ctx.status = 400;
+        ctx.body = UserController.error('邮箱格式不正确');
+        return;
+      }
+
+      const passwordValidation = validatePassword(password);
+      if (!passwordValidation.valid) {
+        ctx.status = 400;
+        ctx.body = UserController.error(passwordValidation.message);
+        return;
+      }
+
+      const allowedRoles = ['super_admin', 'group_leader', 'project_leader', 'developer', 'guest'];
+      const userRole = allowedRoles.includes(role) ? role : 'guest';
+
+      const existing = await User.findOne({ $or: [{ email }, { username }] });
+      if (existing) {
+        ctx.status = 400;
+        ctx.body = UserController.error('邮箱或用户名已存在');
+        return;
+      }
+
+      const user = new User({ email, password, username, role: userRole });
+      await user.save();
+
+      const serialized = user.toObject();
+      delete (serialized as any).password;
+      ctx.body = UserController.success(serialized, '用户创建成功');
+    } catch (error: any) {
+      ctx.status = 500;
+      ctx.body = UserController.error(error.message || '创建用户失败');
+    }
+  }
+
+  static async updateUser(ctx: AuthenticatedContext) {
+    try {
+      if (ctx.state.user.role !== 'super_admin') {
+        ctx.status = 403;
+        ctx.body = UserController.error('只有超级管理员可以更新用户');
+        return;
+      }
+
+      const { _id, username, email, role, password } = ctx.request.body as any;
+      if (!_id || !mongoose.Types.ObjectId.isValid(_id)) {
+        ctx.status = 400;
+        ctx.body = UserController.error('无效的用户ID');
+        return;
+      }
+
+      const user = await User.findById(_id);
+      if (!user) {
+        ctx.status = 404;
+        ctx.body = UserController.error('用户不存在');
+        return;
+      }
+
+      if (username) user.username = sanitizeInput(username);
+      if (email) {
+        if (!validateEmail(email)) {
+          ctx.status = 400;
+          ctx.body = UserController.error('邮箱格式不正确');
+          return;
+        }
+        user.email = sanitizeInput(email);
+      }
+      if (role) {
+        const allowedRoles = ['super_admin', 'group_leader', 'project_leader', 'developer', 'guest'];
+        if (!allowedRoles.includes(role)) {
+          ctx.status = 400;
+          ctx.body = UserController.error('无效的角色');
+          return;
+        }
+        user.role = role;
+      }
+      if (password) {
+        const passwordValidation = validatePassword(password);
+        if (!passwordValidation.valid) {
+          ctx.status = 400;
+          ctx.body = UserController.error(passwordValidation.message);
+          return;
+        }
+        user.password = password;
+      }
+
+      await user.save();
+      const serialized = user.toObject();
+      delete (serialized as any).password;
+      ctx.body = UserController.success(serialized, '用户更新成功');
+    } catch (error: any) {
+      ctx.status = 500;
+      ctx.body = UserController.error(error.message || '更新用户失败');
+    }
+  }
+
+  static async deleteUser(ctx: AuthenticatedContext) {
+    try {
+      if (ctx.state.user.role !== 'super_admin') {
+        ctx.status = 403;
+        ctx.body = UserController.error('只有超级管理员可以删除用户');
+        return;
+      }
+
+      const _id = (ctx.query._id || (ctx.request.body as any)?._id) as string;
+      if (!_id || !mongoose.Types.ObjectId.isValid(_id)) {
+        ctx.status = 400;
+        ctx.body = UserController.error('无效的用户ID');
+        return;
+      }
+
+      if (_id === ctx.state.user._id.toString()) {
+        ctx.status = 400;
+        ctx.body = UserController.error('不能删除当前登录用户');
+        return;
+      }
+
+      const user = await User.findByIdAndDelete(_id);
+      if (!user) {
+        ctx.status = 404;
+        ctx.body = UserController.error('用户不存在');
+        return;
+      }
+
+      ctx.body = UserController.success(null, '用户删除成功');
+    } catch (error: any) {
+      ctx.status = 500;
+      ctx.body = UserController.error(error.message || '删除用户失败');
+    }
+  }
+
+  static async changePassword(ctx: AuthenticatedContext) {
+    try {
+      const { oldPassword, newPassword } = ctx.request.body as any;
+      if (!oldPassword || !newPassword) {
+        ctx.status = 400;
+        ctx.body = UserController.error('旧密码和新密码不能为空');
+        return;
+      }
+
+      const passwordValidation = validatePassword(newPassword);
+      if (!passwordValidation.valid) {
+        ctx.status = 400;
+        ctx.body = UserController.error(passwordValidation.message);
+        return;
+      }
+
+      const user = await User.findById(ctx.state.user._id);
+      if (!user) {
+        ctx.status = 404;
+        ctx.body = UserController.error('用户不存在');
+        return;
+      }
+
+      const valid = await (user as any).comparePassword(oldPassword);
+      if (!valid) {
+        ctx.status = 400;
+        ctx.body = UserController.error('旧密码不正确');
+        return;
+      }
+
+      user.password = newPassword;
+      await user.save();
+      ctx.body = UserController.success(null, '密码修改成功');
+    } catch (error: any) {
+      ctx.status = 500;
+      ctx.body = UserController.error(error.message || '修改密码失败');
     }
   }
 }

@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import TestRuleConfigController from '../../Server/Controllers/TestRuleConfig.js';
 import TestRuleConfig from '../../Server/Models/TestRuleConfig.js';
 import Project from '../../Server/Models/Project.js';
+import Group from '../../Server/Models/Group.js';
 import User from '../../Server/Models/User.js';
 
 function createMockCtx(params = {}, query = {}, body = {}, user = null) {
@@ -18,6 +19,7 @@ function createMockCtx(params = {}, query = {}, body = {}, user = null) {
 
 describe('TestRuleConfigController', () => {
   let testUser;
+  let testGroup;
   let testProject;
 
   beforeEach(async () => {
@@ -26,6 +28,7 @@ describe('TestRuleConfigController', () => {
     }
     await TestRuleConfig.deleteMany({});
     await Project.deleteMany({});
+    await Group.deleteMany({});
     await User.deleteMany({});
 
     testUser = await User.create({
@@ -34,16 +37,23 @@ describe('TestRuleConfigController', () => {
       password: 'Test1234',
     });
 
+    testGroup = await Group.create({
+      group_name: 'Test Group',
+      uid: testUser._id,
+    });
+
     testProject = await Project.create({
       project_name: 'Test Project',
       project_desc: 'Test Description',
-      createdBy: testUser._id,
+      group_id: testGroup._id,
+      uid: testUser._id,
     });
   });
 
   afterEach(async () => {
     await TestRuleConfig.deleteMany({});
     await Project.deleteMany({});
+    await Group.deleteMany({});
     await User.deleteMany({});
   });
 

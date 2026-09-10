@@ -26,17 +26,27 @@ docker images | grep apiadmin
 ### 1.2 运行容器
 
 ```bash
-# 运行容器（需要外部 MongoDB 和 Redis）
+# 生成强密钥后再启动（JWT_SECRET 长度需 >= 32）
+export JWT_SECRET="$(openssl rand -base64 48)"
+
 docker run -d \
   --name apiadmin \
   -p 3000:3000 \
-  -e MONGODB_URL=mongodb://your-mongodb-host:27017/apiadmin \
-  -e REDIS_URL=redis://your-redis-host:6379 \
-  -e JWT_SECRET=your-secret-key \
+  -e NODE_ENV=production \
+  -e APP_ROOT=/app \
+  -e MONGODB_URL=mongodb://user:pass@your-mongodb-host:27017/apiadmin?authSource=admin \
+  -e REDIS_URL=redis://:pass@your-redis-host:6379 \
+  -e JWT_SECRET="$JWT_SECRET" \
+  -e CORS_ORIGIN=https://apiadmin.example.com \
+  -e ALLOW_PUBLIC_REGISTRATION=false \
   -v $(pwd)/logs:/app/logs \
   -v $(pwd)/uploads:/app/uploads \
-  apiadmin:latest
+  apiadmin:0.0.1
 ```
+
+> 生产环境禁止使用 `JWT_SECRET=your-secret-key` 或 `CORS_ORIGIN=*`，应用启动时会直接失败。
+> 生产环境默认要求配置 `REDIS_URL`（多副本限流与验证码共享）；仅单机应急可设 `REQUIRE_REDIS=false`。
+> 自定义 Mock 脚本默认关闭；确需启用须同时设置 `ALLOW_MOCK_SCRIPTS=true` 与 `ALLOW_UNSAFE_MOCK_SCRIPTS=true`。
 
 ### 1.3 查看日志
 
@@ -53,22 +63,23 @@ docker logs --tail 100 apiadmin
 ### 2.1 快速开始
 
 ```bash
-# 1. 复制环境变量文件
+# 1. 准备密钥（compose 会强制要求这些变量）
+export JWT_SECRET="$(openssl rand -base64 48)"
+export MONGO_PASSWORD="$(openssl rand -base64 24)"
+export REDIS_PASSWORD="$(openssl rand -base64 24)"
+export CORS_ORIGIN=http://localhost:3000
+
+# 2. 可选：复制并编辑 .env
 cp .env.example .env
 
-# 2. 编辑 .env 文件，配置必要的环境变量
-# 至少需要配置：
-# - JWT_SECRET
-# - MONGO_PASSWORD
-# - REDIS_PASSWORD
-
-# 3. 启动所有服务
+# 3. 启动核心服务（MongoDB / Redis / App）
 docker-compose up -d
 
-# 4. 查看服务状态
-docker-compose ps
+# 4. 如需 Nginx 反向代理
+docker-compose --profile with-nginx up -d
 
-# 5. 查看日志
+# 5. 查看状态与日志
+docker-compose ps
 docker-compose logs -f apiadmin
 ```
 

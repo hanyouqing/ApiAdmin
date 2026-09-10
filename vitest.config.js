@@ -1,18 +1,27 @@
 import { defineConfig } from 'vitest/config';
-import { resolve } from 'path';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
+
+const rootDir = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   resolve: {
     alias: {
-      '@': resolve(__dirname, './Server'),
+      '@': resolve(rootDir, './Server'),
+      mongoose: resolve(rootDir, './Server/node_modules/mongoose'),
+    },
+    extensionAlias: {
+      '.js': ['.ts', '.js'],
     },
   },
   test: {
     globals: true,
     environment: 'node',
-    hookTimeout: 30000,
+    hookTimeout: 120000,
     testTimeout: 30000,
-    setupFiles: ['./tests/setup.js'], // Run setup before all tests
+    fileParallelism: false,
+    setupFiles: ['./tests/setup.js'],
+    exclude: ['**/node_modules/**', '**/dist/**', '**/tests/e2e/**', '**/.{idea,git,cache,output,temp}/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
@@ -25,4 +34,3 @@ export default defineConfig({
     },
   },
 });
-

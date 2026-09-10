@@ -1,14 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { HARImporter } from '../../Server/Utils/importers/HARImporter.js';
 
-// Mock models
-vi.mock('../../Server/Models/Interface.js', () => ({
-  default: {
-    findOne: vi.fn(),
-  },
-}));
+vi.mock('../../Server/Models/Interface.js', () => {
+  const Interface = vi.fn(function Interface(data) {
+    Object.assign(this, data);
+    this.save = vi.fn().mockResolvedValue(this);
+    this.deleteOne = vi.fn().mockResolvedValue(true);
+  });
+  Interface.findOne = vi.fn();
+  return { default: Interface };
+});
 
-// Mock logger
 vi.mock('../../Server/Utils/logger.js', () => ({
   logger: {
     error: vi.fn(),
@@ -29,14 +31,13 @@ describe('HARImporter', () => {
     it('should throw error for invalid HAR format', async () => {
       const invalidData = {};
 
-      await expect(importer.import(invalidData, { projectId: '123', userId: '456' })).rejects.toThrow('Invalid HAR format');
+      await expect(importer.import(invalidData, { projectId: '123', userId: '456' })).rejects.toThrow(
+        'Invalid HAR format'
+      );
     });
 
     it('should import valid HAR data', async () => {
       Interface.findOne.mockResolvedValue(null);
-      
-      const mockSave = vi.fn().mockResolvedValue({ _id: 'new-id' });
-      Interface.prototype.save = mockSave;
 
       const har = {
         log: {
@@ -67,6 +68,7 @@ describe('HARImporter', () => {
       });
 
       expect(result.imported).toBeGreaterThan(0);
+      expect(Interface).toHaveBeenCalled();
     });
   });
 
@@ -87,13 +89,15 @@ describe('HARImporter', () => {
         },
       };
 
-      const result = await importer.import(entry, 'project-id', 'user-id', 'normal', {
+      const results = {
         imported: 0,
         skipped: 0,
         errors: [],
-      });
+      };
 
-      expect(result.skipped).toBe(1);
+      await importer.importEntry(entry, 'project-id', 'user-id', 'normal', results);
+
+      expect(results.skipped).toBe(1);
     });
 
     it('should merge existing entries in merge mode', async () => {
@@ -129,4 +133,3 @@ describe('HARImporter', () => {
     });
   });
 });
-

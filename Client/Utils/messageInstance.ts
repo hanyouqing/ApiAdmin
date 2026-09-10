@@ -5,12 +5,13 @@
  */
 
 import { message } from 'antd';
+import type { MessageInstance } from 'antd/es/message/interface';
 
 // 全局 App 实例（由 Application.tsx 设置）
-let globalAppInstance: { message: typeof message } | null = null;
+let globalAppInstance: { message: MessageInstance } | null = null;
 
 // 设置全局 App 实例（由 Application.tsx 调用）
-export const setGlobalAppInstance = (app: { message: typeof message }) => {
+export const setGlobalAppInstance = (app: { message: MessageInstance }) => {
   globalAppInstance = app;
 };
 
@@ -42,4 +43,3 @@ export const messageInstance = {
     return message.info(content, duration);
   },
 };
-

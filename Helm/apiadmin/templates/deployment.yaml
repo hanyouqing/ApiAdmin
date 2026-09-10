@@ -42,19 +42,37 @@ spec:
               value: {{ .Values.env.NODE_ENV | quote }}
             - name: PORT
               value: {{ .Values.env.PORT | quote }}
+            - name: APP_ROOT
+              value: {{ .Values.env.APP_ROOT | default "/app" | quote }}
+            - name: ALLOW_PUBLIC_REGISTRATION
+              value: {{ .Values.env.ALLOW_PUBLIC_REGISTRATION | default "false" | quote }}
+            - name: ALLOW_PRIVATE_OUTBOUND
+              value: {{ .Values.env.ALLOW_PRIVATE_OUTBOUND | default "false" | quote }}
+            - name: ALLOW_MOCK_SCRIPTS
+              value: {{ .Values.env.ALLOW_MOCK_SCRIPTS | default "false" | quote }}
+            - name: SWAGGER_ENABLED
+              value: {{ .Values.env.SWAGGER_ENABLED | default "false" | quote }}
+            - name: CORS_ORIGIN
+              value: {{ .Values.env.CORS_ORIGIN | quote }}
             - name: MONGODB_URL
-              value: "mongodb://{{ include "apiadmin.fullname" . }}-mongodb:27017/{{ .Values.mongodb.auth.database }}"
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "apiadmin.fullname" . }}-secret
+                  key: mongodb-url
             - name: REDIS_URL
-              value: "redis://:{{ .Values.redis.auth.password }}@{{ include "apiadmin.fullname" . }}-redis:6379"
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "apiadmin.fullname" . }}-secret
+                  key: redis-url
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
                   name: {{ include "apiadmin.fullname" . }}-secret
                   key: jwt-secret
-            {{- range $key, $value := .Values.config }}
-            - name: {{ $key | upper }}
-              value: {{ $value | quote }}
-            {{- end }}
+            - name: JWT_EXPIRES_IN
+              value: {{ .Values.config.jwtExpiresIn | quote }}
+            - name: UPLOAD_MAX_SIZE
+              value: {{ .Values.config.uploadMaxSize | quote }}
           livenessProbe:
             httpGet:
               path: /api/health

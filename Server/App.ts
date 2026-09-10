@@ -27,6 +27,7 @@ import serve from 'koa-static';
 import mongoose from 'mongoose';
 import router from './Router.js';
 import { errorHandler } from './Middleware/errorHandler.js';
+import { requestLogger } from './Middleware/requestLogger.js';
 import { logger } from './Utils/logger.js';
 import config, { reloadConfig } from './Utils/config.js';
 import { swaggerWhitelistMiddleware } from './Middleware/swaggerWhitelist.js';
@@ -34,7 +35,36 @@ import { checkDependencies, waitForDependencies, isReady } from './Utils/depende
 import { pluginManager } from './Utils/pluginManager.js';
 import { registerPluginRoutes } from './Utils/pluginRouter.js';
 import { pluginHookMiddleware } from './Middleware/pluginHook.js';
+import fs from 'fs';
 import './Models/index.js';
+
+function resolveProjectRoot() {
+  if (process.env.APP_ROOT) {
+    return path.resolve(process.env.APP_ROOT);
+  }
+  let dir = __dirname;
+  for (let i = 0; i < 6; i++) {
+    if (fs.existsSync(path.join(dir, 'Static')) || fs.existsSync(path.join(dir, 'package.json'))) {
+      const pkgPath = path.join(dir, 'package.json');
+      if (fs.existsSync(pkgPath)) {
+        try {
+          const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+          if (pkg.name === 'apiadmin' || fs.existsSync(path.join(dir, 'Static'))) {
+            return dir;
+          }
+        } catch {
+          // continue walking
+        }
+      } else if (fs.existsSync(path.join(dir, 'Static'))) {
+        return dir;
+      }
+    }
+    dir = path.dirname(dir);
+  }
+  return path.resolve(__dirname, '..');
+}
+
+const PROJECT_ROOT = resolveProjectRoot();
 
 // 现在 logger 已初始化，重新初始化环境变量加载器并启用文件监听
 // 同时重新加载配置以确保使用从 .env.local 加载的环境变量
@@ -111,6 +141,9 @@ app.proxy = true;
 // 错误处理中间层（最外层）
 app.use(errorHandler);
 
+// 请求日志
+app.use(requestLogger);
+
 // 依赖检测中间件
 // 如果依赖未就绪，业务 API 返回 503 Service Unavailable
 app.use(async (ctx, next) => {
@@ -139,33 +172,49 @@ app.use(pluginHookMiddleware as any);
 
 // 安全中间件
 app.use(helmet({
-  contentSecurityPolicy: false, // 如果需要自定义 CSP，请在此配置
+  contentSecurityPolicy: {
+    useDefaults: true,
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", 'data:', 'blob:'],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'", 'data:'],
+      objectSrc: ["'none'"],
+      frameAncestors: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
 }));
 
-// CORS 配置
-if (config.CORS_ORIGIN && config.CORS_ORIGIN !== '*') {
+// CORS 配置（生产环境禁止 *，由 config.validateConfig 强制）
+if (!config.CORS_ORIGIN || config.CORS_ORIGIN === '*') {
+  if (config.NODE_ENV === 'production') {
+    throw new Error('CORS_ORIGIN must not be "*" in production');
+  }
+  app.use(cors({
+    origin: (ctx: Koa.Context) => ctx.get('Origin') || '*',
+    credentials: true,
+    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With', 'X-Project-Token'],
+  }));
+} else {
   const origins = config.CORS_ORIGIN.split(',').map((origin: string) => origin.trim()).filter((origin: string) => origin.length > 0);
-  
+
   app.use(cors({
     origin: (ctx: Koa.Context) => {
       const requestOrigin = ctx.get('Origin');
       if (origins.includes(requestOrigin)) {
         return requestOrigin;
       }
-      // 如果只有一个 Origin，默认使用它
       if (origins.length === 1) {
         return origins[0];
       }
-      return ''; // 不允许访问
+      return '';
     },
-    credentials: true,
-    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With', 'X-Project-Token'],
-  }));
-} else {
-  // 默认允许所有域名（仅建议开发环境使用）
-  app.use(cors({
-    origin: '*',
     credentials: true,
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With', 'X-Project-Token'],
@@ -181,8 +230,8 @@ app.use(bodyParser({
 }));
 
 // 静态资源服务
-app.use(serve(path.join(__dirname, '../Static')));
-app.use(serve(path.join(__dirname, '../uploads'), { defer: true }));
+app.use(serve(path.join(PROJECT_ROOT, 'Static')));
+app.use(serve(path.join(PROJECT_ROOT, 'uploads'), { defer: true }));
 
 // Swagger 集成
 const swaggerEnabled = config.SWAGGER_ENABLED === true || config.SWAGGER_ENABLED === 'true' || config.SWAGGER_ENABLED === '1';
@@ -256,7 +305,7 @@ if (swaggerEnabled) {
 app.use(router.routes()).use(router.allowedMethods());
 
 // 文件上传静态资源服务（带前缀）
-app.use(serve(path.join(__dirname, '../uploads'), { prefix: '/uploads' } as any));
+app.use(serve(path.join(PROJECT_ROOT, 'uploads'), { prefix: '/uploads' } as any));
 
 // Swagger 路由
 import Router from 'koa-router';
@@ -669,13 +718,35 @@ mongoose.connection.on('disconnected', () => {
   logger.warn('MongoDB disconnected');
 });
 
-process.on('SIGINT', async () => {
-  if (envLoader) {
-    envLoader.stopWatching();
+let shuttingDown = false;
+let httpServer: any = null;
+
+async function gracefulShutdown(signal: string) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  logger.info({ signal }, 'Received shutdown signal, closing connections');
+  try {
+    if (envLoader) {
+      envLoader.stopWatching();
+    }
+    if (httpServer) {
+      await new Promise<void>((resolve) => httpServer.close(() => resolve()));
+    }
+    await mongoose.connection.close();
+    logger.info('Graceful shutdown completed');
+    process.exit(0);
+  } catch (err) {
+    logger.error({ err }, 'Error during graceful shutdown');
+    process.exit(1);
   }
-  await mongoose.connection.close();
-  logger.info('MongoDB connection closed through app termination');
-  process.exit(0);
+}
+
+process.on('SIGINT', async () => {
+  await gracefulShutdown('SIGINT');
+});
+
+process.on('SIGTERM', async () => {
+  await gracefulShutdown('SIGTERM');
 });
 
 let serviceReady = false;
@@ -726,10 +797,10 @@ async function startServer() {
     serviceReady = true;
     
     const PORT_NUM = typeof PORT === 'string' ? parseInt(PORT, 10) : (PORT as number);
-    app.listen(PORT_NUM, '0.0.0.0', () => {
+    httpServer = app.listen(PORT_NUM, '0.0.0.0', () => {
       logger.info(`🚀 Server running on port ${PORT_NUM} in ${config.NODE_ENV} mode`);
       logger.info(`🌐 Server listening on http://0.0.0.0:${PORT_NUM} (accessible via http://localhost:${PORT_NUM})`);
-      logger.info('✅ Service is ready to handle requests');
+      logger.info({ projectRoot: PROJECT_ROOT }, '✅ Service is ready to handle requests');
     });
   } catch (error: any) {
     logger.error({ error }, 'Failed to start server');
