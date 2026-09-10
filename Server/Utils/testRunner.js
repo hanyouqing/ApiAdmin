@@ -1,4 +1,4 @@
-import { VM } from 'vm2';
+import vm from 'node:vm';
 import axios from 'axios';
 import Mock from './safeMock.js';
 import { logger } from './logger.js';
@@ -276,15 +276,14 @@ export class TestRunner {
         },
       };
 
-      const vm = new VM({
-        timeout: 10000,
-        sandbox,
-        eval: false,
-        wasm: false,
+      const contextified = vm.createContext(sandbox, {
+        name: 'ApiAdminTestAssertion',
+        codeGeneration: { strings: false, wasm: false },
       });
 
       const wrappedScript = `
         (function() {
+          "use strict";
           try {
             ${script}
             return { passed: true, message: 'All assertions passed' };
@@ -294,7 +293,11 @@ export class TestRunner {
         })();
       `;
 
-      const result = vm.run(wrappedScript);
+      const result = vm.runInContext(wrappedScript, contextified, {
+        timeout: 10000,
+        displayErrors: true,
+        breakOnSigint: true,
+      });
 
       return {
         passed: result.passed || false,

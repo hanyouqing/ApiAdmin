@@ -3,8 +3,10 @@ import mongoose from 'mongoose';
 import TestCollection from '../../Server/Models/TestCollection.js';
 import Project from '../../Server/Models/Project.js';
 import Group from '../../Server/Models/Group.js';
+import User from '../../Server/Models/User.js';
 
 describe('TestCollection Model', () => {
+  let testUser;
   let testGroup;
   let testProject;
 
@@ -15,21 +17,31 @@ describe('TestCollection Model', () => {
     await TestCollection.deleteMany({});
     await Project.deleteMany({});
     await Group.deleteMany({});
+    await User.deleteMany({});
 
-    testGroup = new Group({ group_name: 'Test Group' });
-    await testGroup.save();
+    testUser = await User.create({
+      username: 'testuser',
+      email: 'test@example.com',
+      password: 'Test1234',
+    });
 
-    testProject = new Project({
+    testGroup = await Group.create({
+      group_name: 'Test Group',
+      uid: testUser._id,
+    });
+
+    testProject = await Project.create({
       project_name: 'Test Project',
       group_id: testGroup._id,
+      uid: testUser._id,
     });
-    await testProject.save();
   });
 
   afterEach(async () => {
     await TestCollection.deleteMany({});
     await Project.deleteMany({});
     await Group.deleteMany({});
+    await User.deleteMany({});
   });
 
   it('should create a test collection with valid data', async () => {
@@ -37,6 +49,7 @@ describe('TestCollection Model', () => {
       name: 'Test Collection',
       description: 'Test Description',
       project_id: testProject._id,
+      uid: testUser._id,
     };
 
     const collection = new TestCollection(collectionData);
@@ -56,6 +69,3 @@ describe('TestCollection Model', () => {
     await expect(collection.save()).rejects.toThrow();
   });
 });
-
-
-

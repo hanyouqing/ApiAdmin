@@ -1,0 +1,13 @@
+---
+description: ApiAdmin Makefile, PATH, and local workflow conventions
+alwaysApply: true
+---
+
+# Project Workflow
+
+- Apply PATH from `~/.zshrc` before shell commands (`grep PATH ~/.zshrc`).
+- Prefer `make help` / Makefile targets over ad-hoc scripts when a target exists (`start`, `build`, `test`, `backup`, `restore`, `config-backup`, etc.).
+- Stack: Client (Vite/React/antd) + Server (Koa/Mongoose) + MongoDB + Redis.
+- Root `package.json` orchestrates `dev`/`build`/`test`; Client and Server have their own packages.
+- Do not commit secrets (`.env`, credentials). Prefer MIT/Apache dependencies.
+- Ask before committing unless the user explicitly requested commit/push.

@@ -3,8 +3,10 @@ import mongoose from 'mongoose';
 import Interface from '../../Server/Models/Interface.js';
 import Project from '../../Server/Models/Project.js';
 import Group from '../../Server/Models/Group.js';
+import User from '../../Server/Models/User.js';
 
 describe('Interface Model', () => {
+  let testUser;
   let testGroup;
   let testProject;
 
@@ -15,21 +17,31 @@ describe('Interface Model', () => {
     await Interface.deleteMany({});
     await Project.deleteMany({});
     await Group.deleteMany({});
+    await User.deleteMany({});
 
-    testGroup = new Group({ group_name: 'Test Group' });
-    await testGroup.save();
+    testUser = await User.create({
+      username: 'testuser',
+      email: 'test@example.com',
+      password: 'Test1234',
+    });
 
-    testProject = new Project({
+    testGroup = await Group.create({
+      group_name: 'Test Group',
+      uid: testUser._id,
+    });
+
+    testProject = await Project.create({
       project_name: 'Test Project',
       group_id: testGroup._id,
+      uid: testUser._id,
     });
-    await testProject.save();
   });
 
   afterEach(async () => {
     await Interface.deleteMany({});
     await Project.deleteMany({});
     await Group.deleteMany({});
+    await User.deleteMany({});
   });
 
   it('should create an interface with valid data', async () => {
@@ -38,6 +50,7 @@ describe('Interface Model', () => {
       path: '/api/test',
       method: 'GET',
       project_id: testProject._id,
+      uid: testUser._id,
     };
 
     const interface_ = new Interface(interfaceData);
@@ -63,10 +76,10 @@ describe('Interface Model', () => {
       path: '/api/test',
       method: 'GET',
       project_id: testProject._id,
+      uid: testUser._id,
     });
     await interface_.save();
 
     expect(interface_.status).toBeDefined();
   });
 });
-

@@ -4,6 +4,7 @@ import CLIToken from '../../Server/Models/CLIToken.js';
 import ProjectToken from '../../Server/Models/ProjectToken.js';
 import User from '../../Server/Models/User.js';
 import Project from '../../Server/Models/Project.js';
+import Group from '../../Server/Models/Group.js';
 
 describe('CLIToken Model', () => {
   beforeEach(async () => {
@@ -14,8 +15,6 @@ describe('CLIToken Model', () => {
     }
     if (mongoose.connection.readyState !== 1) {
       throw new Error('MongoDB connection failed');
-    }
-      await mongoose.connect(process.env.MONGODB_URL || 'mongodb://localhost:27017/apiadmin_test');
     }
     await CLIToken.deleteMany({});
     await User.deleteMany({});
@@ -66,8 +65,6 @@ describe('ProjectToken Model', () => {
     if (mongoose.connection.readyState !== 1) {
       throw new Error('MongoDB connection failed');
     }
-      await mongoose.connect(process.env.MONGODB_URL || 'mongodb://localhost:27017/apiadmin_test');
-    }
     await ProjectToken.deleteMany({});
     await User.deleteMany({});
     await Project.deleteMany({});
@@ -102,8 +99,6 @@ describe('CI/CD Controller', () => {
     if (mongoose.connection.readyState !== 1) {
       throw new Error('MongoDB connection failed');
     }
-      await mongoose.connect(process.env.MONGODB_URL || 'mongodb://localhost:27017/apiadmin_test');
-    }
     await CLIToken.deleteMany({});
     await ProjectToken.deleteMany({});
     await User.deleteMany({});
@@ -115,10 +110,15 @@ describe('CI/CD Controller', () => {
       password: 'Test1234',
     });
 
+    const testGroup = await Group.create({
+      group_name: 'Test Group',
+      uid: testUser._id,
+    });
+
     testProject = await Project.create({
       project_name: 'Test Project',
       uid: testUser._id,
-      group_id: null,
+      group_id: testGroup._id,
     });
   });
 

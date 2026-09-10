@@ -19,7 +19,7 @@ class OpenAPIController extends BaseController {
       }
 
       if (tag) {
-        query.tags = { $in: [tag] };
+        query.tag = { $in: [tag] };
       }
 
       if (status) {
@@ -32,7 +32,7 @@ class OpenAPIController extends BaseController {
       const [list, total] = await Promise.all([
         Interface.find(query)
           .populate('catid', 'name')
-          .sort({ createdAt: -1 })
+          .sort({ created_at: -1 })
           .skip(skip)
           .limit(limit),
         Interface.countDocuments(query),
@@ -130,8 +130,10 @@ class OpenAPIController extends BaseController {
         }
       }
 
+      const user = ctx.state.user;
       const newInterface = new Interface({
         project_id: projectId,
+        uid: user?._id,
         title: title.trim(),
         path: path.trim(),
         method: upperMethod,

@@ -1,0 +1,15 @@
+---
+description: Client TypeScript build and tsconfig isolation
+globs: Client/**/*.{ts,tsx},Client/tsconfig.json,Client/package.json
+alwaysApply: false
+---
+
+# Client TypeScript Build
+
+- Client **must** use `Client/tsconfig.json` (`tsc -p tsconfig.json`). Never typecheck Client via root `tsconfig.json` (it pulls Server and causes mass false failures).
+- Client build script: `tsc -p tsconfig.json && vite build`.
+- Keep `noUnusedLocals`/`noUnusedParameters` pragmatic for WIP UI; fix real type errors (missing imports, union types, App.dispatch typing).
+- Use `MessageInstance` for `App.useApp().message`, not static `antd` `message` type.
+- Type Redux as `useDispatch<AppDispatch>()`.
+- Ant Design `Card` has no `icon` prop — put icons in `title`.
+- Exclude `vite.config.ts` from app `tsconfig` include.

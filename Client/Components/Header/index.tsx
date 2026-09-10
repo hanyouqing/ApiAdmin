@@ -5,7 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { logout } from '../../Reducer/Modules/User';
-import type { RootState } from '../../Reducer/Create';
+import type { AppDispatch, RootState } from '../../Reducer/Create';
 import type { MenuProps } from 'antd';
 import LanguageSwitcher from '../LanguageSwitcher';
 import { getAvatarUrl } from '../../Utils/avatar';
@@ -17,7 +17,7 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ children }) => {
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const user = useSelector((state: RootState) => state.user.user);

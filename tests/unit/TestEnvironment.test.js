@@ -10,10 +10,12 @@ function createMockCtx(params = {}, query = {}, body = {}, user = null) {
   return {
     params,
     query,
-    request: { body },
-    state: { user: user || { _id: new mongoose.Types.ObjectId(), role: 'guest' } },
+    request: { body, url: '/api/test/environment', ip: '127.0.0.1' },
+    state: { user: user || { _id: new mongoose.Types.ObjectId(), role: 'guest', username: 'guest' } },
     status: 200,
     body: null,
+    ip: '127.0.0.1',
+    headers: { 'user-agent': 'test-agent' },
   };
 }
 

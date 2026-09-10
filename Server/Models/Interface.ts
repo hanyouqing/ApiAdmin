@@ -83,20 +83,20 @@ const interfaceSchema = new Schema<IInterface>(
     },
     req_query: [
       {
-        name: String,
-        type: String,
-        required: Boolean,
-        default: String,
-        desc: String,
-        example: String,
+        name: { type: String },
+        type: { type: String },
+        required: { type: Boolean },
+        default: { type: String },
+        desc: { type: String },
+        example: { type: String },
       },
     ],
     req_headers: [
       {
-        name: String,
-        value: String,
-        required: Boolean,
-        desc: String,
+        name: { type: String },
+        value: { type: String },
+        required: { type: Boolean },
+        desc: { type: String },
       },
     ],
     req_body_type: {
@@ -106,11 +106,11 @@ const interfaceSchema = new Schema<IInterface>(
     },
     req_body_form: [
       {
-        name: String,
-        type: String,
-        required: Boolean,
-        default: String,
-        desc: String,
+        name: { type: String },
+        type: { type: String },
+        required: { type: Boolean },
+        default: { type: String },
+        desc: { type: String },
       },
     ],
     req_body_other: {

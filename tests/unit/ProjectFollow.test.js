@@ -31,8 +31,6 @@ describe('ProjectFollowController', () => {
     if (mongoose.connection.readyState !== 1) {
       throw new Error('MongoDB connection failed');
     }
-      await mongoose.connect(process.env.MONGODB_URL || 'mongodb://localhost:27017/apiadmin_test');
-    }
     await ProjectFollow.deleteMany({});
     await Project.deleteMany({});
     await Group.deleteMany({});

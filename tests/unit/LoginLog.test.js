@@ -57,6 +57,7 @@ describe('LoginLogController', () => {
     it('should list logs for super admin', async () => {
       await LoginLog.create({
         userId: testUser._id,
+        username: testUser.username,
         status: 'success',
         loginType: 'password',
         ip: '127.0.0.1',
@@ -64,6 +65,7 @@ describe('LoginLogController', () => {
 
       await LoginLog.create({
         userId: testUser._id,
+        username: testUser.username,
         status: 'failed',
         loginType: 'password',
         ip: '127.0.0.1',
@@ -86,6 +88,7 @@ describe('LoginLogController', () => {
 
       await LoginLog.create({
         userId: testUser._id,
+        username: testUser.username,
         status: 'success',
         loginType: 'password',
         ip: '127.0.0.1',
@@ -93,6 +96,7 @@ describe('LoginLogController', () => {
 
       await LoginLog.create({
         userId: otherUser._id,
+        username: otherUser.username,
         status: 'success',
         loginType: 'password',
         ip: '127.0.0.1',
@@ -109,6 +113,7 @@ describe('LoginLogController', () => {
     it('should filter by status', async () => {
       await LoginLog.create({
         userId: testUser._id,
+        username: testUser.username,
         status: 'success',
         loginType: 'password',
         ip: '127.0.0.1',
@@ -116,6 +121,7 @@ describe('LoginLogController', () => {
 
       await LoginLog.create({
         userId: testUser._id,
+        username: testUser.username,
         status: 'failed',
         loginType: 'password',
         ip: '127.0.0.1',
@@ -132,6 +138,7 @@ describe('LoginLogController', () => {
     it('should filter by loginType', async () => {
       await LoginLog.create({
         userId: testUser._id,
+        username: testUser.username,
         status: 'success',
         loginType: 'password',
         ip: '127.0.0.1',
@@ -139,6 +146,7 @@ describe('LoginLogController', () => {
 
       await LoginLog.create({
         userId: testUser._id,
+        username: testUser.username,
         status: 'success',
         loginType: 'sso',
         ip: '127.0.0.1',
@@ -156,6 +164,7 @@ describe('LoginLogController', () => {
       for (let i = 0; i < 25; i++) {
         await LoginLog.create({
           userId: testUser._id,
+        username: testUser.username,
           status: 'success',
           loginType: 'password',
           ip: '127.0.0.1',
@@ -184,6 +193,7 @@ describe('LoginLogController', () => {
     it('should return statistics for super admin', async () => {
       await LoginLog.create({
         userId: testUser._id,
+        username: testUser.username,
         status: 'success',
         loginType: 'password',
         ip: '127.0.0.1',
@@ -191,6 +201,7 @@ describe('LoginLogController', () => {
 
       await LoginLog.create({
         userId: testUser._id,
+        username: testUser.username,
         status: 'success',
         loginType: 'password',
         ip: '127.0.0.1',
@@ -198,6 +209,7 @@ describe('LoginLogController', () => {
 
       await LoginLog.create({
         userId: testUser._id,
+        username: testUser.username,
         status: 'failed',
         loginType: 'password',
         ip: '127.0.0.1',
@@ -219,6 +231,7 @@ describe('LoginLogController', () => {
     it('should calculate success rate correctly', async () => {
       await LoginLog.create({
         userId: testUser._id,
+        username: testUser.username,
         status: 'success',
         loginType: 'password',
         ip: '127.0.0.1',
@@ -226,6 +239,7 @@ describe('LoginLogController', () => {
 
       await LoginLog.create({
         userId: testUser._id,
+        username: testUser.username,
         status: 'success',
         loginType: 'password',
         ip: '127.0.0.1',
@@ -233,6 +247,7 @@ describe('LoginLogController', () => {
 
       await LoginLog.create({
         userId: testUser._id,
+        username: testUser.username,
         status: 'failed',
         loginType: 'password',
         ip: '127.0.0.1',
@@ -254,6 +269,7 @@ describe('LoginLogController', () => {
 
       await LoginLog.create({
         userId: testUser._id,
+        username: testUser.username,
         status: 'success',
         loginType: 'password',
         ip: '127.0.0.1',
@@ -262,6 +278,7 @@ describe('LoginLogController', () => {
 
       await LoginLog.create({
         userId: testUser._id,
+        username: testUser.username,
         status: 'success',
         loginType: 'password',
         ip: '127.0.0.1',

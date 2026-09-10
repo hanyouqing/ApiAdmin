@@ -69,7 +69,7 @@ const MyProjects: React.FC = () => {
   ];
 
   return (
-    <Card title={t('user.projects.title')} icon={<ProjectOutlined />}>
+    <Card title={<><ProjectOutlined /> {t('user.projects.title')}</>}>
       <Table columns={columns} dataSource={projects} rowKey="_id" loading={loading} />
     </Card>
   );

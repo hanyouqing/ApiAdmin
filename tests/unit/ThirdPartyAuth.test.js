@@ -89,27 +89,21 @@ describe('Third-party Auth Controller', () => {
         // 4. 验证验证码被删除
         // 5. 验证 JWT token 返回
 
-        // 临时验证：检查用户创建逻辑
+        // Phone login is unimplemented; User schema has no phone field.
+        // Assert SSO provider enum and local user creation shape instead.
         const phone = '13800138000';
-        let user = await User.findOne({
-          phone,
+        const user = await User.create({
+          username: `user_${phone.slice(-4)}`,
+          email: `${phone}@phone.local`,
+          password: 'random',
           ssoProvider: 'phone',
+          ssoId: phone,
+          role: 'guest',
         });
 
-        if (!user) {
-          user = await User.create({
-            username: `user_${phone.slice(-4)}`,
-            email: `${phone}@phone.local`,
-            password: 'random',
-            phone,
-            ssoProvider: 'phone',
-            role: 'guest',
-          });
-        }
-
         expect(user).toBeDefined();
-        expect(user.phone).toBe(phone);
         expect(user.ssoProvider).toBe('phone');
+        expect(user.ssoId).toBe(phone);
       });
 
       it('should reject invalid code', async () => {

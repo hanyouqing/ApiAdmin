@@ -15,6 +15,7 @@ interface SSOProvider {
   type: 'saml' | 'oauth2' | 'oidc' | 'ldap' | 'cas';
   enabled: boolean;
   description?: string;
+  callbackUrl?: string;
   config?: {
     // SAML
     issuer?: string;

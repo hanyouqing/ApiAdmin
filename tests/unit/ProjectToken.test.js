@@ -130,14 +130,16 @@ describe('ProjectTokenController', () => {
   describe('listTokens', () => {
     it('should list tokens for project', async () => {
       await ProjectToken.create({
-        token: ProjectToken.generateToken(),
+        tokenHash: ProjectToken.hashToken(ProjectToken.generateToken()),
+        tokenPrefix: 'abcd1234',
         name: 'Token 1',
         projectId: testProject._id,
         createdBy: testUser._id,
       });
 
       await ProjectToken.create({
-        token: ProjectToken.generateToken(),
+        tokenHash: ProjectToken.hashToken(ProjectToken.generateToken()),
+        tokenPrefix: 'abcd1234',
         name: 'Token 2',
         projectId: testProject._id,
         createdBy: testUser._id,
@@ -162,7 +164,8 @@ describe('ProjectTokenController', () => {
 
     it('should not return token value', async () => {
       await ProjectToken.create({
-        token: ProjectToken.generateToken(),
+        tokenHash: ProjectToken.hashToken(ProjectToken.generateToken()),
+        tokenPrefix: 'abcd1234',
         name: 'Test Token',
         projectId: testProject._id,
         createdBy: testUser._id,
@@ -181,7 +184,8 @@ describe('ProjectTokenController', () => {
   describe('deleteToken', () => {
     it('should delete token successfully', async () => {
       const token = await ProjectToken.create({
-        token: ProjectToken.generateToken(),
+        tokenHash: ProjectToken.hashToken(ProjectToken.generateToken()),
+        tokenPrefix: 'abcd1234',
         name: 'Test Token',
         projectId: testProject._id,
         createdBy: testUser._id,
@@ -226,7 +230,8 @@ describe('ProjectTokenController', () => {
 
     it('should allow super admin to delete any token', async () => {
       const token = await ProjectToken.create({
-        token: ProjectToken.generateToken(),
+        tokenHash: ProjectToken.hashToken(ProjectToken.generateToken()),
+        tokenPrefix: 'abcd1234',
         name: 'Test Token',
         projectId: testProject._id,
         createdBy: testUser._id,
@@ -252,7 +257,8 @@ describe('ProjectTokenController', () => {
       });
 
       const token = await ProjectToken.create({
-        token: ProjectToken.generateToken(),
+        tokenHash: ProjectToken.hashToken(ProjectToken.generateToken()),
+        tokenPrefix: 'abcd1234',
         name: 'Test Token',
         projectId: testProject._id,
         createdBy: testUser._id,
