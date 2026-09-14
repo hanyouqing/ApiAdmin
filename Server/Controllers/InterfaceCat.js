@@ -42,7 +42,7 @@ class InterfaceCatController extends BaseController {
   static async add(ctx) {
     try {
       const user = ctx.state.user;
-      let { project_id, name, desc, index } = ctx.request.body;
+      let { project_id, name, desc, index, parent_id } = ctx.request.body;
 
       if (!project_id || !name) {
         ctx.status = 400;
@@ -54,6 +54,20 @@ class InterfaceCatController extends BaseController {
         ctx.status = 400;
         ctx.body = InterfaceCatController.error('无效的项目ID');
         return;
+      }
+
+      if (parent_id) {
+        if (!validateObjectId(parent_id)) {
+          ctx.status = 400;
+          ctx.body = InterfaceCatController.error('无效的父分类ID');
+          return;
+        }
+        const parent = await InterfaceCat.findOne({ _id: parent_id, project_id });
+        if (!parent) {
+          ctx.status = 400;
+          ctx.body = InterfaceCatController.error('父分类不存在或不属于该项目');
+          return;
+        }
       }
 
       const Project = (await import('../Models/Project.js')).default;
@@ -100,6 +114,7 @@ class InterfaceCatController extends BaseController {
 
       const cat = new InterfaceCat({
         project_id,
+        parent_id: parent_id || null,
         name,
         desc: desc || '',
         index: index || 0,

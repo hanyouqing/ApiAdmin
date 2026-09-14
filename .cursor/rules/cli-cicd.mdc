@@ -1,0 +1,12 @@
+---
+description: CLI/CICD auth and Newman-like automation entry points
+globs: Server/Controllers/CICD.js,Server/Middleware/cliTokenAuth.js,tools/**,Server/Router.ts
+alwaysApply: false
+---
+
+# CLI / CI automation
+
+- Mount `/api/cicd/*` with `authOrCliToken` (JWT or CLI token); do not leave CICD controller unrouted.
+- CLI entry: `tools/apiadmin-cli.mjs` + root `package.json` `bin.apiadmin` / `npm run cli`.
+- Prefer JUnit (and existing report formatters) for CI consumers; support `iteration_data` on run endpoints.
+- Never log raw CLI/JWT secrets; hash tokens at rest like project tokens.

@@ -21,6 +21,7 @@ import EnvironmentManagement from './Containers/Admin/EnvironmentManagement';
 import SwaggerImport from './Containers/Admin/SwaggerImport';
 import PostmanImport from './Containers/Admin/PostmanImport';
 import TestPipeline from './Containers/TestPipeline';
+import MonitorsPage from './Containers/Monitor';
 
 import { setGlobalAppInstance } from './Utils/messageInstance';
 import { pluginLoader } from './Utils/pluginLoader';
@@ -163,6 +164,7 @@ const Application: React.FC = () => {
                         <Route path="/swagger-import" element={<SwaggerImport />} />
                         <Route path="/postman-import" element={<PostmanImport />} />
                         <Route path="/test-pipeline" element={<TestPipeline />} />
+                        <Route path="/monitors" element={<MonitorsPage />} />
                         <Route path="/user/*" element={<User />} />
                         <Route path="/admin/*" element={<Admin />} />
                         {pluginRoutes.map((route, index) => (

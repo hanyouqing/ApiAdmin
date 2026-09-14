@@ -56,6 +56,10 @@ start:
 test:
 	npm test -- --run
 
+# Newman-like CLI help
+cli:
+	node tools/apiadmin-cli.mjs
+
 # Run tests with coverage
 test-coverage:
 	npm run test:coverage -- --run
