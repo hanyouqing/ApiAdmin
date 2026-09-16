@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Form, Input, Button, Card, App, Divider, Modal } from 'antd';
-import { UserOutlined, LockOutlined, GithubOutlined, MailOutlined } from '@ant-design/icons';
+import { UserOutlined, LockOutlined, GithubOutlined, MailOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
 import { useDispatch } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { login } from '../../Reducer/Modules/User';
 import type { AppDispatch } from '../../Reducer/Create';
@@ -15,50 +15,86 @@ interface ThirdPartyProvider {
   name: string;
 }
 
+interface SsoProvider {
+  id: string;
+  name: string;
+  type: string;
+  description?: string;
+}
+
 const Login: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { t } = useTranslation();
   const { message } = App.useApp();
   const [loading, setLoading] = useState(false);
   const [thirdPartyProviders, setThirdPartyProviders] = useState<ThirdPartyProvider[]>([]);
+  const [ssoProviders, setSsoProviders] = useState<SsoProvider[]>([]);
   const [emailLoginVisible, setEmailLoginVisible] = useState(false);
   const [emailLoginLoading, setEmailLoginLoading] = useState(false);
   const [codeSent, setCodeSent] = useState(false);
   const [emailForm] = Form.useForm();
-  
+
   useEffect(() => {
-    // 获取已启用的第三方登录提供者
+    const ssoToken = searchParams.get('sso_token');
+    const ssoError = searchParams.get('error');
+    if (ssoError) {
+      message.error(decodeURIComponent(ssoError));
+      searchParams.delete('error');
+      setSearchParams(searchParams, { replace: true });
+    }
+    if (ssoToken) {
+      localStorage.setItem('token', ssoToken);
+      searchParams.delete('sso_token');
+      setSearchParams(searchParams, { replace: true });
+      message.success(t('auth.loginSuccess'));
+      window.location.href = '/';
+      return;
+    }
+
     const fetchThirdPartyProviders = async () => {
       try {
         const response = await api.get('/auth/third-party/providers');
         const providers = response.data.data || [];
         setThirdPartyProviders(providers);
       } catch (error) {
-        // 静默处理错误，不影响正常登录
         console.debug('Failed to fetch third-party providers:', error);
       }
     };
+
+    const fetchSsoProviders = async () => {
+      try {
+        const response = await api.get('/sso/public-providers');
+        const providers = response.data.data || [];
+        setSsoProviders(providers);
+      } catch (error) {
+        console.debug('Failed to fetch SSO providers:', error);
+      }
+    };
+
     fetchThirdPartyProviders();
+    fetchSsoProviders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleForgotPassword = () => {
     message.info(t('message.featureInDevelopment'));
   };
 
+  const handleSsoLogin = (providerId: string) => {
+    const redirectUrl = encodeURIComponent(`${window.location.origin}/login`);
+    window.location.href = `/api/sso/auth/${providerId}?redirectUrl=${redirectUrl}`;
+  };
+
   const handleThirdPartyLogin = (provider: string) => {
-    // OAuth 类型的登录（如 GitHub）直接跳转
     if (['github', 'gitlab', 'google', 'wechat'].includes(provider)) {
       window.location.href = `/api/auth/${provider}`;
-    } 
-    // 验证码类型的登录（如邮箱、手机号）显示模态框
-    else if (provider === 'email') {
+    } else if (provider === 'email') {
       setEmailLoginVisible(true);
       setCodeSent(false);
       emailForm.resetFields();
-    }
-    // 其他类型暂不支持
-    else {
+    } else {
       message.warning(t('auth.unsupportedProvider'));
     }
   };
@@ -85,17 +121,15 @@ const Login: React.FC = () => {
         email: values.email,
         code: values.code,
       });
-      
-      // 保存 token
-      const { token, user } = response.data.data;
+
+      const { token } = response.data.data;
       localStorage.setItem('token', token);
-      
+
       message.success(t('auth.loginSuccess'));
       setEmailLoginVisible(false);
       emailForm.resetFields();
       setCodeSent(false);
-      
-      // 刷新页面以更新用户状态
+
       window.location.href = '/';
     } catch (error: any) {
       message.error(error.response?.data?.message || t('auth.loginFailed'));
@@ -117,6 +151,8 @@ const Login: React.FC = () => {
     }
   };
 
+  const showExternalLogin = thirdPartyProviders.length > 0 || ssoProviders.length > 0;
+
   return (
     <div
       style={{
@@ -129,46 +165,49 @@ const Login: React.FC = () => {
     >
       <Card
         style={{ width: 400 }}
-        styles={{ 
-          body: { padding: '32px' }
+        styles={{
+          body: { padding: '32px' },
         }}
       >
-        <div style={{ 
-          display: 'flex', 
-          flexDirection: 'column', 
-          alignItems: 'center', 
-          marginBottom: '32px' 
-        }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            marginBottom: '32px',
+          }}
+        >
           <Logo size={64} />
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '8px',
-            marginTop: '16px'
-          }}>
-            <h1 style={{ 
-              margin: 0,
-              fontSize: '24px', 
-              fontWeight: 'bold',
-              color: '#1a365d'
-            }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              marginTop: '16px',
+            }}
+          >
+            <h1
+              style={{
+                margin: 0,
+                fontSize: '24px',
+                fontWeight: 'bold',
+                color: '#1a365d',
+              }}
+            >
               {t('app.title')}
             </h1>
-            <span style={{ 
-              fontSize: '16px',
-              color: '#999',
-              fontWeight: 'normal'
-            }}>
+            <span
+              style={{
+                fontSize: '16px',
+                color: '#999',
+                fontWeight: 'normal',
+              }}
+            >
               {t('auth.login')}
             </span>
           </div>
         </div>
-        <Form
-          name="login"
-          onFinish={onFinish}
-          autoComplete="off"
-          size="large"
-        >
+        <Form name="login" onFinish={onFinish} autoComplete="off" size="large">
           <Form.Item
             name="email"
             rules={[
@@ -176,20 +215,14 @@ const Login: React.FC = () => {
               { type: 'email', message: t('auth.emailInvalid') },
             ]}
           >
-            <Input
-              prefix={<UserOutlined />}
-              placeholder={t('auth.email')}
-            />
+            <Input prefix={<UserOutlined />} placeholder={t('auth.email')} />
           </Form.Item>
 
           <Form.Item
             name="password"
             rules={[{ required: true, message: t('auth.passwordRequired') }]}
           >
-            <Input.Password
-              prefix={<LockOutlined />}
-              placeholder={t('auth.password')}
-            />
+            <Input.Password prefix={<LockOutlined />} placeholder={t('auth.password')} />
           </Form.Item>
 
           <Form.Item>
@@ -208,17 +241,29 @@ const Login: React.FC = () => {
             </Button>
           </div>
 
-          {thirdPartyProviders.length > 0 && (
+          {showExternalLogin && (
             <>
               <Divider>{t('auth.or')}</Divider>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {ssoProviders.map((provider) => (
+                  <Button
+                    key={provider.id}
+                    icon={<SafetyCertificateOutlined />}
+                    onClick={() => handleSsoLogin(provider.id)}
+                    block
+                  >
+                    {t('auth.loginWith')} {provider.name}
+                  </Button>
+                ))}
                 {thirdPartyProviders.map((provider) => (
                   <Button
                     key={provider.provider}
                     icon={
-                      provider.provider === 'github' ? <GithubOutlined /> :
-                      provider.provider === 'email' ? <MailOutlined /> :
-                      undefined
+                      provider.provider === 'github' ? (
+                        <GithubOutlined />
+                      ) : provider.provider === 'email' ? (
+                        <MailOutlined />
+                      ) : undefined
                     }
                     onClick={() => handleThirdPartyLogin(provider.provider)}
                     block
@@ -242,11 +287,7 @@ const Login: React.FC = () => {
         }}
         footer={null}
       >
-        <Form
-          form={emailForm}
-          layout="vertical"
-          onFinish={codeSent ? handleEmailLogin : handleSendEmailCode}
-        >
+        <Form form={emailForm} layout="vertical" onFinish={codeSent ? handleEmailLogin : handleSendEmailCode}>
           <Form.Item
             name="email"
             label={t('auth.email')}
@@ -255,11 +296,7 @@ const Login: React.FC = () => {
               { type: 'email', message: t('auth.emailInvalid') },
             ]}
           >
-            <Input
-              prefix={<MailOutlined />}
-              placeholder={t('auth.email')}
-              disabled={codeSent}
-            />
+            <Input prefix={<MailOutlined />} placeholder={t('auth.email')} disabled={codeSent} />
           </Form.Item>
 
           {codeSent && (
@@ -271,31 +308,19 @@ const Login: React.FC = () => {
                 { len: 6, message: t('auth.codeLength') },
               ]}
             >
-              <Input
-                placeholder={t('auth.verificationCode')}
-                maxLength={6}
-              />
+              <Input placeholder={t('auth.verificationCode')} maxLength={6} />
             </Form.Item>
           )}
 
           <Form.Item>
-            <Button
-              type="primary"
-              htmlType="submit"
-              block
-              loading={emailLoginLoading}
-            >
+            <Button type="primary" htmlType="submit" block loading={emailLoginLoading}>
               {codeSent ? t('auth.login') : t('auth.sendCode')}
             </Button>
           </Form.Item>
 
           {codeSent && (
             <div style={{ textAlign: 'center' }}>
-              <Button
-                type="link"
-                onClick={handleSendEmailCode}
-                loading={emailLoginLoading}
-              >
+              <Button type="link" onClick={handleSendEmailCode} loading={emailLoginLoading}>
                 {t('auth.resendCode')}
               </Button>
             </div>
@@ -307,4 +332,3 @@ const Login: React.FC = () => {
 };
 
 export default Login;
-

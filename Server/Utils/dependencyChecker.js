@@ -28,7 +28,7 @@ let dependencyStatus = {
     message: '',
     error: null,
     checked: false,
-    optional: true, // Redis 是可选的
+    optional: process.env.NODE_ENV !== 'production' || process.env.REQUIRE_REDIS === 'false',
   },
 };
 
@@ -954,7 +954,13 @@ export function getDependencyStatus() {
  * 检查是否所有关键依赖都已就绪
  */
 export function isReady() {
-  return dependencyStatus.mongodb.status === DependencyStatus.READY;
+  const mongoOk = dependencyStatus.mongodb.status === DependencyStatus.READY;
+  const redisRequired =
+    process.env.NODE_ENV === 'production' && process.env.REQUIRE_REDIS !== 'false';
+  if (!redisRequired) {
+    return mongoOk;
+  }
+  return mongoOk && dependencyStatus.redis.status === DependencyStatus.READY;
 }
 
 /**

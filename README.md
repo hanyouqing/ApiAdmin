@@ -45,13 +45,16 @@ Become the **API Collaboration Center** connecting frontend, backend, testing, a
 
 ## ✨ Core Features
 
+Claims below match **wired** `Server/Router.ts` + Client routes. Unwired modules are marked 🚧 or omitted.
+
 ### 🔐 User & Permission Management
 - User registration, login, password recovery
-- Flat permission design (Super Admin, Group Leader, Project Leader, Developer, Guest)
-- JWT authentication mechanism
-- 🚧 SSO single sign-on (SAML 2.0, OAuth 2.0, OIDC, LDAP, CAS)
-- 🚧 Third-party login (GitHub, GitLab, Gmail, WeChat, Phone, Email verification code)
-- 🚧 Whitelist management
+- Flat roles (Super Admin, Group Leader, Project Leader, Developer, Guest)
+- **Project/group membership checks on mutating API routes** (non-members → 403)
+- JWT authentication (no query-string tokens in production)
+- SSO login path (SAML / OAuth2 / OIDC / LDAP / CAS) + Login entry
+- Third-party login (GitHub, email verification code) when enabled
+- Whitelist management (admin)
 
 ### 📁 Group & Project Management
 - Group management (create, edit, delete, member management)
@@ -73,22 +76,18 @@ Become the **API Collaboration Center** connecting frontend, backend, testing, a
 ### 🎭 Mock Service
 - Basic Mock (based on Mockjs and Json5)
 - Mock expectations (return different data based on request conditions)
-- Custom Mock scripts (JavaScript)
+- Custom Mock scripts via `node:vm` (gated; off in production / regulated mode by default)
 - Mock strict mode (parameter validation)
 - Mock priority management
-- Support parameter replacement and regular expressions
 
 ### 🧪 Automated Testing
 - Test collection management
 - Test case editing (request parameters, assertion scripts)
-- Variable parameter support (`$.{key}.{params|body}.{path}`)
 - Test execution and reporting
-- Server-side automated testing (CI/CD integration)
-- **Test Pipeline Management**: Create, edit, execute, and manage test pipelines
-- **AI-Powered Test Analysis**: Automatic test result analysis, bug fixing suggestions, and test case improvement recommendations
-- **Code Repository Integration**: Link test pipelines with code repositories for comprehensive analysis
-- 🚧 Deep CI/CD integration (GitHub Actions, Jenkins, GitLab CI)
-- 🚧 Automated testing for imported interfaces
+- **CI/CD API** (`/api/cicd/*`) with **hashed CLI tokens** (JUnit/Allure/JSON)
+- Test Pipeline Management
+- AI-powered test analysis (Ollama local-first / optional ChatGPT)
+- Code repository integration for analysis
 
 ### 📥 Data Import/Export
 - Postman import (Collection v1/v2)
@@ -96,28 +95,25 @@ Become the **API Collaboration Center** connecting frontend, backend, testing, a
 - HAR import
 - ApiAdmin JSON import
 - Data export (JSON, Swagger, Markdown, HTML)
-- 🚧 Swagger auto-sync (scheduled sync)
+- 🚧 DocumentCenter publish/portal (Phase 1)
+- 🚧 Swagger auto-sync UI polish
 
 ### 🔌 Plugin System
 - Plugin architecture design
 - Plugin management (install, uninstall, enable/disable)
 - Built-in plugins (code generation, statistics, Wiki, etc.)
-- 🚧 Plugin Hook system
-- 🚧 Plugin routing system
-- 🚧 Frontend plugin integration
 
 ### 💻 Code Repository Management
 - Code repository configuration (GitHub, GitLab, Gitee, etc.)
 - SSH private key authentication with password support
 - Repository connection testing
 - Code pull and synchronization
-- Integration with test pipelines for AI analysis
 
 ### 🤖 AI Configuration & Analysis
-- AI provider configuration (OpenAI, DeepSeek, etc.)
-- AI-powered test result analysis
-- Automatic bug detection and fixing suggestions
-- Test case improvement recommendations
+- Providers: OpenAI (ChatGPT), DeepSeek, Doubao, Gemini, Kimi, Aliyun, **custom (Ollama / OpenAI-compatible)**
+- Local-first: enabled `custom` preferred over cloud
+- API keys encrypted at rest
+- Regulated mode can disable cloud AI
 - Code quality analysis
 
 ### 📊 System Features

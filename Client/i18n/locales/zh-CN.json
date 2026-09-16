@@ -782,7 +782,7 @@
       "saveFailed": "保存失败",
       "testSuccess": "测试成功",
       "testFailed": "测试失败",
-      "custom": "自定义",
+      "custom": "Ollama / OpenAI 兼容",
       "openai": "ChatGPT / OpenAI",
       "gemini": "Google Gemini",
       "deepseek": "DeepSeek",

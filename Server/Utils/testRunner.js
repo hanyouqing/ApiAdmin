@@ -2,6 +2,7 @@ import vm from 'node:vm';
 import axios from 'axios';
 import Mock from './safeMock.js';
 import { logger } from './logger.js';
+import { assertSafeOutboundUrl } from './security.js';
 import TestCase from '../Models/TestCase.js';
 import Interface from '../Models/Interface.js';
 import Project from '../Models/Project.js';
@@ -44,7 +45,7 @@ export class TestRunner {
         requestPath = requestPath.replace(`{${key}}`, pathParams[key]);
       });
 
-      const url = `${baseUrl}${requestPath}`;
+      const url = assertSafeOutboundUrl(`${baseUrl}${requestPath}`);
       const query = this.resolveVariables(testCase.request.query || {}, this.records);
       const body = this.resolveVariables(testCase.request.body || {}, this.records);
       const headers = this.resolveVariables(testCase.request.headers || {}, this.records);

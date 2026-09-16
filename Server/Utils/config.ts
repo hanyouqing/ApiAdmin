@@ -141,6 +141,17 @@ export const validateConfig = () => {
     );
   }
 
+  // Regulated mode: force-disable mock scripts; cloud AI gated via secretCrypto.isCloudAiAllowed
+  if (process.env.REGULATED === 'true' || process.env.REGULATED_MODE === 'true') {
+    process.env.ALLOW_MOCK_SCRIPTS = 'false';
+    process.env.ALLOW_UNSAFE_MOCK_SCRIPTS = 'false';
+    if (process.env.ALLOW_CLOUD_AI !== 'true') {
+      console.warn(
+        'Regulated mode enabled: mock scripts disabled; cloud AI disabled unless ALLOW_CLOUD_AI=true (prefer local Ollama/custom).'
+      );
+    }
+  }
+
   if (isProduction && process.env.ALLOW_MOCK_SCRIPTS === 'true' && process.env.ALLOW_UNSAFE_MOCK_SCRIPTS !== 'true') {
     console.warn(
       'Warning: ALLOW_MOCK_SCRIPTS=true without ALLOW_UNSAFE_MOCK_SCRIPTS=true; custom mock scripts remain disabled in production.'
