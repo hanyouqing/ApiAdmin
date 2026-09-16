@@ -7,3 +7,4 @@
 - Redis required in production (fail closed); `REGULATED` disables mock scripts / cloud AI.
 - Drop unused `vm2`; SSRF on test/autoTest runners; `SECURITY.md`; README = wired routes only.
 - DocumentCenter is Phase 1 (path A) — do not mount in Phase 0 unless a tiny hook is required.
+- CI: root `preinstall` must use `Scripts/check-node-version.js` (capital S). Keep Client `package.json`/`package-lock.json` in sync for `npm ci`; do not leave unused `mockjs` in Client (Server still uses it via safeMock path).
