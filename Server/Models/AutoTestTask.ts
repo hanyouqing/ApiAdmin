@@ -9,6 +9,7 @@ export interface IAutoTestTestCase {
   path_params: any;
   query_params: any;
   assertion_script: string;
+  pre_request_script: string;
 }
 
 export interface IAutoTestTask {
@@ -92,6 +93,10 @@ const autoTestTaskSchema = new Schema<IAutoTestTask>(
           default: {},
         },
         assertion_script: {
+          type: String,
+          default: '',
+        },
+        pre_request_script: {
           type: String,
           default: '',
         },

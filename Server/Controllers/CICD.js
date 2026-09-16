@@ -2,7 +2,6 @@ import { BaseController } from './Base.js';
 import { validateObjectId, sanitizeInput } from '../Utils/validation.js';
 import { logger } from '../Utils/logger.js';
 import CLIToken from '../Models/CLIToken.js';
-import ProjectToken from '../Models/ProjectToken.js';
 import { TestRunner } from '../Utils/testRunner.js';
 import TestCollection from '../Models/TestCollection.js';
 import { SwaggerImporter } from '../Utils/importers/SwaggerImporter.js';
@@ -136,7 +135,7 @@ class CICDController extends BaseController {
 
   static async runTest(ctx) {
     try {
-      const { collectionId, environment, format = 'json' } = ctx.request.body;
+      const { collectionId, environment, format = 'json', iteration_data } = ctx.request.body;
 
       if (!validateObjectId(collectionId)) {
         ctx.status = 400;
@@ -152,18 +151,17 @@ class CICDController extends BaseController {
       }
 
       const runner = new TestRunner();
-      const report = await runner.runTestCollection(collectionId, environment || {});
+      const report = await runner.runTestCollection(collectionId, environment || {}, {
+        iteration_data: Array.isArray(iteration_data) ? iteration_data : undefined,
+      });
 
-      // 根据格式生成报告
       let content = '';
       let contentType = 'application/json';
       
       if (format === 'junit') {
-        // 实现 JUnit XML 格式
         content = formatJUnitXML(report);
         contentType = 'application/xml';
       } else if (format === 'allure') {
-        // 实现 Allure 格式
         const allureResults = formatAllureJSON(report);
         content = JSON.stringify(allureResults, null, 2);
         contentType = 'application/json';
@@ -172,10 +170,15 @@ class CICDController extends BaseController {
         contentType = 'application/json';
       }
 
+      const failed = (report.failed || 0) + (report.errors || 0);
+      ctx.status = failed > 0 ? 200 : 200;
+      ctx.set('X-ApiAdmin-Failed', String(failed));
       ctx.body = CICDController.success({
         report,
         format,
         content,
+        contentType,
+        exitCode: failed > 0 ? 1 : 0,
       });
     } catch (error) {
       logger.error({ error }, 'Run test via CLI error');
@@ -184,6 +187,91 @@ class CICDController extends BaseController {
         process.env.NODE_ENV === 'production'
           ? '执行测试失败'
           : error.message || '执行测试失败'
+      );
+    }
+  }
+
+  static async runPipeline(ctx) {
+    try {
+      const user = ctx.state.user;
+      const { taskId, environment_id, iteration_data, wait = true } = ctx.request.body;
+
+      if (!validateObjectId(taskId)) {
+        ctx.status = 400;
+        ctx.body = CICDController.error('无效的流水线任务 ID');
+        return;
+      }
+
+      const AutoTestTask = (await import('../Models/AutoTestTask.js')).default;
+      const AutoTestResult = (await import('../Models/AutoTestResult.js')).default;
+      const TestEnvironment = (await import('../Models/TestEnvironment.js')).default;
+      const { AutoTestRunner } = await import('../Utils/autoTestRunner.js');
+
+      const task = await AutoTestTask.findById(taskId).populate('test_cases.interface_id');
+      if (!task) {
+        ctx.status = 404;
+        ctx.body = CICDController.error('流水线任务不存在');
+        return;
+      }
+
+      let environment = null;
+      const envId = environment_id || task.environment_id;
+      if (envId && validateObjectId(envId)) {
+        environment = await TestEnvironment.findById(envId);
+      }
+
+      if (Array.isArray(iteration_data) && iteration_data.length) {
+        task._iterationData = iteration_data;
+      }
+
+      const testResult = new AutoTestResult({
+        task_id: task._id,
+        environment_id: environment?._id || null,
+        status: 'running',
+        summary: {
+          total: task.test_cases.filter((tc) => tc.enabled).length * (iteration_data?.length || 1),
+          passed: 0,
+          failed: 0,
+          error: 0,
+          skipped: 0,
+        },
+        results: [],
+        started_at: new Date(),
+        triggered_by: 'webhook',
+        triggered_by_user: user?._id || null,
+      });
+      await testResult.save();
+
+      const runner = new AutoTestRunner();
+      const runPromise = runner.runTask(task, environment, testResult._id);
+
+      if (wait) {
+        await runPromise;
+        const finalResult = await AutoTestResult.findById(testResult._id).lean();
+        const failed = (finalResult?.summary?.failed || 0) + (finalResult?.summary?.error || 0);
+        ctx.body = CICDController.success({
+          resultId: testResult._id,
+          status: finalResult?.status,
+          summary: finalResult?.summary,
+          exitCode: failed > 0 ? 1 : 0,
+        });
+      } else {
+        runPromise.catch((error) => {
+          logger.error({ error, taskId, resultId: testResult._id }, 'Pipeline CI run error');
+        });
+        ctx.body = CICDController.success({
+          resultId: testResult._id,
+          status: 'running',
+          exitCode: 0,
+        });
+      }
+    } catch (error) {
+      logger.error({ error }, 'Run pipeline via CLI error');
+      ctx.status = 500;
+      ctx.body = CICDController.error(
+        process.env.NODE_ENV === 'production'
+          ? '执行流水线失败'
+          : error.message || '执行流水线失败'
       );
     }
   }

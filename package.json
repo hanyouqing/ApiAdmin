@@ -4,6 +4,9 @@
   "description": "A modern API management platform",
   "private": true,
   "type": "module",
+  "bin": {
+    "apiadmin": "./tools/apiadmin-cli.mjs"
+  },
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=9.0.0"
@@ -25,6 +28,7 @@
     "test:ui": "vitest --ui",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "cli": "node tools/apiadmin-cli.mjs",
     "check:node": "node scripts/check-node-version.js",
     "fix:audit": "node scripts/fix-npm-audit.js",
     "fix:audit:simple": "bash scripts/fix-npm-audit-simple.sh",

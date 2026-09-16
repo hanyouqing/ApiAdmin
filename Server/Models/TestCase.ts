@@ -16,6 +16,7 @@ export interface ITestCase {
   description: string;
   request: ITestCaseRequest;
   assertion_script: string;
+  pre_request_script: string;
   order: number;
   enabled: boolean;
   uid: Schema.Types.ObjectId;
@@ -74,6 +75,10 @@ const testCaseSchema = new Schema<ITestCase>(
       },
     },
     assertion_script: {
+      type: String,
+      default: '',
+    },
+    pre_request_script: {
       type: String,
       default: '',
     },

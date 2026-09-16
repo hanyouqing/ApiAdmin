@@ -14,6 +14,7 @@ import {
   ImportOutlined,
   ExperimentOutlined,
   CodeOutlined,
+  RadarChartOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import Logo from '../Logo';
@@ -51,7 +52,9 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
       location.pathname === '/postman-import' ||
       location.pathname.startsWith('/postman-import/') ||
       location.pathname === '/test-pipeline' ||
-      location.pathname.startsWith('/test-pipeline/')
+      location.pathname.startsWith('/test-pipeline/') ||
+      location.pathname === '/monitors' ||
+      location.pathname.startsWith('/monitors/')
     ) {
       keys.push('/project');
     }
@@ -181,6 +184,11 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
               {t('sidebar.testPipeline')}
             </span>
           ),
+        },
+        {
+          key: '/monitors',
+          icon: <RadarChartOutlined />,
+          label: t('sidebar.monitors'),
         },
         {
           key: '/admin/code',

@@ -2,16 +2,19 @@ import cron from 'node-cron';
 import { logger } from './logger.js';
 import AutoTestTask from '../Models/AutoTestTask.js';
 import AutoTestResult from '../Models/AutoTestResult.js';
+import ApiMonitor from '../Models/ApiMonitor.js';
 import { AutoTestRunner } from './autoTestRunner.js';
 import TestEnvironment from '../Models/TestEnvironment.js';
+import { runApiMonitor } from './apiMonitorRunner.js';
 
 class TaskScheduler {
   constructor() {
-    this.jobs = new Map(); // 存储所有定时任务
+    this.jobs = new Map(); // AutoTestTask jobs: taskId -> job
+    this.monitorJobs = new Map(); // ApiMonitor jobs: monitorId -> job
   }
 
   /**
-   * 启动所有启用的定时任务
+   * 启动所有启用的定时任务（Pipeline + Monitor）
    */
   async startAllTasks() {
     try {
@@ -27,31 +30,39 @@ class TaskScheduler {
         this.scheduleTask(task);
       }
 
-      logger.info({ count: this.jobs.size }, 'Scheduled tasks started');
+      const monitors = await ApiMonitor.find({
+        enabled: true,
+        'schedule.enabled': true,
+        'schedule.cron': { $ne: '' },
+      });
+
+      logger.info({ count: monitors.length }, 'Loading scheduled monitors');
+      for (const monitor of monitors) {
+        this.scheduleMonitor(monitor);
+      }
+
+      logger.info(
+        { tasks: this.jobs.size, monitors: this.monitorJobs.size },
+        'Scheduled jobs started'
+      );
     } catch (error) {
       logger.error({ error }, 'Failed to start scheduled tasks');
     }
   }
 
-  /**
-   * 为单个任务创建定时任务
-   */
   scheduleTask(task) {
     const taskId = task._id.toString();
 
-    // 如果任务已存在，先停止
     if (this.jobs.has(taskId)) {
       this.stopTask(taskId);
     }
 
     try {
-      // 验证 cron 表达式
       if (!cron.validate(task.schedule.cron)) {
         logger.warn({ taskId, cron: task.schedule.cron }, 'Invalid cron expression');
         return;
       }
 
-      // 创建定时任务
       const job = cron.schedule(
         task.schedule.cron,
         async () => {
@@ -70,9 +81,45 @@ class TaskScheduler {
     }
   }
 
-  /**
-   * 停止单个任务
-   */
+  scheduleMonitor(monitor) {
+    const monitorId = monitor._id.toString();
+
+    if (this.monitorJobs.has(monitorId)) {
+      this.stopMonitor(monitorId);
+    }
+
+    try {
+      if (!cron.validate(monitor.schedule.cron)) {
+        logger.warn({ monitorId, cron: monitor.schedule.cron }, 'Invalid monitor cron');
+        return;
+      }
+
+      const job = cron.schedule(
+        monitor.schedule.cron,
+        async () => {
+          try {
+            logger.info({ monitorId, name: monitor.name }, 'Executing scheduled monitor');
+            await runApiMonitor(monitorId, { triggeredBy: 'schedule' });
+          } catch (error) {
+            logger.error({ error, monitorId }, 'Scheduled monitor failed');
+          }
+        },
+        {
+          scheduled: true,
+          timezone: monitor.schedule.timezone || 'Asia/Shanghai',
+        }
+      );
+
+      this.monitorJobs.set(monitorId, job);
+      logger.info(
+        { monitorId, name: monitor.name, cron: monitor.schedule.cron },
+        'Monitor scheduled'
+      );
+    } catch (error) {
+      logger.error({ error, monitorId }, 'Failed to schedule monitor');
+    }
+  }
+
   stopTask(taskId) {
     const job = this.jobs.get(taskId);
     if (job) {
@@ -82,31 +129,36 @@ class TaskScheduler {
     }
   }
 
-  /**
-   * 停止所有任务
-   */
+  stopMonitor(monitorId) {
+    const job = this.monitorJobs.get(String(monitorId));
+    if (job) {
+      job.stop();
+      this.monitorJobs.delete(String(monitorId));
+      logger.info({ monitorId }, 'Monitor stopped');
+    }
+  }
+
   stopAllTasks() {
     for (const [taskId, job] of this.jobs.entries()) {
       job.stop();
     }
     this.jobs.clear();
-    logger.info('All scheduled tasks stopped');
+    for (const [monitorId, job] of this.monitorJobs.entries()) {
+      job.stop();
+    }
+    this.monitorJobs.clear();
+    logger.info('All scheduled jobs stopped');
   }
 
-  /**
-   * 执行定时任务
-   */
   async executeScheduledTask(task) {
     const taskId = task._id.toString();
     logger.info({ taskId, taskName: task.name }, 'Executing scheduled task');
 
     try {
-      // 获取环境
       let environment = null;
       if (task.environment_id) {
         environment = await TestEnvironment.findById(task.environment_id);
       } else {
-        // 使用项目的默认环境
         const projectId = task.project_id?.toString ? task.project_id.toString() : task.project_id;
         environment = await TestEnvironment.findOne({
           project_id: projectId,
@@ -114,7 +166,6 @@ class TaskScheduler {
         });
       }
 
-      // 创建测试结果记录
       const testResult = new AutoTestResult({
         task_id: task._id,
         environment_id: environment?._id || null,
@@ -134,7 +185,6 @@ class TaskScheduler {
 
       await testResult.save();
 
-      // 异步执行测试
       const runner = new AutoTestRunner();
       runner.runTask(task, environment, testResult._id).catch((error) => {
         logger.error({ error, taskId, resultId: testResult._id }, 'Scheduled task execution error');
@@ -144,9 +194,6 @@ class TaskScheduler {
     }
   }
 
-  /**
-   * 重新加载任务（当任务被更新时调用）
-   */
   async reloadTask(taskId) {
     try {
       const task = await AutoTestTask.findById(taskId).populate('createdBy');
@@ -155,23 +202,38 @@ class TaskScheduler {
         return;
       }
 
-      // 如果任务已禁用或定时任务未启用，停止任务
       if (!task.enabled || !task.schedule.enabled || !task.schedule.cron) {
         this.stopTask(taskId);
         return;
       }
 
-      // 重新调度任务
       this.scheduleTask(task);
     } catch (error) {
       logger.error({ error, taskId }, 'Failed to reload task');
     }
   }
+
+  async reloadMonitor(monitorId) {
+    try {
+      const id = String(monitorId);
+      const monitor = await ApiMonitor.findById(id);
+      if (!monitor) {
+        this.stopMonitor(id);
+        return;
+      }
+
+      if (!monitor.enabled || !monitor.schedule.enabled || !monitor.schedule.cron) {
+        this.stopMonitor(id);
+        return;
+      }
+
+      this.scheduleMonitor(monitor);
+    } catch (error) {
+      logger.error({ error, monitorId }, 'Failed to reload monitor');
+    }
+  }
 }
 
-// 创建单例
 const scheduler = new TaskScheduler();
 
 export default scheduler;
-
-
