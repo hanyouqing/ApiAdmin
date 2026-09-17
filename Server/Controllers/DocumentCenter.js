@@ -7,15 +7,11 @@ import Interface from '../Models/Interface.js';
 import APIDesignController from './APIDesign.js';
 
 /**
- * 交互式文档中心控制器
- * 处理文档自动发布、版本管理、在线调试等功能
+ * Interactive document center — generate, publish, preview API docs.
  */
 class DocumentCenterController extends BaseController {
   static get ControllerName() { return 'DocumentCenterController'; }
 
-  /**
-   * 生成项目文档
-   */
   static async generateDocument(ctx) {
     try {
       const user = ctx.state.user;
@@ -36,8 +32,8 @@ class DocumentCenterController extends BaseController {
 
       const interfaces = await Interface.find({ project_id: projectId });
 
-      const openapiSpec = this.generateOpenAPISpecForProject(project, interfaces);
-      const documentContent = this.generateDocumentContent(project, interfaces);
+      const openapiSpec = DocumentCenterController.generateOpenAPISpecForProject(project, interfaces);
+      const documentContent = DocumentCenterController.generateDocumentContent(project, interfaces);
 
       const latestVersion = await DocumentVersion.findOne({ project_id: projectId })
         .sort({ version_number: -1 });
@@ -49,8 +45,8 @@ class DocumentCenterController extends BaseController {
         project_id: projectId,
         version: versionString,
         version_number: versionNumber,
-        title: `${project.name} API 文档`,
-        description: project.desc || '',
+        title: `${project.project_name || project.name} API 文档`,
+        description: project.project_desc || project.desc || '',
         content: documentContent,
         openapi_spec: openapiSpec,
         published: false,
@@ -78,13 +74,10 @@ class DocumentCenterController extends BaseController {
     }
   }
 
-  /**
-   * 发布文档
-   */
   static async publishDocument(ctx) {
     try {
       const user = ctx.state.user;
-      const { documentId } = ctx.request.body;
+      const { documentId, projectId } = ctx.request.body;
 
       if (!validateObjectId(documentId)) {
         ctx.status = 400;
@@ -99,9 +92,15 @@ class DocumentCenterController extends BaseController {
         return;
       }
 
+      if (projectId && document.project_id.toString() !== projectId.toString()) {
+        ctx.status = 400;
+        ctx.body = DocumentCenterController.error('文档不属于该项目');
+        return;
+      }
+
       await DocumentVersion.updateMany(
         { project_id: document.project_id, published: true },
-        { $set: { published: false } }
+        { $set: { published: false, is_current: false } }
       );
 
       document.published = true;
@@ -109,16 +108,11 @@ class DocumentCenterController extends BaseController {
       document.published_by = user._id;
       document.is_current = true;
 
-      await DocumentVersion.updateMany(
-        { project_id: document.project_id },
-        { $set: { is_current: false } }
-      );
-
       await document.save();
 
       logger.info({ userId: user._id, documentId }, 'Document published');
 
-      ctx.body = DocumentCenterController.success(null, '文档发布成功');
+      ctx.body = DocumentCenterController.success(document, '文档发布成功');
     } catch (error) {
       logger.error({ error }, 'Publish document error');
       ctx.status = 500;
@@ -130,9 +124,6 @@ class DocumentCenterController extends BaseController {
     }
   }
 
-  /**
-   * 获取已发布的文档
-   */
   static async getPublishedDocument(ctx) {
     try {
       const { projectId } = ctx.query;
@@ -166,9 +157,6 @@ class DocumentCenterController extends BaseController {
     }
   }
 
-  /**
-   * 获取文档版本列表
-   */
   static async listDocumentVersions(ctx) {
     try {
       const { projectId } = ctx.query;
@@ -196,9 +184,6 @@ class DocumentCenterController extends BaseController {
     }
   }
 
-  /**
-   * 对比文档版本
-   */
   static async compareDocumentVersions(ctx) {
     try {
       const { projectId, version1, version2 } = ctx.query;
@@ -213,7 +198,7 @@ class DocumentCenterController extends BaseController {
         project_id: projectId,
         $or: [
           { version: version1 },
-          { version_number: parseInt(version1) || 0 },
+          { version_number: parseInt(version1, 10) || 0 },
         ],
       });
 
@@ -221,7 +206,7 @@ class DocumentCenterController extends BaseController {
         project_id: projectId,
         $or: [
           { version: version2 },
-          { version_number: parseInt(version2) || 0 },
+          { version_number: parseInt(version2, 10) || 0 },
         ],
       });
 
@@ -231,7 +216,7 @@ class DocumentCenterController extends BaseController {
         return;
       }
 
-      const diff = this.compareDocumentVersions(v1, v2);
+      const diff = DocumentCenterController.diffDocumentVersions(v1, v2);
 
       ctx.body = DocumentCenterController.success({
         version1: v1,
@@ -249,18 +234,17 @@ class DocumentCenterController extends BaseController {
     }
   }
 
-  /**
-   * 生成项目的 OpenAPI 规范
-   */
   static generateOpenAPISpecForProject(project, interfaces) {
     const baseUrl = project.basepath || '';
+    const title = project.project_name || project.name || 'API';
+    const description = project.project_desc || project.desc || '';
 
     const spec = {
       openapi: '3.0.0',
       info: {
-        title: project.name,
+        title,
         version: '1.0.0',
-        description: project.desc || '',
+        description,
       },
       servers: [
         {
@@ -272,23 +256,34 @@ class DocumentCenterController extends BaseController {
     };
 
     for (const interfaceData of interfaces) {
-      const pathSpec = APIDesignController.generateOpenAPISpec(interfaceData, '3.0.0');
-      Object.assign(spec.paths, pathSpec.paths);
+      try {
+        const pathSpec = APIDesignController.generateOpenAPISpec(interfaceData, '3.0.0');
+        if (pathSpec?.paths) {
+          Object.assign(spec.paths, pathSpec.paths);
+        }
+      } catch (err) {
+        logger.warn({ err, interfaceId: interfaceData._id }, 'Skip interface OpenAPI path');
+        const method = (interfaceData.method || 'get').toLowerCase();
+        const path = interfaceData.path || '/';
+        if (!spec.paths[path]) spec.paths[path] = {};
+        spec.paths[path][method] = {
+          summary: interfaceData.title || path,
+          description: interfaceData.desc || '',
+          responses: { '200': { description: 'Success' } },
+        };
+      }
     }
 
     return spec;
   }
 
-  /**
-   * 生成文档内容
-   */
   static generateDocumentContent(project, interfaces) {
     return {
       project: {
-        name: project.name,
-        description: project.desc,
+        name: project.project_name || project.name,
+        description: project.project_desc || project.desc,
       },
-      interfaces: interfaces.map(i => ({
+      interfaces: interfaces.map((i) => ({
         id: i._id,
         title: i.title,
         path: i.path,
@@ -298,10 +293,7 @@ class DocumentCenterController extends BaseController {
     };
   }
 
-  /**
-   * 对比两个文档版本
-   */
-  static compareDocumentVersions(v1, v2) {
+  static diffDocumentVersions(v1, v2) {
     return {
       title: v1.title !== v2.title,
       description: v1.description !== v2.description,
@@ -312,4 +304,3 @@ class DocumentCenterController extends BaseController {
 }
 
 export default DocumentCenterController;
-

@@ -1998,6 +1998,33 @@ const TestPipeline: React.FC = () => {
     }
   };
 
+  const handleDownloadJUnitReport = async () => {
+    if (!selectedResult?._id) {
+      messageApi.warning(t('admin.test.pipeline.selectResultFirst') || '请先选择测试结果');
+      return;
+    }
+    try {
+      const response = await api.get(`/cicd/results/${selectedResult._id}/junit`);
+      const content = response.data?.data?.content;
+      if (!content) {
+        messageApi.error(t('cicd.junitFailed') || 'JUnit 报告为空');
+        return;
+      }
+      const blob = new Blob([content], { type: 'application/xml;charset=utf-8' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `apiadmin-junit-${selectedResult._id}.xml`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      messageApi.success(t('cicd.junitDownloaded') || 'JUnit 报告已下载');
+    } catch (error: any) {
+      messageApi.error(error.message || t('cicd.junitFailed') || '下载 JUnit 失败');
+    }
+  };
+
   // 下载 PDF 报告（通过后端生成）
   const handleDownloadPDFReport = async () => {
     if (!selectedResult) {
@@ -3106,6 +3133,12 @@ const TestPipeline: React.FC = () => {
                 onClick={handleDownloadHTMLReport}
               >
                 下载 HTML 报告
+              </Button>
+              <Button
+                icon={<DownloadOutlined />}
+                onClick={handleDownloadJUnitReport}
+              >
+                {t('cicd.downloadJunit') || '下载 JUnit'}
               </Button>
               <Button
                 type="primary"

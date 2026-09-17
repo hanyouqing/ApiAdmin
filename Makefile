@@ -1,4 +1,4 @@
-.PHONY: help build run test test-coverage test-verbose test-package e2e swagger migrate migrate-status migrate-down clean frontend backend start backup restore config-backup config-restore deps install fmt lint check docker docker-up docker-down audit
+.PHONY: help build run test test-coverage test-verbose test-package e2e demo-lifecycle swagger migrate migrate-status migrate-down clean frontend backend start backup restore config-backup config-restore deps install fmt lint check docker docker-up docker-down audit
 
 .DEFAULT_GOAL := help
 
@@ -72,6 +72,10 @@ test-verbose:
 # Run end-to-end tests (Playwright)
 e2e:
 	npm run test:e2e
+
+# Phase 1 lifecycle demo against a running API (needs APIADMIN_EMAIL / APIADMIN_PASSWORD)
+demo-lifecycle:
+	./Scripts/demo-lifecycle.sh
 
 # Run a single vitest file — Usage: make test-package FILE=tests/unit/Security.test.js
 test-package:

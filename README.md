@@ -95,7 +95,8 @@ Claims below match **wired** `Server/Router.ts` + Client routes. Unwired modules
 - HAR import
 - ApiAdmin JSON import
 - Data export (JSON, Swagger, Markdown, HTML)
-- 🚧 DocumentCenter publish/portal (Phase 1)
+- **DocumentCenter** (`/api/docs/*`) generate/publish + project Docs portal
+- Demo script: `make demo-lifecycle` / `Scripts/demo-lifecycle.sh`
 - 🚧 Swagger auto-sync UI polish
 
 ### 🔌 Plugin System

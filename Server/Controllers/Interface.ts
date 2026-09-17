@@ -417,7 +417,7 @@ class InterfaceController extends BaseController {
   static async run(ctx: AuthenticatedContext) {
     try {
       const user = ctx.state.user;
-      const { _id, env, params = {} } = ctx.request.body as any;
+      const { _id, env, environment_id, params = {} } = ctx.request.body as any;
 
       if (!validateObjectId(_id)) {
         ctx.status = 400;
@@ -433,8 +433,29 @@ class InterfaceController extends BaseController {
       }
 
       const project = interfaceData.project_id as any;
-      const environment = project.env.find((e: any) => e.name === env) || project.env[0] || {};
-      const baseUrl = environment.host || project.basepath || '';
+      let baseUrl = '';
+      let envHeaders: Record<string, string> = {};
+
+      if (environment_id && validateObjectId(environment_id)) {
+        const TestEnvironment = (await import('../Models/TestEnvironment.js')).default;
+        const testEnv = await TestEnvironment.findById(environment_id).lean();
+        if (testEnv) {
+          baseUrl = testEnv.base_url || '';
+          if (Array.isArray(testEnv.headers)) {
+            for (const h of testEnv.headers) {
+              if (h?.key) envHeaders[h.key] = h.value ?? '';
+            }
+          } else if (testEnv.headers && typeof testEnv.headers === 'object') {
+            envHeaders = { ...testEnv.headers };
+          }
+        }
+      }
+
+      if (!baseUrl) {
+        const environment = project.env?.find((e: any) => e.name === env) || project.env?.[0] || {};
+        baseUrl = environment.host || project.basepath || '';
+        envHeaders = { ...(environment.headers || {}), ...envHeaders };
+      }
 
       let path = interfaceData.path;
       const pathParams = params.path || {};
@@ -457,7 +478,7 @@ class InterfaceController extends BaseController {
       const body = params.body;
       const headers = {
         'Content-Type': 'application/json',
-        ...(environment.headers || {}),
+        ...envHeaders,
         ...(params.headers || {}),
       };
 

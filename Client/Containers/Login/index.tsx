@@ -210,19 +210,29 @@ const Login: React.FC = () => {
         <Form name="login" onFinish={onFinish} autoComplete="off" size="large">
           <Form.Item
             name="email"
+            label={t('auth.email')}
             rules={[
               { required: true, message: t('auth.emailRequired') },
               { type: 'email', message: t('auth.emailInvalid') },
             ]}
           >
-            <Input prefix={<UserOutlined />} placeholder={t('auth.email')} />
+            <Input
+              prefix={<UserOutlined />}
+              placeholder={t('auth.email')}
+              aria-label={t('auth.email')}
+            />
           </Form.Item>
 
           <Form.Item
             name="password"
+            label={t('auth.password')}
             rules={[{ required: true, message: t('auth.passwordRequired') }]}
           >
-            <Input.Password prefix={<LockOutlined />} placeholder={t('auth.password')} />
+            <Input.Password
+              prefix={<LockOutlined />}
+              placeholder={t('auth.password')}
+              aria-label={t('auth.password')}
+            />
           </Form.Item>
 
           <Form.Item>
