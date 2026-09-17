@@ -1,6 +1,7 @@
 import vm from 'node:vm';
 import axios from 'axios';
 import { logger } from './logger.js';
+import { assertSafeOutboundUrl } from './security.js';
 import AutoTestResult from '../Models/AutoTestResult.js';
 import AutoTestTask from '../Models/AutoTestTask.js';
 import Interface from '../Models/Interface.js';
@@ -951,6 +952,9 @@ export class AutoTestRunner {
           let response;
 
           try {
+            // SSRF guard on outbound test target
+            assertSafeOutboundUrl(url);
+
             // 构建 axios 请求配置
             const axiosConfig = {
               method,
@@ -1794,6 +1798,8 @@ export class AutoTestRunner {
     let error = null;
 
     try {
+      assertSafeOutboundUrl(url);
+
       // 构建 axios 请求配置
       const axiosConfig = {
         method,

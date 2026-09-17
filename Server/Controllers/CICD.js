@@ -7,6 +7,7 @@ import TestCollection from '../Models/TestCollection.js';
 import { SwaggerImporter } from '../Utils/importers/SwaggerImporter.js';
 import Project from '../Models/Project.js';
 import { formatJUnitXML, formatAllureJSON } from '../Utils/reportFormatters.js';
+import { assertSafeOutboundUrl } from '../Utils/security.js';
 
 class CICDController extends BaseController {
   static get ControllerName() { return 'CICDController'; }
@@ -30,11 +31,12 @@ class CICDController extends BaseController {
         return;
       }
 
-      const token = CLIToken.generateToken();
+      const rawToken = CLIToken.generateToken();
       const expiresAtDate = expiresAt ? new Date(expiresAt) : null;
 
       const cliToken = new CLIToken({
-        token,
+        tokenHash: CLIToken.hashToken(rawToken),
+        tokenPrefix: rawToken.slice(0, 8),
         name,
         projectId: projectId || null,
         expiresAt: expiresAtDate,
@@ -47,12 +49,13 @@ class CICDController extends BaseController {
 
       ctx.body = CICDController.success({
         id: cliToken._id,
-        token, // 仅返回一次
+        token: rawToken,
+        tokenPrefix: cliToken.tokenPrefix,
         name: cliToken.name,
         projectId: cliToken.projectId,
         expiresAt: cliToken.expiresAt,
         createdAt: cliToken.createdAt,
-      }, 'CLI Token 生成成功');
+      }, 'CLI Token 生成成功（仅显示一次）');
     } catch (error) {
       logger.error({ error }, 'Generate CLI token error');
       ctx.status = 500;
@@ -71,10 +74,10 @@ class CICDController extends BaseController {
         .populate('projectId', 'project_name')
         .sort({ createdAt: -1 });
 
-      // 不返回 token 值
       const tokensData = tokens.map(t => ({
         id: t._id,
         name: t.name,
+        tokenPrefix: t.tokenPrefix,
         projectId: t.projectId,
         expiresAt: t.expiresAt,
         lastUsedAt: t.lastUsedAt,
@@ -150,6 +153,16 @@ class CICDController extends BaseController {
         return;
       }
 
+      // If CLI token is project-scoped, enforce match
+      if (ctx.state.cliToken?.projectId) {
+        const scoped = ctx.state.cliToken.projectId.toString();
+        if (collection.project_id && collection.project_id.toString() !== scoped) {
+          ctx.status = 403;
+          ctx.body = CICDController.error('CLI Token 无权访问此项目的测试集合');
+          return;
+        }
+      }
+
       const runner = new TestRunner();
       const report = await runner.runTestCollection(collectionId, environment || {}, {
         iteration_data: Array.isArray(iteration_data) ? iteration_data : undefined,
@@ -157,7 +170,7 @@ class CICDController extends BaseController {
 
       let content = '';
       let contentType = 'application/json';
-      
+
       if (format === 'junit') {
         content = formatJUnitXML(report);
         contentType = 'application/xml';
@@ -171,7 +184,7 @@ class CICDController extends BaseController {
       }
 
       const failed = (report.failed || 0) + (report.errors || 0);
-      ctx.status = failed > 0 ? 200 : 200;
+      ctx.set('Content-Type', contentType);
       ctx.set('X-ApiAdmin-Failed', String(failed));
       ctx.body = CICDController.success({
         report,
@@ -292,6 +305,14 @@ class CICDController extends BaseController {
         return;
       }
 
+      if (ctx.state.cliToken?.projectId) {
+        if (ctx.state.cliToken.projectId.toString() !== projectId) {
+          ctx.status = 403;
+          ctx.body = CICDController.error('CLI Token 无权访问此项目');
+          return;
+        }
+      }
+
       const project = await Project.findById(projectId);
       if (!project) {
         ctx.status = 404;
@@ -299,8 +320,8 @@ class CICDController extends BaseController {
         return;
       }
 
-      // 获取 Swagger JSON
-      const response = await fetch(url);
+      const safeUrl = assertSafeOutboundUrl(url);
+      const response = await fetch(safeUrl);
       if (!response.ok) {
         ctx.status = 400;
         ctx.body = CICDController.error('无法获取 Swagger 文档');
@@ -309,7 +330,6 @@ class CICDController extends BaseController {
 
       const swaggerData = await response.json();
 
-      // 导入数据
       const importer = new SwaggerImporter();
       const result = await importer.import(swaggerData, {
         projectId,
@@ -317,7 +337,7 @@ class CICDController extends BaseController {
         mode,
       });
 
-      logger.info({ projectId, url, result }, 'Swagger synced via CLI');
+      logger.info({ projectId, url: safeUrl, result }, 'Swagger synced via CLI');
 
       ctx.body = CICDController.success({
         importedCount: result.importedCount || 0,
@@ -337,5 +357,3 @@ class CICDController extends BaseController {
 }
 
 export default CICDController;
-
-

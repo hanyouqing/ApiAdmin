@@ -824,7 +824,7 @@
       "saveFailed": "Failed to save",
       "testSuccess": "Test successful",
       "testFailed": "Test failed",
-      "custom": "Custom",
+      "custom": "Ollama / OpenAI-compatible",
       "openai": "ChatGPT / OpenAI",
       "gemini": "Google Gemini",
       "deepseek": "DeepSeek",

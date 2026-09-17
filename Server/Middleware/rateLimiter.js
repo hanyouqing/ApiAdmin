@@ -8,6 +8,16 @@ const redis = process.env.REDIS_URL
   ? new Redis(process.env.REDIS_URL)
   : null;
 
+if (
+  process.env.NODE_ENV === 'production' &&
+  !redis &&
+  process.env.REQUIRE_REDIS !== 'false'
+) {
+  throw new Error(
+    'REDIS_URL is required in production for rate limiting. Set REQUIRE_REDIS=false only for single-instance emergency mode.'
+  );
+}
+
 const createRateLimiter = (options = {}) => {
   const {
     max = 100,

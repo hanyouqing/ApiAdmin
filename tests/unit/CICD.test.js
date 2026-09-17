@@ -44,8 +44,10 @@ describe('CLIToken Model', () => {
       password: 'Test1234',
     });
 
+    const raw = CLIToken.generateToken();
     const token = new CLIToken({
-      token: CLIToken.generateToken(),
+      tokenHash: CLIToken.hashToken(raw),
+      tokenPrefix: raw.slice(0, 8),
       name: 'Test Token',
       expiresAt: new Date(Date.now() - 1000), // 已过期
       createdBy: user._id,
@@ -130,18 +132,19 @@ describe('CI/CD Controller', () => {
   });
 
   describe('POST /api/cicd/tokens', () => {
-    it('should generate CLI token', async () => {
-      // TODO: 实现测试
-      const token = CLIToken.generateToken();
+    it('should generate CLI token with hash storage', async () => {
+      const raw = CLIToken.generateToken();
       const cliToken = await CLIToken.create({
-        token,
+        tokenHash: CLIToken.hashToken(raw),
+        tokenPrefix: raw.slice(0, 8),
         name: 'Test Token',
         createdBy: testUser._id,
       });
 
       expect(cliToken._id).toBeDefined();
-      expect(cliToken.token).toBe(token);
+      expect(cliToken.tokenHash).toBe(CLIToken.hashToken(raw));
       expect(cliToken.name).toBe('Test Token');
+      expect(cliToken.token).toBeUndefined();
     });
   });
 });

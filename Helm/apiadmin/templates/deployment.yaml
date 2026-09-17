@@ -50,6 +50,12 @@ spec:
               value: {{ .Values.env.ALLOW_PRIVATE_OUTBOUND | default "false" | quote }}
             - name: ALLOW_MOCK_SCRIPTS
               value: {{ .Values.env.ALLOW_MOCK_SCRIPTS | default "false" | quote }}
+            - name: ALLOW_UNSAFE_MOCK_SCRIPTS
+              value: {{ .Values.env.ALLOW_UNSAFE_MOCK_SCRIPTS | default "false" | quote }}
+            - name: REGULATED
+              value: {{ .Values.env.REGULATED | default "false" | quote }}
+            - name: ALLOW_CLOUD_AI
+              value: {{ .Values.env.ALLOW_CLOUD_AI | default "false" | quote }}
             - name: SWAGGER_ENABLED
               value: {{ .Values.env.SWAGGER_ENABLED | default "false" | quote }}
             - name: CORS_ORIGIN
@@ -69,6 +75,13 @@ spec:
                 secretKeyRef:
                   name: {{ include "apiadmin.fullname" . }}-secret
                   key: jwt-secret
+            {{- if .Values.config.secretsEncryptionKey }}
+            - name: SECRETS_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "apiadmin.fullname" . }}-secret
+                  key: secrets-encryption-key
+            {{- end }}
             - name: JWT_EXPIRES_IN
               value: {{ .Values.config.jwtExpiresIn | quote }}
             - name: UPLOAD_MAX_SIZE

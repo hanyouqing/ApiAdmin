@@ -115,12 +115,17 @@ env:
   ALLOW_PUBLIC_REGISTRATION: "false"
   ALLOW_PRIVATE_OUTBOUND: "false"
   ALLOW_MOCK_SCRIPTS: "false"
+  ALLOW_UNSAFE_MOCK_SCRIPTS: "false"
   SWAGGER_ENABLED: "false"
   CORS_ORIGIN: "https://apiadmin.example.com"
+  REGULATED: "false"
+  ALLOW_CLOUD_AI: "false"
 
 config:
   # 部署前必须覆盖为 >=32 字符随机值
   jwtSecret: ""
+  # 可选；未设置时用 jwtSecret 派生加密密钥
+  secretsEncryptionKey: ""
   jwtExpiresIn: "7d"
   uploadMaxSize: "10485760"
 

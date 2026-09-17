@@ -41,16 +41,83 @@ function resolveResourceId(ctx, ...keys) {
     const fromQuery = ctx.query?.[key];
     const fromBody = ctx.request?.body?.[key];
     const value = fromParams || fromQuery || fromBody;
-    if (value && typeof value === 'string') {
-      return value;
+    if (value && (typeof value === 'string' || typeof value === 'object')) {
+      return value.toString();
     }
   }
   return null;
 }
 
+async function resolveProjectId(ctx) {
+  const path = ctx.path || '';
+
+  // Prefer explicit project keys
+  const explicit = resolveResourceId(ctx, 'project_id', 'projectId');
+  if (explicit) {
+    return explicit;
+  }
+  if (ctx.params?.projectId) {
+    return ctx.params.projectId.toString();
+  }
+
+  // Project CRUD uses `_id` as project id (not interface/mock)
+  if (path.includes('/api/project/') || path.includes('/api/projects/')) {
+    const projectId = resolveResourceId(ctx, '_id', 'id');
+    if (projectId) return projectId;
+  }
+
+  // Resolve via interface _id / interface_id
+  const interfaceId = resolveResourceId(ctx, 'interface_id', 'interfaceId')
+    || (path.includes('/interface/') ? resolveResourceId(ctx, '_id') : null);
+  if (interfaceId) {
+    const Interface = (await import('../Models/Interface.js')).default;
+    const iface = await Interface.findById(interfaceId).select('project_id').lean();
+    if (iface?.project_id) {
+      return iface.project_id.toString();
+    }
+  }
+
+  // Resolve via mock expectation _id
+  if (ctx.path?.includes('/mock/expectation/')) {
+    const expectationId = resolveResourceId(ctx, '_id', 'id');
+    if (expectationId) {
+      const MockExpectation = (await import('../Models/MockExpectation.js')).default;
+      const exp = await MockExpectation.findById(expectationId).select('project_id').lean();
+      if (exp?.project_id) {
+        return exp.project_id.toString();
+      }
+    }
+  }
+
+  // Resolve via collection / test case / auto-test task
+  const collectionId = resolveResourceId(ctx, 'collectionId', 'collection_id');
+  if (collectionId) {
+    const TestCollection = (await import('../Models/TestCollection.js')).default;
+    const col = await TestCollection.findById(collectionId).select('project_id').lean();
+    if (col?.project_id) {
+      return col.project_id.toString();
+    }
+  }
+
+  if (ctx.path?.includes('/auto-test/tasks') && ctx.params?.id) {
+    const AutoTestTask = (await import('../Models/AutoTestTask.js')).default;
+    const task = await AutoTestTask.findById(ctx.params.id).select('project_id').lean();
+    if (task?.project_id) {
+      return task.project_id.toString();
+    }
+  }
+
+  // CLI token scoped project
+  if (ctx.state?.projectId) {
+    return ctx.state.projectId.toString();
+  }
+
+  return null;
+}
+
 export const checkGroupPermission = async (ctx, next) => {
   const user = ctx.state.user;
-  const _id = resolveResourceId(ctx, '_id', 'group_id', 'id');
+  const _id = resolveResourceId(ctx, 'group_id', 'groupId', '_id', 'id');
 
   if (!_id) {
     ctx.status = 400;
@@ -78,9 +145,8 @@ export const checkGroupPermission = async (ctx, next) => {
     (memberId) => memberId.toString() === user._id.toString()
   );
   const isSuperAdmin = user.role === 'super_admin';
-  const isGroupLeader = user.role === 'group_leader' && isMember;
 
-  if (!isOwner && !isSuperAdmin && !isGroupLeader) {
+  if (!isOwner && !isSuperAdmin && !isMember) {
     ctx.status = 403;
     ctx.body = {
       success: false,
@@ -95,7 +161,7 @@ export const checkGroupPermission = async (ctx, next) => {
 
 export const checkProjectPermission = async (ctx, next) => {
   const user = ctx.state.user;
-  const _id = resolveResourceId(ctx, '_id', 'project_id', 'id');
+  const _id = await resolveProjectId(ctx);
 
   if (!_id) {
     ctx.status = 400;
@@ -123,9 +189,8 @@ export const checkProjectPermission = async (ctx, next) => {
     (memberId) => memberId.toString() === user._id.toString()
   );
   const isSuperAdmin = user.role === 'super_admin';
-  const isProjectLeader = user.role === 'project_leader' && isMember;
 
-  if (!isOwner && !isSuperAdmin && !isProjectLeader && !isMember) {
+  if (!isOwner && !isSuperAdmin && !isMember) {
     ctx.status = 403;
     ctx.body = {
       success: false,
@@ -135,5 +200,18 @@ export const checkProjectPermission = async (ctx, next) => {
   }
 
   ctx.state.project = project;
+  await next();
+};
+
+/**
+ * For create-group / create-project: any authenticated user may create;
+ * mutating existing resources must use checkGroupPermission / checkProjectPermission.
+ */
+export const requireAuthenticated = async (ctx, next) => {
+  if (!ctx.state.user) {
+    ctx.status = 401;
+    ctx.body = { success: false, message: '未授权' };
+    return;
+  }
   await next();
 };

@@ -1,56 +1,85 @@
 import CLIToken from '../Models/CLIToken.js';
+import User from '../Models/User.js';
 import { logger } from '../Utils/logger.js';
+import { hashToken } from '../Utils/security.js';
 
 /**
- * Authenticate CI/CLI requests via Authorization: Bearer <cli-token>
- * or X-CLI-Token header. Sets ctx.state.user from token.createdBy.
+ * Authenticate CI callers via CLI token (hashed).
+ * Accepts Authorization: ****** or X-CLI-Token header.
+ * Falls back to JWT authMiddleware when no CLI token is present (caller should chain).
  */
 export const cliTokenAuth = async (ctx, next) => {
   try {
     const authHeader = ctx.headers.authorization;
-    const token =
-      ctx.get('X-CLI-Token') ||
-      authHeader?.replace(/^Bearer\s+/i, '') ||
-      (process.env.NODE_ENV !== 'production' ? ctx.query.token : null);
+    const bearer = authHeader?.replace(/^Bearer\s+/i, '') || null;
+    const headerToken = ctx.get('X-CLI-Token') || ctx.get('X-Cicd-Token');
+    let token = headerToken || null;
+
+    // Prefer dedicated CLI header; ****** be JWT — only treat as CLI if hash matches
+    if (!token && bearer) {
+      token = bearer;
+    }
+
+    if (!token && ctx.query.token) {
+      if (process.env.NODE_ENV === 'production') {
+        ctx.status = 401;
+        ctx.body = {
+          success: false,
+          message: '请使用 Authorization 或 X-CLI-Token Header 传递 CLI Token',
+        };
+        return;
+      }
+      token = ctx.query.token;
+    }
 
     if (!token) {
       ctx.status = 401;
-      ctx.body = { success: false, message: '未提供 CLI Token' };
+      ctx.body = {
+        success: false,
+        message: '未提供 CLI Token',
+      };
       return;
     }
 
-    const cliToken = await CLIToken.findOne({ token }).populate(
-      'createdBy',
-      '_id username email role'
-    );
+    const tokenHash = hashToken(token);
+    let cliToken = await CLIToken.findOne({ tokenHash });
     if (!cliToken) {
+      cliToken = await CLIToken.findOne({ token }).select('+token');
+    }
+
+    if (!cliToken) {
+      // Not a CLI token — let JWT middleware handle if chained differently
       ctx.status = 401;
-      ctx.body = { success: false, message: '无效的 CLI Token' };
+      ctx.body = {
+        success: false,
+        message: '无效的 CLI Token',
+      };
       return;
     }
 
     if (cliToken.isExpired()) {
       ctx.status = 401;
-      ctx.body = { success: false, message: 'CLI Token 已过期' };
+      ctx.body = {
+        success: false,
+        message: 'CLI Token 已过期',
+      };
       return;
     }
 
     await cliToken.updateLastUsed();
 
-    const user = cliToken.createdBy;
+    const user = await User.findById(cliToken.createdBy);
     if (!user) {
       ctx.status = 401;
-      ctx.body = { success: false, message: 'CLI Token 关联用户无效' };
+      ctx.body = {
+        success: false,
+        message: 'CLI Token 关联用户不存在',
+      };
       return;
     }
 
     ctx.state.cliToken = cliToken;
-    ctx.state.user = {
-      _id: user._id,
-      username: user.username,
-      email: user.email,
-      role: user.role || 'user',
-    };
+    ctx.state.user = user;
     if (cliToken.projectId) {
       ctx.state.projectId = cliToken.projectId;
     }
@@ -59,20 +88,37 @@ export const cliTokenAuth = async (ctx, next) => {
   } catch (error) {
     logger.error({ error: error.message }, 'CLI token auth error');
     ctx.status = 401;
-    ctx.body = { success: false, message: 'CLI Token 认证失败' };
+    ctx.body = {
+      success: false,
+      message: 'CLI Token 认证失败',
+    };
   }
+};
+
+/**
+ * Accept either JWT (authMiddleware already ran) or CLI token.
+ * Use after optional JWT: if ctx.state.user set, continue; else try CLI token.
+ */
+export const jwtOrCliTokenAuth = async (ctx, next) => {
+  if (ctx.state.user) {
+    await next();
+    return;
+  }
+  return cliTokenAuth(ctx, next);
 };
 
 /** Prefer CLI token when present; otherwise JWT auth middleware. */
 export const authOrCliToken = async (ctx, next) => {
-  if (ctx.get('X-CLI-Token')) {
+  const hasCliHeader = !!ctx.get('X-CLI-Token') || !!ctx.get('X-Cicd-Token');
+  if (hasCliHeader) {
     return cliTokenAuth(ctx, next);
   }
 
   const authHeader = ctx.headers.authorization || '';
   const raw = authHeader.replace(/^Bearer\s+/i, '');
   if (raw) {
-    const found = await CLIToken.findOne({ token: raw }).select('_id');
+    const tokenHash = hashToken(raw);
+    const found = await CLIToken.findOne({ tokenHash }).select('_id');
     if (found) {
       return cliTokenAuth(ctx, next);
     }

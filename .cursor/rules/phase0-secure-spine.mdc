@@ -1,0 +1,10 @@
+# Phase 0 Secure Spine
+
+- Wire SSO `initiateAuth`/`handleCallback` + public providers + Login SSO buttons (keep Login antd look).
+- Apply `checkProjectPermission` / `checkGroupPermission` on mutating Router routes; add non-member 403 tests.
+- Encrypt AI/SSO secrets (`secretCrypto.js` + `SECRETS_ENCRYPTION_KEY`); hash CLI tokens before mounting `/api/cicd/*`.
+- Ollama via `custom` OpenAI-compatible provider; prefer local when enabled; ChatGPT optional.
+- Redis required in production (fail closed); `REGULATED` disables mock scripts / cloud AI.
+- Drop unused `vm2`; SSRF on test/autoTest runners; `SECURITY.md`; README = wired routes only.
+- DocumentCenter is Phase 1 (path A) — do not mount in Phase 0 unless a tiny hook is required.
+- CI: root `preinstall` must use `Scripts/check-node-version.js` (capital S). Keep Client `package.json`/`package-lock.json` in sync for `npm ci`; do not leave unused `mockjs` in Client (Server still uses it via safeMock path).

@@ -1,43 +1,60 @@
 import axios from 'axios';
 import { logger } from './logger.js';
 import AIConfig from '../Models/AIConfig.js';
+import {
+  decryptSecret,
+  isCloudAiAllowed,
+  CLOUD_AI_PROVIDERS,
+} from './secretCrypto.js';
 
 /**
  * AI 服务
- * 统一接口，支持多个 AI 提供商
+ * 统一接口，支持多个 AI 提供商（custom = Ollama / OpenAI-compatible）
  */
 class AIService {
+  withDecryptedKey(config) {
+    const obj = config.toObject ? config.toObject() : { ...config };
+    obj.api_key = decryptSecret(obj.api_key || '');
+    return obj;
+  }
+
   /**
    * 调用 AI 服务
    */
   async callAI(prompt, options = {}) {
     try {
-      // 获取启用的 AI 配置
       const aiConfig = await this.getActiveAIConfig(options.provider);
-      
+
       if (!aiConfig) {
         throw new Error('没有可用的 AI 配置，请在系统设置中配置 AI 服务');
       }
 
-      // 更新使用统计
+      if (CLOUD_AI_PROVIDERS.has(aiConfig.provider) && !isCloudAiAllowed()) {
+        throw new Error('受监管模式已禁用云端 AI，请使用本地 Ollama（custom）或设置 ALLOW_CLOUD_AI=true');
+      }
+
       await AIConfig.findByIdAndUpdate(aiConfig._id, {
         $inc: { usage_count: 1 },
         last_used_at: new Date(),
       });
 
+      const runtimeConfig = this.withDecryptedKey(aiConfig);
+
       switch (aiConfig.provider) {
         case 'openai':
-          return await this.callOpenAI(aiConfig, prompt, options);
+          return await this.callOpenAI(runtimeConfig, prompt, options);
         case 'deepseek':
-          return await this.callDeepSeek(aiConfig, prompt, options);
+          return await this.callDeepSeek(runtimeConfig, prompt, options);
         case 'doubao':
-          return await this.callDoubao(aiConfig, prompt, options);
+          return await this.callDoubao(runtimeConfig, prompt, options);
         case 'gemini':
-          return await this.callGemini(aiConfig, prompt, options);
+          return await this.callGemini(runtimeConfig, prompt, options);
         case 'kimi':
-          return await this.callKimi(aiConfig, prompt, options);
+          return await this.callKimi(runtimeConfig, prompt, options);
         case 'aliyun':
-          return await this.callAliyun(aiConfig, prompt, options);
+          return await this.callAliyun(runtimeConfig, prompt, options);
+        case 'custom':
+          return await this.callCustom(runtimeConfig, prompt, options);
         default:
           throw new Error(`不支持的 AI 提供商: ${aiConfig.provider}`);
       }
@@ -48,16 +65,65 @@ class AIService {
   }
 
   /**
-   * 获取启用的 AI 配置
+   * Prefer local/custom (Ollama) when enabled; ChatGPT/cloud only if no local or preferred.
    */
   async getActiveAIConfig(preferredProvider = null) {
     if (preferredProvider) {
       const config = await AIConfig.findOne({ provider: preferredProvider, enabled: true });
-      if (config) return config;
+      if (config) {
+        if (CLOUD_AI_PROVIDERS.has(config.provider) && !isCloudAiAllowed()) {
+          const local = await AIConfig.findOne({ provider: 'custom', enabled: true });
+          if (local) return local;
+          throw new Error('受监管模式已禁用云端 AI，且未启用本地 Ollama（custom）');
+        }
+        return config;
+      }
     }
-    
-    // 返回第一个启用的配置
-    return await AIConfig.findOne({ enabled: true }).sort({ usage_count: 1 });
+
+    const local = await AIConfig.findOne({ provider: 'custom', enabled: true });
+    if (local) return local;
+
+    if (!isCloudAiAllowed()) {
+      return null;
+    }
+
+    return await AIConfig.findOne({
+      enabled: true,
+      provider: { $ne: 'custom' },
+    }).sort({ usage_count: 1 });
+  }
+
+  /**
+   * OpenAI-compatible endpoint (Ollama default: http://127.0.0.1:11434/v1)
+   */
+  async callCustom(config, prompt, options) {
+    const endpoint = config.api_endpoint || 'http://127.0.0.1:11434/v1/chat/completions';
+    const model = config.model || 'llama3';
+    const headers = {
+      'Content-Type': 'application/json',
+    };
+    if (config.api_key) {
+      headers.Authorization = `Bearer ${config.api_key}`;
+    }
+
+    const response = await axios.post(
+      endpoint,
+      {
+        model,
+        messages: [
+          { role: 'system', content: options.systemPrompt || '你是一个专业的软件工程师，擅长分析和修复代码问题。' },
+          { role: 'user', content: prompt },
+        ],
+        max_tokens: config.max_tokens || 2000,
+        temperature: config.temperature || 0.7,
+      },
+      {
+        headers,
+        timeout: config.timeout || 60000,
+      }
+    );
+
+    return response.data.choices[0]?.message?.content || '';
   }
 
   /**

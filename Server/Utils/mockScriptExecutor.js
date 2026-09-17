@@ -3,6 +3,9 @@ import Mock from './safeMock.js';
 import { logger } from './logger.js';
 
 function isMockScriptAllowed() {
+  if (process.env.REGULATED === 'true' || process.env.REGULATED_MODE === 'true') {
+    return false;
+  }
   if (process.env.ALLOW_MOCK_SCRIPTS === 'false') {
     return false;
   }

@@ -2,6 +2,7 @@ import axios from 'axios';
 import vm from 'node:vm';
 import Mock from './safeMock.js';
 import { logger } from './logger.js';
+import { assertSafeOutboundUrl } from './security.js';
 import TestCase from '../Models/TestCase.js';
 import Interface from '../Models/Interface.js';
 import Project from '../Models/Project.js';
@@ -125,7 +126,7 @@ export class TestRunner {
         await executeBeforeTestHook(testCollection, testCase);
       }
 
-      const url = `${baseUrl}${requestPath}`;
+      const url = assertSafeOutboundUrl(`${baseUrl}${requestPath}`);
       result.request = {
         url,
         method: testCase.request.method,

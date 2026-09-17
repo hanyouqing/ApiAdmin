@@ -48,8 +48,9 @@ jobs:
         env:
           NODE_ENV: test
           JWT_SECRET: ci-test-secret-key-at-least-32-chars-long
-          MONGODB_URL: mongodb://127.0.0.1:27017/apiadmin_ci
           ALLOW_MOCK_SCRIPTS: 'true'
+          # Use mongodb-memory-server via tests/setup.js (do not point at a missing local mongod)
+          USE_MEMORY_MONGO: 'true'
 
   docker-build:
     runs-on: ubuntu-latest
