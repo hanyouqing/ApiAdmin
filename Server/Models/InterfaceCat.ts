@@ -2,6 +2,7 @@ import mongoose, { Schema, Model } from 'mongoose';
 
 export interface IInterfaceCat {
   project_id: Schema.Types.ObjectId;
+  parent_id: Schema.Types.ObjectId | null;
   name: string;
   desc: string;
   index: number;
@@ -18,6 +19,12 @@ const interfaceCatSchema = new Schema<IInterfaceCat>(
       type: Schema.Types.ObjectId,
       ref: 'Project',
       required: true,
+    },
+    parent_id: {
+      type: Schema.Types.ObjectId,
+      ref: 'InterfaceCat',
+      default: null,
+      index: true,
     },
     name: {
       type: String,
@@ -44,6 +51,7 @@ const interfaceCatSchema = new Schema<IInterfaceCat>(
 );
 
 interfaceCatSchema.index({ project_id: 1, index: 1 });
+interfaceCatSchema.index({ project_id: 1, parent_id: 1 });
 interfaceCatSchema.index({ project_id: 1, created_at: 1 });
 interfaceCatSchema.index({ uid: 1 });
 

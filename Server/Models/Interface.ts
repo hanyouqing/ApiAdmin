@@ -48,6 +48,8 @@ export interface IInterface {
   desc: string;
   markdown: string;
   mock_script: string;
+  pre_request_script: string;
+  test_script: string;
   uid: Schema.Types.ObjectId;
   created_at: Date;
   updated_at: Date;
@@ -149,6 +151,14 @@ const interfaceSchema = new Schema<IInterface>(
       default: '',
     },
     mock_script: {
+      type: String,
+      default: '',
+    },
+    pre_request_script: {
+      type: String,
+      default: '',
+    },
+    test_script: {
       type: String,
       default: '',
     },

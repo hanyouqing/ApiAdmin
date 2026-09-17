@@ -1,0 +1,20 @@
+---
+description: Postman parity — variables scopes and API Monitors
+alwaysApply: true
+---
+
+# Variables & API Monitors
+
+## Variable scopes (SoT)
+- **Canonical env store**: `TestEnvironment` (`/api/test/environments`).
+- **Project globals**: `ProjectVariableStore` via `/api/projects/:projectId/variables*`.
+- **Legacy**: `Project.env` still used by Interface Run; offer `POST .../variables/sync-legacy` instead of dual-writing silently.
+- Resolution for runners: use `Server/Utils/variableResolver.js` — globals under env; templates via `scriptSandbox.deepResolveTemplates` (iteration > vars > env+globals).
+- Scripts: `scriptSandbox` (`pm.environment` / `pm.variables` / `pm.globals`); never reintroduce `vm2`.
+
+## API Monitors (not platform stats)
+- Product monitors = `ApiMonitor` + `ApiMonitorRun` + `apiMonitorRunner` — not `Monitor.ts` / Home stats.
+- Outbound probe + webhook URLs must pass `assertSafeOutboundUrl`.
+- Schedule via `scheduler.reloadMonitor` / `stopMonitor` (separate from AutoTestTask jobs).
+- UI: `/monitors` + sidebar; project Settings → **变量** for globals/env UI.
+- OperationLog type stays in existing enum (`test`), not a new `monitor` value unless schema is extended.

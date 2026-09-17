@@ -5,7 +5,7 @@ import { hashToken } from '../Utils/security.js';
 
 /**
  * Authenticate CI callers via CLI token (hashed).
- * Accepts Authorization: Bearer <token> or X-CLI-Token header.
+ * Accepts Authorization: ****** or X-CLI-Token header.
  * Falls back to JWT authMiddleware when no CLI token is present (caller should chain).
  */
 export const cliTokenAuth = async (ctx, next) => {
@@ -15,7 +15,7 @@ export const cliTokenAuth = async (ctx, next) => {
     const headerToken = ctx.get('X-CLI-Token') || ctx.get('X-Cicd-Token');
     let token = headerToken || null;
 
-    // Prefer dedicated CLI header; Bearer may be JWT — only treat as CLI if hash matches
+    // Prefer dedicated CLI header; ****** be JWT — only treat as CLI if hash matches
     if (!token && bearer) {
       token = bearer;
     }
@@ -105,4 +105,25 @@ export const jwtOrCliTokenAuth = async (ctx, next) => {
     return;
   }
   return cliTokenAuth(ctx, next);
+};
+
+/** Prefer CLI token when present; otherwise JWT auth middleware. */
+export const authOrCliToken = async (ctx, next) => {
+  const hasCliHeader = !!ctx.get('X-CLI-Token') || !!ctx.get('X-Cicd-Token');
+  if (hasCliHeader) {
+    return cliTokenAuth(ctx, next);
+  }
+
+  const authHeader = ctx.headers.authorization || '';
+  const raw = authHeader.replace(/^Bearer\s+/i, '');
+  if (raw) {
+    const tokenHash = hashToken(raw);
+    const found = await CLIToken.findOne({ tokenHash }).select('_id');
+    if (found) {
+      return cliTokenAuth(ctx, next);
+    }
+  }
+
+  const { authMiddleware } = await import('./auth.js');
+  return authMiddleware(ctx, next);
 };

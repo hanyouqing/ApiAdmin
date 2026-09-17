@@ -418,7 +418,7 @@ class TestController extends BaseController {
   static async runTest(ctx) {
     try {
       const user = ctx.state.user;
-      const { collection_id, environment } = ctx.request.body;
+      const { collection_id, environment, iteration_data } = ctx.request.body;
 
       if (!validateObjectId(collection_id)) {
         ctx.status = 400;
@@ -434,7 +434,9 @@ class TestController extends BaseController {
       }
 
       const runner = new TestRunner();
-      const report = await runner.runTestCollection(collection_id, environment || {});
+      const report = await runner.runTestCollection(collection_id, environment || {}, {
+        iteration_data: Array.isArray(iteration_data) ? iteration_data : undefined,
+      });
 
       for (const result of report.results) {
         const testResult = new TestResult({

@@ -1,19 +1,24 @@
-import vm from 'node:vm';
 import axios from 'axios';
+import vm from 'node:vm';
 import Mock from './safeMock.js';
 import { logger } from './logger.js';
 import { assertSafeOutboundUrl } from './security.js';
 import TestCase from '../Models/TestCase.js';
 import Interface from '../Models/Interface.js';
 import Project from '../Models/Project.js';
+import { createPmSandbox, runScript, deepResolveTemplates } from './scriptSandbox.js';
+import { executeBeforeTestHook, executeAfterTestHook } from '../Middleware/pluginHook.js';
+import { resolveEnvironmentContext, loadProjectGlobals } from './variableResolver.js';
 
 export class TestRunner {
   constructor(context = {}) {
     this.context = context;
     this.records = [];
+    this.variables = { ...(context.variables || {}) };
+    this.globals = { ...(context.globals || {}) };
   }
 
-  async runTestCase(testCase, environment = {}, testCollection = null) {
+  async runTestCase(testCase, environment = {}, testCollection = null, iterationData = {}) {
     const startTime = Date.now();
     let result = {
       testCaseId: testCase._id,
@@ -36,24 +41,92 @@ export class TestRunner {
         throw new Error('Project not found');
       }
 
-      const env = project.env.find((e) => e.name === environment.name || e.name === 'default') || project.env[0] || {};
-      const baseUrl = env.host || '';
+      if (!Object.keys(this.globals).length) {
+        Object.assign(this.globals, await loadProjectGlobals(project._id));
+      }
+
+      const resolved = await resolveEnvironmentContext(project._id, environment);
+      const envMap = { ...resolved.envMap };
+      let templateEnv = { ...resolved.globals, ...this.globals, ...envMap };
+      const baseUrl = resolved.baseUrl || environment.base_url || environment.host || '';
 
       let requestPath = testCase.request.path;
-      const pathParams = this.resolveVariables(testCase.request.path_params || {}, this.records);
+      let query = { ...(testCase.request.query || {}) };
+      let body = testCase.request.body || {};
+      let headers = { ...(testCase.request.headers || {}) };
+      let pathParams = { ...(testCase.request.path_params || {}) };
+
+      const mutableRequest = {
+        url: '',
+        method: testCase.request.method,
+        headers,
+        body,
+        query,
+        path: requestPath,
+      };
+
+      const preScript =
+        testCase.pre_request_script ||
+        interfaceData.pre_request_script ||
+        '';
+      if (preScript.trim()) {
+        const sandbox = createPmSandbox({
+          request: mutableRequest,
+          environment: envMap,
+          variables: this.variables,
+          globals: this.globals,
+          iterationData,
+        });
+        const preResult = runScript(preScript, sandbox, { name: 'pre-request' });
+        if (!preResult.ok && preResult.error) {
+          logger.warn({ error: preResult.error }, 'Pre-request script error');
+        }
+        Object.assign(envMap, sandbox.getEnvironment());
+        Object.assign(this.variables, sandbox.getVariables());
+        Object.assign(this.globals, sandbox.getGlobals());
+        headers = mutableRequest.headers || headers;
+        body = mutableRequest.body ?? body;
+        query = mutableRequest.query || query;
+      }
+
+      templateEnv = { ...resolved.globals, ...this.globals, ...envMap };
+
+      pathParams = deepResolveTemplates(
+        this.resolveVariables(pathParams, this.records),
+        templateEnv,
+        this.variables,
+        iterationData
+      );
+      requestPath = deepResolveTemplates(requestPath, templateEnv, this.variables, iterationData);
       Object.keys(pathParams).forEach((key) => {
         requestPath = requestPath.replace(`{${key}}`, pathParams[key]);
+        requestPath = requestPath.replace(`:${key}`, pathParams[key]);
       });
 
-      const url = assertSafeOutboundUrl(`${baseUrl}${requestPath}`);
-      const query = this.resolveVariables(testCase.request.query || {}, this.records);
-      const body = this.resolveVariables(testCase.request.body || {}, this.records);
-      const headers = this.resolveVariables(testCase.request.headers || {}, this.records);
+      query = deepResolveTemplates(
+        this.resolveVariables(query, this.records),
+        templateEnv,
+        this.variables,
+        iterationData
+      );
+      body = deepResolveTemplates(
+        this.resolveVariables(body, this.records),
+        templateEnv,
+        this.variables,
+        iterationData
+      );
+      headers = deepResolveTemplates(
+        this.resolveVariables(headers, this.records),
+        templateEnv,
+        this.variables,
+        iterationData
+      );
 
       if (testCollection) {
         await executeBeforeTestHook(testCollection, testCase);
       }
 
+      const url = assertSafeOutboundUrl(`${baseUrl}${requestPath}`);
       result.request = {
         url,
         method: testCase.request.method,
@@ -73,6 +146,7 @@ export class TestRunner {
           ...headers,
         },
         timeout: 30000,
+        validateStatus: () => true,
       });
 
       const duration = Date.now() - startTime;
@@ -86,19 +160,35 @@ export class TestRunner {
 
       result.duration = duration;
 
-      const record = {
+      this.records.push({
         key: testCase._id.toString(),
         request: result.request,
         response: result.response,
-      };
-      this.records.push(record);
+      });
 
-      if (testCase.assertion_script && testCase.assertion_script.trim()) {
-        result.assertionResult = await this.executeAssertions(
-          testCase.assertion_script,
-          result.response,
-          result.request
-        );
+      const assertionScript =
+        testCase.assertion_script ||
+        interfaceData.test_script ||
+        '';
+
+      if (assertionScript.trim()) {
+        const sandbox = createPmSandbox({
+          request: result.request,
+          response: result.response,
+          environment: envMap,
+          variables: this.variables,
+          globals: this.globals,
+          iterationData,
+        });
+        const assertResult = runScript(assertionScript, sandbox, { name: 'test-script' });
+        Object.assign(this.variables, sandbox.getVariables());
+        const pmFailed = sandbox.getTests().some((t) => !t.passed);
+        result.assertionResult = {
+          passed: assertResult.ok && !pmFailed,
+          message: assertResult.error || (assertResult.ok ? 'All assertions passed' : 'Assertion failed'),
+          errors: assertResult.error ? [assertResult.error] : [],
+          tests: sandbox.getTests(),
+        };
         result.status = result.assertionResult.passed ? 'passed' : 'failed';
       } else {
         result.status = response.status >= 200 && response.status < 300 ? 'passed' : 'failed';
@@ -121,7 +211,7 @@ export class TestRunner {
     return result;
   }
 
-  async runTestCollection(collectionId, environment = {}) {
+  async runTestCollection(collectionId, environment = {}, options = {}) {
     const TestCollection = (await import('../Models/TestCollection.js')).default;
     const collection = await TestCollection.findById(collectionId).populate('test_cases');
     
@@ -136,16 +226,25 @@ export class TestRunner {
       .sort({ order: 1 })
       .populate('interface_id');
 
+    const iterations = Array.isArray(options.iteration_data) && options.iteration_data.length
+      ? options.iteration_data
+      : [{}];
+
     const results = [];
     const startTime = Date.now();
 
-    for (const testCase of testCases) {
-      const result = await this.runTestCase(testCase, environment);
-      results.push({
-        ...result,
-        testCaseName: testCase.name,
-        testCaseId: testCase._id,
-      });
+    for (let iter = 0; iter < iterations.length; iter++) {
+      const iterationData = iterations[iter] || {};
+      for (const testCase of testCases) {
+        const result = await this.runTestCase(testCase, environment, collection, iterationData);
+        results.push({
+          ...result,
+          testCaseName: testCase.name,
+          testCaseId: testCase._id,
+          iteration: iter,
+          iterationData,
+        });
+      }
     }
 
     const totalDuration = Date.now() - startTime;
@@ -162,6 +261,7 @@ export class TestRunner {
       errors,
       duration: totalDuration,
       results,
+      iterations: iterations.length,
       runAt: new Date(),
     };
   }

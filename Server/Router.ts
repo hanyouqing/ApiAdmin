@@ -29,12 +29,16 @@ import ProjectTokenController from './Controllers/ProjectToken.js';
 import TestController from './Controllers/Test.js';
 import TestEnvironmentController from './Controllers/TestEnvironment.js';
 import TestRuleConfigController from './Controllers/TestRuleConfig.js';
+import OpenAPIController from './Controllers/OpenAPI.js';
 import CICDController from './Controllers/CICD.js';
+import ProjectVariableController from './Controllers/ProjectVariable.js';
+import ApiMonitorController from './Controllers/ApiMonitor.js';
+import { projectTokenAuth } from './Middleware/projectTokenAuth.js';
+import { cliTokenAuth, authOrCliToken } from './Middleware/cliTokenAuth.js';
 import { authMiddleware } from './Middleware/auth.js';
 import { checkPermission, checkProjectPermission, checkGroupPermission } from './Middleware/permission.js';
 import { upload, handleUploadError } from './Middleware/upload.js';
 import { apiRateLimiter, authRateLimiter, registerRateLimiter, emailCodeRateLimiter } from './Middleware/rateLimiter.js';
-import { cliTokenAuth } from './Middleware/cliTokenAuth.js';
 import { getVersionInfoFormatted } from './Utils/version.js';
 import Koa from 'koa';
 
@@ -226,29 +230,55 @@ router.post('/api/auto-test/tasks/import', apiRateLimiter as any, authMiddleware
 router.get('/api/test/collection/list', apiRateLimiter as any, authMiddleware as any, TestController.listCollections as any);
 router.post('/api/test/collection/add', apiRateLimiter as any, authMiddleware as any, requireProjectMember, TestController.createCollection as any);
 router.get('/api/test/collection/:id', apiRateLimiter as any, authMiddleware as any, TestController.getCollection as any);
-router.post('/api/test/case/add', apiRateLimiter as any, authMiddleware as any, requireProjectMember, TestController.createTestCase as any);
-router.delete('/api/test/case/:id', apiRateLimiter as any, authMiddleware as any, requireProjectMember, TestController.deleteTestCase as any);
-router.post('/api/test/run', apiRateLimiter as any, authMiddleware as any, requireProjectMember, TestController.runTest as any);
+router.put('/api/test/collection/:id', apiRateLimiter as any, authMiddleware as any, TestController.updateCollection as any);
+router.delete('/api/test/collection/:id', apiRateLimiter as any, authMiddleware as any, TestController.deleteCollection as any);
+router.post('/api/test/case/add', apiRateLimiter as any, authMiddleware as any, TestController.createTestCase as any);
+router.put('/api/test/case/:id', apiRateLimiter as any, authMiddleware as any, TestController.updateTestCase as any);
+router.delete('/api/test/case/:id', apiRateLimiter as any, authMiddleware as any, TestController.deleteTestCase as any);
+router.post('/api/test/run', apiRateLimiter as any, authMiddleware as any, TestController.runTest as any);
 router.get('/api/test/history', apiRateLimiter as any, authMiddleware as any, TestController.getTestHistory as any);
 router.get('/api/admin/test/collections', apiRateLimiter as any, authMiddleware as any, requireSuperAdmin as any, TestController.listAllCollections as any);
 router.get('/api/admin/test/results', apiRateLimiter as any, authMiddleware as any, requireSuperAdmin as any, TestController.listAllResults as any);
 router.get('/api/admin/test/statistics', apiRateLimiter as any, authMiddleware as any, requireSuperAdmin as any, TestController.getTestStatistics as any);
+
+// CI/CD + Newman-like automation (JWT or CLI token)
+router.post('/api/cicd/tokens', apiRateLimiter as any, authMiddleware as any, CICDController.generateCLIToken as any);
+router.get('/api/cicd/tokens', apiRateLimiter as any, authMiddleware as any, CICDController.listCLITokens as any);
+router.delete('/api/cicd/tokens/:id', apiRateLimiter as any, authMiddleware as any, CICDController.deleteCLIToken as any);
+router.post('/api/cicd/run', apiRateLimiter as any, authOrCliToken as any, CICDController.runTest as any);
+router.post('/api/cicd/run-pipeline', apiRateLimiter as any, authOrCliToken as any, CICDController.runPipeline as any);
+router.post('/api/cicd/sync-swagger', apiRateLimiter as any, authOrCliToken as any, CICDController.syncSwagger as any);
+
+// OpenAPI (project token) — machine-to-machine interface CRUD
+router.get('/api/open/interfaces', apiRateLimiter as any, projectTokenAuth as any, OpenAPIController.listInterfaces as any);
+router.get('/api/open/interfaces/:id', apiRateLimiter as any, projectTokenAuth as any, OpenAPIController.getInterface as any);
+router.post('/api/open/interfaces', apiRateLimiter as any, projectTokenAuth as any, OpenAPIController.createInterface as any);
+router.put('/api/open/interfaces/:id', apiRateLimiter as any, projectTokenAuth as any, OpenAPIController.updateInterface as any);
+router.delete('/api/open/interfaces/:id', apiRateLimiter as any, projectTokenAuth as any, OpenAPIController.deleteInterface as any);
+
 router.get('/api/test/environments', apiRateLimiter as any, authMiddleware as any, TestEnvironmentController.listEnvironments as any);
 router.post('/api/test/environments', apiRateLimiter as any, authMiddleware as any, requireProjectMember, TestEnvironmentController.createEnvironment as any);
 router.get('/api/test/environments/:id', apiRateLimiter as any, authMiddleware as any, TestEnvironmentController.getEnvironment as any);
-router.put('/api/test/environments/:id', apiRateLimiter as any, authMiddleware as any, requireProjectMember, TestEnvironmentController.updateEnvironment as any);
-router.delete('/api/test/environments/:id', apiRateLimiter as any, authMiddleware as any, requireProjectMember, TestEnvironmentController.deleteEnvironment as any);
+router.put('/api/test/environments/:id', apiRateLimiter as any, authMiddleware as any, TestEnvironmentController.updateEnvironment as any);
+router.delete('/api/test/environments/:id', apiRateLimiter as any, authMiddleware as any, TestEnvironmentController.deleteEnvironment as any);
+
+// Unified variables (globals + TestEnvironment summary)
+router.get('/api/projects/:projectId/variables', apiRateLimiter as any, authMiddleware as any, ProjectVariableController.getVariables as any);
+router.put('/api/projects/:projectId/variables/globals', apiRateLimiter as any, authMiddleware as any, ProjectVariableController.updateGlobals as any);
+router.post('/api/projects/:projectId/variables/sync-legacy', apiRateLimiter as any, authMiddleware as any, ProjectVariableController.syncFromLegacyEnv as any);
+
+// API Monitors (uptime / probe)
+router.get('/api/monitors', apiRateLimiter as any, authMiddleware as any, ApiMonitorController.list as any);
+router.post('/api/monitors', apiRateLimiter as any, authMiddleware as any, ApiMonitorController.create as any);
+router.get('/api/monitors/:id', apiRateLimiter as any, authMiddleware as any, ApiMonitorController.get as any);
+router.put('/api/monitors/:id', apiRateLimiter as any, authMiddleware as any, ApiMonitorController.update as any);
+router.delete('/api/monitors/:id', apiRateLimiter as any, authMiddleware as any, ApiMonitorController.remove as any);
+router.post('/api/monitors/:id/run', apiRateLimiter as any, authMiddleware as any, ApiMonitorController.run as any);
+router.get('/api/monitors/:id/runs', apiRateLimiter as any, authMiddleware as any, ApiMonitorController.listRuns as any);
 router.get('/api/test/rules', apiRateLimiter as any, authMiddleware as any, TestRuleConfigController.listRules as any);
 router.post('/api/test/rules', apiRateLimiter as any, authMiddleware as any, requireProjectMember, TestRuleConfigController.createRule as any);
 router.put('/api/test/rules/:id', apiRateLimiter as any, authMiddleware as any, requireProjectMember, TestRuleConfigController.updateRule as any);
 router.delete('/api/test/rules/:id', apiRateLimiter as any, authMiddleware as any, requireProjectMember, TestRuleConfigController.deleteRule as any);
-
-// CI/CD (hashed CLI tokens)
-router.post('/api/cicd/tokens', apiRateLimiter as any, authMiddleware as any, CICDController.generateCLIToken as any);
-router.get('/api/cicd/tokens', apiRateLimiter as any, authMiddleware as any, CICDController.listCLITokens as any);
-router.delete('/api/cicd/tokens/:id', apiRateLimiter as any, authMiddleware as any, CICDController.deleteCLIToken as any);
-router.post('/api/cicd/test/run', apiRateLimiter as any, cliTokenAuth as any, CICDController.runTest as any);
-router.post('/api/cicd/sync/swagger', apiRateLimiter as any, cliTokenAuth as any, requireProjectMember, CICDController.syncSwagger as any);
 
 // Code repository
 router.get('/api/projects/:projectId/repository', apiRateLimiter as any, authMiddleware as any, CodeRepositoryController.getRepository as any);

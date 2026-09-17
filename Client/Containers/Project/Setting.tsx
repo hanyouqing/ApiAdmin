@@ -12,6 +12,7 @@ import type { UploadFile } from 'antd';
 import { getAvatarUrl } from '../../Utils/avatar';
 import TestRules from './TestRules';
 import CodeRepositorySettings from './CodeRepositorySettings';
+import VariablesPanel from './VariablesPanel';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -498,6 +499,11 @@ const Setting: React.FC = () => {
                 </Card>
               </div>
             ),
+          },
+          {
+            key: 'variables',
+            label: t('project.setting.variables'),
+            children: projectId ? <VariablesPanel projectId={projectId} /> : null,
           },
           {
             key: 'advanced',
