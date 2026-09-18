@@ -16,6 +16,7 @@
     "info": "提示",
     "operation": "操作",
     "actions": "操作",
+    "close": "关闭",
     "name": "名称",
     "description": "描述",
     "status": "状态",
@@ -28,7 +29,6 @@
     "refresh": "刷新",
     "empty": "暂无数据",
     "view": "详情",
-    "close": "关闭",
     "copy": "复制",
     "copied": "已复制"
   },
@@ -444,7 +444,12 @@
       "deleteSuccess": "删除成功",
       "deleteConfirm": "确认删除",
       "deleteConfirmMessage": "确定要删除这个Mock期望吗？",
-      "hint": "为 Mock URL 配置期望，然后通过测试流水线验证。"
+      "hint": "为 Mock URL 配置期望，然后通过测试流水线验证。",
+      "aiGenerate": "AI 生成 Mock",
+      "aiGenerateAndSave": "AI 生成并保存",
+      "aiGenerateFilled": "已填入表单（来源: {{source}}），请确认后保存",
+      "aiGenerateSaved": "已生成并保存（来源: {{source}}）",
+      "aiGenerateFailed": "AI 生成 Mock 失败"
     }
   },
   "home": {
@@ -1349,5 +1354,16 @@
     "downloadJunit": "下载 JUnit",
     "junitDownloaded": "JUnit 报告已下载",
     "junitFailed": "下载 JUnit 报告失败"
+  },
+  "codeFix": {
+    "title": "AI 代码修复建议",
+    "suggest": "建议代码修复",
+    "success": "已生成修复建议（请人工审核）",
+    "failed": "生成修复建议失败",
+    "createDraftPr": "创建 Draft PR",
+    "prCreated": "Draft PR 已创建",
+    "prUnavailable": "无法创建 PR（需配置仓库 Token）",
+    "repoOk": "已关联代码仓",
+    "repoMissing": "未配置代码仓"
   }
 }

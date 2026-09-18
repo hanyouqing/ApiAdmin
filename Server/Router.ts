@@ -205,6 +205,8 @@ router.delete('/api/user/stars/:projectId', apiRateLimiter as any, authMiddlewar
 
 // AI
 router.post('/api/ai/generate', apiRateLimiter as any, authMiddleware as any, AIAssistantController.generateInterface as any);
+router.post('/api/ai/generate-mock', apiRateLimiter as any, authMiddleware as any, AIAssistantController.generateMock as any);
+router.post('/api/ai/suggest-code-fix', apiRateLimiter as any, authMiddleware as any, AIAssistantController.suggestCodeFix as any);
 router.get('/api/ai/suggestions', apiRateLimiter as any, authMiddleware as any, AIAssistantController.getDesignSuggestions as any);
 router.get('/api/admin/ai/configs', apiRateLimiter as any, authMiddleware as any, requireSuperAdmin as any, AIConfigController.listConfigs as any);
 router.post('/api/admin/ai/configs', apiRateLimiter as any, authMiddleware as any, requireSuperAdmin as any, AIConfigController.saveConfig as any);

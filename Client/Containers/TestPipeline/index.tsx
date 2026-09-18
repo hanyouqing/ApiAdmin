@@ -571,6 +571,9 @@ const TestPipeline: React.FC = () => {
   const [runningCaseIndex, setRunningCaseIndex] = useState<number | null>(null);
   const [aiAnalysis, setAiAnalysis] = useState<any>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [codeFixLoading, setCodeFixLoading] = useState(false);
+  const [codeFixVisible, setCodeFixVisible] = useState(false);
+  const [codeFixResult, setCodeFixResult] = useState<any>(null);
   
   // 同步运行状态到 Redux store
   React.useEffect(() => {
@@ -3129,6 +3132,30 @@ const TestPipeline: React.FC = () => {
                 </Button>
               )}
               <Button
+                loading={codeFixLoading}
+                onClick={async () => {
+                  if (!selectedResult?._id) return;
+                  setCodeFixLoading(true);
+                  try {
+                    const response = await api.post('/ai/suggest-code-fix', {
+                      run_type: 'pipeline',
+                      run_id: selectedResult._id,
+                      project_id: selectedTask?.project_id,
+                      create_draft_pr: false,
+                    });
+                    setCodeFixResult(response.data?.data || null);
+                    setCodeFixVisible(true);
+                    messageApi.success(t('codeFix.success'));
+                  } catch (error: any) {
+                    messageApi.error(error.response?.data?.message || t('codeFix.failed'));
+                  } finally {
+                    setCodeFixLoading(false);
+                  }
+                }}
+              >
+                {t('codeFix.suggest')}
+              </Button>
+              <Button
                 icon={<DownloadOutlined />}
                 onClick={handleDownloadHTMLReport}
               >
@@ -3694,6 +3721,80 @@ const TestPipeline: React.FC = () => {
             )}
           </Form.Item>
         </Form>
+      </Modal>
+
+      <Modal
+        title={t('codeFix.title')}
+        open={codeFixVisible}
+        onCancel={() => setCodeFixVisible(false)}
+        width={900}
+        footer={
+          <Space>
+            <Button
+              disabled={!codeFixResult?.files?.length}
+              onClick={async () => {
+                if (!selectedResult?._id || !codeFixResult) return;
+                setCodeFixLoading(true);
+                try {
+                  const response = await api.post('/ai/suggest-code-fix', {
+                    run_type: 'pipeline',
+                    run_id: selectedResult._id,
+                    project_id: selectedTask?.project_id,
+                    create_draft_pr: true,
+                  });
+                  setCodeFixResult(response.data?.data || null);
+                  const pr = response.data?.data?.pull_request;
+                  if (pr?.url) {
+                    messageApi.success(t('codeFix.prCreated'));
+                  } else if (pr?.error) {
+                    messageApi.warning(pr.error);
+                  } else {
+                    messageApi.info(t('codeFix.prUnavailable'));
+                  }
+                } catch (error: any) {
+                  messageApi.error(error.response?.data?.message || t('codeFix.failed'));
+                } finally {
+                  setCodeFixLoading(false);
+                }
+              }}
+              loading={codeFixLoading}
+            >
+              {t('codeFix.createDraftPr')}
+            </Button>
+            <Button type="primary" onClick={() => setCodeFixVisible(false)}>
+              {t('common.close') || 'Close'}
+            </Button>
+          </Space>
+        }
+      >
+        {codeFixResult && (
+          <div>
+            <Typography.Paragraph>
+              <Tag>{codeFixResult.source}</Tag>
+              {codeFixResult.repository_configured ? (
+                <Tag color="green">{t('codeFix.repoOk')}</Tag>
+              ) : (
+                <Tag>{t('codeFix.repoMissing')}</Tag>
+              )}
+            </Typography.Paragraph>
+            <Typography.Paragraph>{codeFixResult.summary}</Typography.Paragraph>
+            {codeFixResult.pull_request?.url && (
+              <Typography.Paragraph>
+                <a href={codeFixResult.pull_request.url} target="_blank" rel="noreferrer">
+                  {codeFixResult.pull_request.url}
+                </a>
+              </Typography.Paragraph>
+            )}
+            {(codeFixResult.files || []).map((file: any) => (
+              <Card key={file.path} size="small" title={file.path} style={{ marginBottom: 12 }}>
+                <Typography.Text type="secondary">{file.rationale}</Typography.Text>
+                <pre style={{ maxHeight: 280, overflow: 'auto', background: '#f5f5f5', padding: 8 }}>
+                  {file.diff}
+                </pre>
+              </Card>
+            ))}
+          </div>
+        )}
       </Modal>
     </div>
   );

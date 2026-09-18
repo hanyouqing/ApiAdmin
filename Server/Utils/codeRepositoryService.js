@@ -321,6 +321,168 @@ class CodeRepositoryService {
       throw new Error(`文件不存在或无法读取: ${filePath}`);
     }
   }
+
+  /**
+   * Create a draft PR with file updates (GitHub / GitLab). Never merges.
+   * @param {object} repository
+   * @param {{ title, body, files: {path, content}[], branchPrefix?: string }} payload
+   */
+  async createDraftPullRequest(repository, payload) {
+    if (!repository?.access_token) {
+      throw new Error('Code repository token required to create a draft PR');
+    }
+    if (!payload?.files?.length) {
+      throw new Error('No file contents to commit for draft PR');
+    }
+
+    switch (repository.provider) {
+      case 'github':
+        return this.createGitHubDraftPR(repository, payload);
+      case 'gitlab':
+        return this.createGitLabDraftPR(repository, payload);
+      default:
+        throw new Error(`Draft PR not implemented for provider: ${repository.provider}`);
+    }
+  }
+
+  parseGitHubOwnerRepo(repositoryUrl) {
+    const urlMatch = repositoryUrl.match(/github\.com[/:]([^/]+)\/([^/]+)/);
+    if (!urlMatch) throw new Error('Invalid GitHub repository URL');
+    return {
+      owner: urlMatch[1],
+      repo: urlMatch[2].replace(/\.git$/, ''),
+    };
+  }
+
+  async createGitHubDraftPR(repository, payload) {
+    const { owner, repo } = this.parseGitHubOwnerRepo(repository.repository_url);
+    const base = repository.branch || 'main';
+    const headers = {
+      Accept: 'application/vnd.github+json',
+      Authorization: `Bearer ${repository.access_token}`,
+      'X-GitHub-Api-Version': '2022-11-28',
+    };
+    const branch = `${payload.branchPrefix || 'apiadmin-fix'}-${Date.now()}`;
+
+    const refRes = await axios.get(`https://api.github.com/repos/${owner}/${repo}/git/ref/heads/${base}`, {
+      headers,
+      timeout: 15000,
+    });
+    const baseSha = refRes.data.object.sha;
+
+    await axios.post(
+      `https://api.github.com/repos/${owner}/${repo}/git/refs`,
+      { ref: `refs/heads/${branch}`, sha: baseSha },
+      { headers, timeout: 15000 }
+    );
+
+    for (const file of payload.files) {
+      let sha;
+      try {
+        const existing = await axios.get(
+          `https://api.github.com/repos/${owner}/${repo}/contents/${file.path}`,
+          { headers, params: { ref: branch }, timeout: 15000 }
+        );
+        sha = existing.data.sha;
+      } catch (error) {
+        if (error.response?.status !== 404) throw error;
+      }
+
+      await axios.put(
+        `https://api.github.com/repos/${owner}/${repo}/contents/${file.path}`,
+        {
+          message: `ApiAdmin AI fix: ${file.path}`,
+          content: Buffer.from(file.content, 'utf8').toString('base64'),
+          branch,
+          ...(sha ? { sha } : {}),
+        },
+        { headers, timeout: 20000 }
+      );
+    }
+
+    const prRes = await axios.post(
+      `https://api.github.com/repos/${owner}/${repo}/pulls`,
+      {
+        title: payload.title,
+        body: payload.body || '',
+        head: branch,
+        base,
+        draft: true,
+      },
+      { headers, timeout: 15000 }
+    );
+
+    return {
+      provider: 'github',
+      draft: true,
+      branch,
+      number: prRes.data.number,
+      url: prRes.data.html_url,
+    };
+  }
+
+  async createGitLabDraftPR(repository, payload) {
+    const match = repository.repository_url.match(/gitlab\.com[/:](.+?)(?:\.git)?$/);
+    if (!match) throw new Error('Invalid GitLab repository URL');
+    const projectPath = encodeURIComponent(match[1]);
+    const base = repository.branch || 'main';
+    const headers = { 'PRIVATE-TOKEN': repository.access_token };
+    const branch = `${payload.branchPrefix || 'apiadmin-fix'}-${Date.now()}`;
+
+    await axios.post(
+      `https://gitlab.com/api/v4/projects/${projectPath}/repository/branches`,
+      { branch, ref: base },
+      { headers, timeout: 15000 }
+    );
+
+    for (const file of payload.files) {
+      try {
+        await axios.post(
+          `https://gitlab.com/api/v4/projects/${projectPath}/repository/files/${encodeURIComponent(file.path)}`,
+          {
+            branch,
+            content: file.content,
+            commit_message: `ApiAdmin AI fix: ${file.path}`,
+          },
+          { headers, timeout: 20000 }
+        );
+      } catch (error) {
+        if (error.response?.status === 400 || error.response?.status === 409) {
+          await axios.put(
+            `https://gitlab.com/api/v4/projects/${projectPath}/repository/files/${encodeURIComponent(file.path)}`,
+            {
+              branch,
+              content: file.content,
+              commit_message: `ApiAdmin AI fix: ${file.path}`,
+            },
+            { headers, timeout: 20000 }
+          );
+        } else {
+          throw error;
+        }
+      }
+    }
+
+    const mrRes = await axios.post(
+      `https://gitlab.com/api/v4/projects/${projectPath}/merge_requests`,
+      {
+        source_branch: branch,
+        target_branch: base,
+        title: payload.title,
+        description: payload.body || '',
+        draft: true,
+      },
+      { headers, timeout: 15000 }
+    );
+
+    return {
+      provider: 'gitlab',
+      draft: true,
+      branch,
+      number: mrRes.data.iid,
+      url: mrRes.data.web_url,
+    };
+  }
 }
 
 export const codeRepositoryService = new CodeRepositoryService();

@@ -1,0 +1,268 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "ApiAdmin Demo Mini API",
+    "description": "Tiny OpenAPI fixture for the 15-minute OSS golden path (Import → Mock → Run → Pipeline → Monitor).",
+    "version": "0.1.0"
+  },
+  "servers": [
+    { "url": "https://httpbin.org", "description": "Public demo host (replace with Mock when ready)" }
+  ],
+  "tags": [
+    { "name": "health" },
+    { "name": "users" },
+    { "name": "orders" }
+  ],
+  "paths": {
+    "/get": {
+      "get": {
+        "tags": ["health"],
+        "summary": "Echo GET (httpbin)",
+        "operationId": "healthEcho",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "url": { "type": "string" },
+                    "args": { "type": "object" }
+                  }
+                },
+                "example": { "url": "https://httpbin.org/get", "args": {} }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/status/{code}": {
+      "get": {
+        "tags": ["health"],
+        "summary": "Return given status code",
+        "operationId": "healthStatus",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "example": 200 }
+          }
+        ],
+        "responses": {
+          "200": { "description": "OK" },
+          "500": { "description": "Simulated error" }
+        }
+      }
+    },
+    "/api/users": {
+      "get": {
+        "tags": ["users"],
+        "summary": "List users (demo shape for Mock)",
+        "operationId": "listUsers",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": { "type": "integer", "default": 1 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "integer" },
+                          "name": { "type": "string" },
+                          "email": { "type": "string" }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "data": [
+                    { "id": 1, "name": "Ada", "email": "ada@example.com" },
+                    { "id": 2, "name": "Alan", "email": "alan@example.com" }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["users"],
+        "summary": "Create user (demo)",
+        "operationId": "createUser",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "email"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "email": { "type": "string", "format": "email" }
+                }
+              },
+              "example": { "name": "Grace", "email": "grace@example.com" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": { "id": 3, "name": "Grace", "email": "grace@example.com" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/{id}": {
+      "get": {
+        "tags": ["users"],
+        "summary": "Get user by id",
+        "operationId": "getUser",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": { "id": 1, "name": "Ada", "email": "ada@example.com" }
+                }
+              }
+            }
+          },
+          "404": { "description": "Not found" }
+        }
+      }
+    },
+    "/api/orders": {
+      "get": {
+        "tags": ["orders"],
+        "summary": "List orders (demo)",
+        "operationId": "listOrders",
+        "responses": {
+          "200": {
+            "description": "Orders",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": [{ "id": "o-1", "total": 42.5, "status": "paid" }]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["orders"],
+        "summary": "Create order (demo)",
+        "operationId": "createOrder",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": { "sku": "SKU-1", "qty": 2 }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": { "id": "o-2", "sku": "SKU-1", "qty": 2, "status": "pending" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orders/{id}": {
+      "get": {
+        "tags": ["orders"],
+        "summary": "Get order",
+        "operationId": "getOrder",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Order",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": { "id": "o-1", "total": 42.5, "status": "paid" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/post": {
+      "post": {
+        "tags": ["health"],
+        "summary": "Echo POST (httpbin)",
+        "operationId": "healthEchoPost",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": { "ping": "pong" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Echo body",
+            "content": {
+              "application/json": {
+                "example": { "json": { "ping": "pong" } }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,28 @@
+name: Feature request
+description: Propose an enhancement (OSS roadmap)
+title: "[feat] "
+labels: ["enhancement"]
+body:
+  - type: dropdown
+    id: priority_fit
+    attributes:
+      label: Fits current positioning?
+      description: Self-host YApi+Postman+light MS; REST first; optional cloud AI.
+      options:
+        - Yes — core lifecycle
+        - Maybe — nice to have
+        - No — GraphQL/WS/gRPC/SaaS (roadmap later)
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+    validations:
+      required: true

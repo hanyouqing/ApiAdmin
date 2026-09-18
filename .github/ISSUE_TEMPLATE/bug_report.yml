@@ -1,0 +1,31 @@
+name: Bug report
+description: Report a defect in ApiAdmin
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: Steps to reproduce, expected vs actual.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version / commit
+      placeholder: e.g. main @ abc1234
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Interface / Mock
+        - Test Pipeline / CLI
+        - Variables / Monitor
+        - AI (mock / code-fix)
+        - Auth / SSO
+        - Docs / DX
+        - Other
+    validations:
+      required: true

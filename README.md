@@ -214,6 +214,9 @@ Claims below match **wired** `Server/Router.ts` + Client routes. Unwired modules
 
 ## 🚀 Quick Start
 
+> **15-minute OSS demo:** see **[Docs/QUICKSTART_OSS.md](Docs/QUICKSTART_OSS.md)** (Import → Mock → Run → Pipeline → Monitor).  
+> Sprint board: [Docs/SPRINT_6DAY_CHECKLIST.md](Docs/SPRINT_6DAY_CHECKLIST.md) · Cloud Agents: [Docs/CLOUD_AGENT_PROMPTS.md](Docs/CLOUD_AGENT_PROMPTS.md)
+
 ### Requirements
 
 - **Node.js >= 18.0.0** (Recommended 20.x LTS)

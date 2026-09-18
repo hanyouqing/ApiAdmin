@@ -215,6 +215,9 @@ ApiAdmin 是一个现代化的 API 管理平台，通过可视化的方式帮助
 
 ## 🚀 快速开始
 
+> **15 分钟开源演示：** 见 **[Docs/QUICKSTART_OSS.md](Docs/QUICKSTART_OSS.md)**（导入 → Mock → Run → 流水线 → Monitor）。  
+> 冲刺清单：[Docs/SPRINT_6DAY_CHECKLIST.md](Docs/SPRINT_6DAY_CHECKLIST.md) · Cloud Agents：[Docs/CLOUD_AGENT_PROMPTS.md](Docs/CLOUD_AGENT_PROMPTS.md)
+
 ### 环境要求
 
 - **Node.js >= 18.0.0**（推荐 20.x LTS）
