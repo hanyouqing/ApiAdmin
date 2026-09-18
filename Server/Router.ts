@@ -31,6 +31,7 @@ import TestEnvironmentController from './Controllers/TestEnvironment.js';
 import TestRuleConfigController from './Controllers/TestRuleConfig.js';
 import OpenAPIController from './Controllers/OpenAPI.js';
 import CICDController from './Controllers/CICD.js';
+import DocumentCenterController from './Controllers/DocumentCenter.js';
 import ProjectVariableController from './Controllers/ProjectVariable.js';
 import ApiMonitorController from './Controllers/ApiMonitor.js';
 import { projectTokenAuth } from './Middleware/projectTokenAuth.js';
@@ -248,6 +249,14 @@ router.delete('/api/cicd/tokens/:id', apiRateLimiter as any, authMiddleware as a
 router.post('/api/cicd/run', apiRateLimiter as any, authOrCliToken as any, CICDController.runTest as any);
 router.post('/api/cicd/run-pipeline', apiRateLimiter as any, authOrCliToken as any, CICDController.runPipeline as any);
 router.post('/api/cicd/sync-swagger', apiRateLimiter as any, authOrCliToken as any, CICDController.syncSwagger as any);
+router.get('/api/cicd/results/:resultId/junit', apiRateLimiter as any, authMiddleware as any, CICDController.getResultJUnit as any);
+
+// DocumentCenter (path A — publish + portal preview)
+router.post('/api/docs/generate', apiRateLimiter as any, authMiddleware as any, requireProjectMember, DocumentCenterController.generateDocument as any);
+router.post('/api/docs/publish', apiRateLimiter as any, authMiddleware as any, requireProjectMember, DocumentCenterController.publishDocument as any);
+router.get('/api/docs/published', apiRateLimiter as any, authMiddleware as any, DocumentCenterController.getPublishedDocument as any);
+router.get('/api/docs/versions', apiRateLimiter as any, authMiddleware as any, DocumentCenterController.listDocumentVersions as any);
+router.get('/api/docs/compare', apiRateLimiter as any, authMiddleware as any, DocumentCenterController.compareDocumentVersions as any);
 
 // OpenAPI (project token) — machine-to-machine interface CRUD
 router.get('/api/open/interfaces', apiRateLimiter as any, projectTokenAuth as any, OpenAPIController.listInterfaces as any);

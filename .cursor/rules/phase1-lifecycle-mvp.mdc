@@ -1,0 +1,7 @@
+# Phase 1 — Full-lifecycle MVP
+
+- DocumentCenter: mount `/api/docs/*` + project Docs tab (path A); no redesign.
+- Interface Run: TestEnvironment switcher + copyable `/mock/{projectId}{path}`.
+- CI UI: Settings → CLI tokens; TestPipeline → Download JUnit (`/api/cicd/results/:id/junit`).
+- Demo: `Scripts/demo-lifecycle.sh` / `make demo-lifecycle`; Playwright `lifecycle.smoke.test.ts`.
+- Keep UI外观; Ollama-first AI generate/suggestions on Interface (human approve).

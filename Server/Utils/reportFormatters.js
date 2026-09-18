@@ -2,9 +2,80 @@ import { logger } from './logger.js';
 import { XMLBuilder } from 'fast-xml-parser';
 
 /**
- * 报告格式化工具
- * 支持多种测试报告格式：JUnit XML、Allure JSON
+ * Normalize TestRunner / AutoTestResult shapes into a common report for formatters.
  */
+export function normalizeReportForFormatters(report) {
+  if (!report || typeof report !== 'object') {
+    return { summary: { total: 0, failed: 0, error: 0, duration: 0 }, results: [] };
+  }
+
+  const summary = report.summary
+    ? {
+        total: report.summary.total || 0,
+        failed: report.summary.failed || 0,
+        error: report.summary.error || report.summary.errors || 0,
+        duration: report.summary.duration || report.duration || 0,
+      }
+    : {
+        total: report.total || 0,
+        failed: report.failed || 0,
+        error: report.error || report.errors || 0,
+        duration: report.duration || 0,
+      };
+
+  const results = (report.results || []).map((result) => {
+    const assertion =
+      result.assertion_result ||
+      result.assertionResult ||
+      null;
+    const interfaceId =
+      result.interface_id?.toString?.() ||
+      result.interface_id ||
+      result.interfaceId?.toString?.() ||
+      result.interfaceId ||
+      'unknown';
+    const interfaceName =
+      result.interface_name ||
+      result.interfaceName ||
+      result.testCaseName ||
+      String(interfaceId);
+    return {
+      ...result,
+      interface_id: interfaceId,
+      interface_name: interfaceName,
+      test_case_name:
+        result.test_case_name ||
+        result.testCaseName ||
+        result.interface_name ||
+        interfaceName,
+      assertion_result: assertion
+        ? {
+            message: assertion.message,
+            details: assertion.details || (assertion.errors || []).join('\n'),
+            passed: assertion.passed,
+          }
+        : undefined,
+      request: result.request
+        ? {
+            ...result.request,
+            path: result.request.path || result.request.url || '',
+            method: result.request.method || 'GET',
+          }
+        : undefined,
+      response: result.response
+        ? {
+            ...result.response,
+            status:
+              result.response.status ??
+              result.response.status_code ??
+              result.response.statusCode,
+          }
+        : undefined,
+    };
+  });
+
+  return { ...report, summary, results };
+}
 
 /**
  * 生成 JUnit XML 格式报告
@@ -13,13 +84,14 @@ import { XMLBuilder } from 'fast-xml-parser';
  */
 export function formatJUnitXML(report) {
   try {
+    const normalized = normalizeReportForFormatters(report);
     const testsuites = {
       testsuites: {
         '@_name': 'ApiAdmin Test Results',
-        '@_tests': report.summary?.total || 0,
-        '@_failures': report.summary?.failed || 0,
-        '@_errors': report.summary?.error || 0,
-        '@_time': (report.summary?.duration || 0) / 1000,
+        '@_tests': normalized.summary.total || 0,
+        '@_failures': normalized.summary.failed || 0,
+        '@_errors': normalized.summary.error || 0,
+        '@_time': (normalized.summary.duration || 0) / 1000,
         testsuite: [],
       },
     };
@@ -27,8 +99,8 @@ export function formatJUnitXML(report) {
     // 按接口分组
     const interfaceMap = new Map();
     
-    if (report.results && Array.isArray(report.results)) {
-      for (const result of report.results) {
+    if (normalized.results && Array.isArray(normalized.results)) {
+      for (const result of normalized.results) {
         const interfaceId = result.interface_id?.toString() || result.interface_id || 'unknown';
         const interfaceName = result.interface_name || result.interface_id || 'Unknown Interface';
         

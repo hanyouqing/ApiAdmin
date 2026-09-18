@@ -27,7 +27,10 @@
     "no": "否",
     "refresh": "刷新",
     "empty": "暂无数据",
-    "view": "详情"
+    "view": "详情",
+    "close": "关闭",
+    "copy": "复制",
+    "copied": "已复制"
   },
   "app": {
     "title": "ApiAdmin",
@@ -136,6 +139,7 @@
     "descPlaceholder": "请输入项目描述",
     "tabs": {
       "interface": "接口管理",
+      "docs": "API 文档",
       "test": "测试管理",
       "setting": "项目设置",
       "activity": "项目动态"
@@ -166,6 +170,7 @@
       "member": "成员管理",
       "environment": "环境管理",
       "variables": "变量",
+      "cicd": "CI / CLI Token",
       "advanced": "高级操作",
       "importExport": "导入导出"
     },
@@ -366,6 +371,9 @@
     "run.request": "请求",
     "run.response": "响应",
     "run.environment": "环境",
+    "run.testEnvironment": "测试环境",
+    "run.selectTestEnvironment": "选择 TestEnvironment",
+    "run.legacyEnvironment": "旧版项目环境（回退）",
     "run.query": "Query参数",
     "run.body": "请求体",
     "run.headers": "请求头",
@@ -375,6 +383,24 @@
     "run.responseHeaders": "响应头",
     "run.responseBody": "响应体",
     "run.noResult": "暂无运行结果，请先运行接口",
+    "mockUrl": "Mock URL",
+    "empty": "暂无接口",
+    "importHint": "导入 OpenAPI / Postman",
+    "gotoTest": "前往测试",
+    "gotoDocs": "前往文档",
+    "gotoPipeline": "测试流水线",
+    "lifecycleHint": "设计 → Mock → 测试：创建接口、复制 Mock URL，再运行测试或发布文档。",
+    "ai": {
+      "generate": "AI 生成",
+      "fillForm": "根据描述填充表单",
+      "descriptionPlaceholder": "用自然语言描述接口（优先使用本地 Ollama）",
+      "descriptionRequired": "请输入描述",
+      "generateFilled": "已填入 AI 草稿，请审核后再保存",
+      "generateFailed": "AI 生成失败",
+      "suggestions": "AI 建议",
+      "noSuggestions": "暂无建议",
+      "suggestionsFailed": "获取建议失败"
+    },
     "searchPlaceholder": "搜索接口名称、路径或标签",
     "filterByStatus": "按状态筛选",
     "filterByCategory": "按分类筛选",
@@ -417,7 +443,8 @@
       "updateSuccess": "更新成功",
       "deleteSuccess": "删除成功",
       "deleteConfirm": "确认删除",
-      "deleteConfirmMessage": "确定要删除这个Mock期望吗？"
+      "deleteConfirmMessage": "确定要删除这个Mock期望吗？",
+      "hint": "为 Mock URL 配置期望，然后通过测试流水线验证。"
     }
   },
   "home": {
@@ -1276,5 +1303,51 @@
     "runDone": "执行完成：{{status}}",
     "runFailed": "执行失败",
     "invalidJson": "{{field}} JSON 无效"
+  },
+  "docs": {
+    "title": "API 文档",
+    "generate": "生成文档",
+    "generateSuccess": "文档已生成",
+    "generateFailed": "生成文档失败",
+    "publish": "发布",
+    "publishSuccess": "文档已发布",
+    "publishFailed": "发布文档失败",
+    "preview": "预览",
+    "viewPortal": "查看已发布门户",
+    "version": "版本",
+    "published": "已发布",
+    "current": "当前",
+    "createdBy": "创建者",
+    "publishedVersion": "已发布版本",
+    "publishedAt": "发布时间",
+    "loadFailed": "加载文档失败",
+    "noPublished": "尚未发布文档",
+    "emptyVersions": "暂无文档版本，请先生成",
+    "hint": "从项目接口生成版本并发布后，可通过门户预览与同事共享。",
+    "interfaces": "接口列表",
+    "noInterfaces": "文档中暂无接口",
+    "noDescription": "无描述"
+  },
+  "cicd": {
+    "title": "CLI Token",
+    "create": "创建 CLI Token",
+    "createSuccess": "Token 已创建",
+    "createFailed": "创建 Token 失败",
+    "deleteConfirm": "确定删除此 CLI Token？",
+    "deleteSuccess": "Token 已删除",
+    "deleteFailed": "删除 Token 失败",
+    "loadFailed": "加载 Token 失败",
+    "name": "Token 名称",
+    "nameRequired": "请输入名称",
+    "namePlaceholder": "例如 jenkins-ci",
+    "prefix": "前缀",
+    "scope": "范围",
+    "global": "全部项目",
+    "projectScoped": "本项目",
+    "hint": "使用哈希 CLI Token 调用 /api/cicd/run（JUnit）。Token 仅显示一次。",
+    "tokenOnce": "请立即复制此 Token，之后将无法再次查看。",
+    "downloadJunit": "下载 JUnit",
+    "junitDownloaded": "JUnit 报告已下载",
+    "junitFailed": "下载 JUnit 报告失败"
   }
 }

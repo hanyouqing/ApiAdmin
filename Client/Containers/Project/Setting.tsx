@@ -13,6 +13,7 @@ import { getAvatarUrl } from '../../Utils/avatar';
 import TestRules from './TestRules';
 import CodeRepositorySettings from './CodeRepositorySettings';
 import VariablesPanel from './VariablesPanel';
+import CliTokensPanel from './CliTokensPanel';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -504,6 +505,11 @@ const Setting: React.FC = () => {
             key: 'variables',
             label: t('project.setting.variables'),
             children: projectId ? <VariablesPanel projectId={projectId} /> : null,
+          },
+          {
+            key: 'cicd',
+            label: t('project.setting.cicd'),
+            children: projectId ? <CliTokensPanel projectId={projectId} /> : null,
           },
           {
             key: 'advanced',

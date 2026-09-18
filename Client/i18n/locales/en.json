@@ -27,7 +27,10 @@
     "no": "No",
     "refresh": "Refresh",
     "empty": "No Data",
-    "view": "Details"
+    "view": "Details",
+    "close": "Close",
+    "copy": "Copy",
+    "copied": "Copied"
   },
   "app": {
     "title": "ApiAdmin",
@@ -136,6 +139,7 @@
     "descPlaceholder": "Please enter project description",
     "tabs": {
       "interface": "Interface Management",
+      "docs": "API Docs",
       "test": "Test Management",
       "setting": "Project Settings",
       "activity": "Project Activity"
@@ -166,6 +170,7 @@
       "member": "Member Management",
       "environment": "Environment Management",
       "variables": "Variables",
+      "cicd": "CI / CLI Tokens",
       "advanced": "Advanced Operations",
       "importExport": "Import/Export",
       "repository": "Code Repository"
@@ -348,6 +353,9 @@
     "run.request": "Request",
     "run.response": "Response",
     "run.environment": "Environment",
+    "run.testEnvironment": "Test Environment",
+    "run.selectTestEnvironment": "Select TestEnvironment",
+    "run.legacyEnvironment": "Legacy project env (fallback)",
     "run.query": "Query Parameters",
     "run.body": "Request Body",
     "run.headers": "Request Headers",
@@ -357,6 +365,24 @@
     "run.responseHeaders": "Response Headers",
     "run.responseBody": "Response Body",
     "run.noResult": "No result yet, please run the interface first",
+    "mockUrl": "Mock URL",
+    "empty": "No interfaces yet",
+    "importHint": "Import OpenAPI / Postman",
+    "gotoTest": "Go to Tests",
+    "gotoDocs": "Go to Docs",
+    "gotoPipeline": "Test Pipeline",
+    "lifecycleHint": "Design → Mock → Test: create an interface, copy its Mock URL, then run tests or publish docs.",
+    "ai": {
+      "generate": "AI Generate",
+      "fillForm": "Fill form from description",
+      "descriptionPlaceholder": "Describe the API in natural language (uses local Ollama when configured)",
+      "descriptionRequired": "Please enter a description",
+      "generateFilled": "AI draft applied — review before saving",
+      "generateFailed": "AI generate failed",
+      "suggestions": "AI Suggestions",
+      "noSuggestions": "No suggestions",
+      "suggestionsFailed": "Failed to load suggestions"
+    },
     "searchPlaceholder": "Search by name, path or tag",
     "filterByStatus": "Filter by Status",
     "filterByCategory": "Filter by Category",
@@ -415,7 +441,8 @@
       "updateSuccess": "Updated successfully",
       "deleteSuccess": "Deleted successfully",
       "deleteConfirm": "Confirm Delete",
-      "deleteConfirmMessage": "Are you sure you want to delete this mock expectation?"
+      "deleteConfirmMessage": "Are you sure you want to delete this mock expectation?",
+      "hint": "Configure expectations for the Mock URL, then validate via Test Pipeline."
     }
   },
   "home": {
@@ -1352,6 +1379,52 @@
     "runDone": "Finished: {{status}}",
     "runFailed": "Run failed",
     "invalidJson": "Invalid JSON for {{field}}"
+  },
+  "docs": {
+    "title": "API Documentation",
+    "generate": "Generate Docs",
+    "generateSuccess": "Document generated",
+    "generateFailed": "Failed to generate document",
+    "publish": "Publish",
+    "publishSuccess": "Document published",
+    "publishFailed": "Failed to publish document",
+    "preview": "Preview",
+    "viewPortal": "View published portal",
+    "version": "Version",
+    "published": "Published",
+    "current": "Current",
+    "createdBy": "Created by",
+    "publishedVersion": "Published version",
+    "publishedAt": "Published at",
+    "loadFailed": "Failed to load documents",
+    "noPublished": "No published document yet",
+    "emptyVersions": "No document versions — generate one to start",
+    "hint": "Generate a version from project interfaces, publish it, then share the portal preview with teammates.",
+    "interfaces": "Interfaces",
+    "noInterfaces": "No interfaces in this document",
+    "noDescription": "No description"
+  },
+  "cicd": {
+    "title": "CLI Tokens",
+    "create": "Create CLI Token",
+    "createSuccess": "Token created",
+    "createFailed": "Failed to create token",
+    "deleteConfirm": "Delete this CLI token?",
+    "deleteSuccess": "Token deleted",
+    "deleteFailed": "Failed to delete token",
+    "loadFailed": "Failed to load tokens",
+    "name": "Token name",
+    "nameRequired": "Please enter a name",
+    "namePlaceholder": "e.g. jenkins-ci",
+    "prefix": "Prefix",
+    "scope": "Scope",
+    "global": "All projects",
+    "projectScoped": "This project",
+    "hint": "Use hashed CLI tokens with /api/cicd/run (JUnit). Token is shown only once.",
+    "tokenOnce": "Copy this token now — it will not be shown again.",
+    "downloadJunit": "Download JUnit",
+    "junitDownloaded": "JUnit report downloaded",
+    "junitFailed": "Failed to download JUnit report"
   }
 }
 

@@ -354,6 +354,56 @@ class CICDController extends BaseController {
       );
     }
   }
+
+  /**
+   * Download JUnit XML for an AutoTestResult (pipeline / CI report in UI).
+   */
+  static async getResultJUnit(ctx) {
+    try {
+      const { resultId } = ctx.params;
+      if (!validateObjectId(resultId)) {
+        ctx.status = 400;
+        ctx.body = CICDController.error('无效的结果 ID');
+        return;
+      }
+
+      const AutoTestResult = (await import('../Models/AutoTestResult.js')).default;
+      const result = await AutoTestResult.findById(resultId).lean();
+      if (!result) {
+        ctx.status = 404;
+        ctx.body = CICDController.error('测试结果不存在');
+        return;
+      }
+
+      const content = formatJUnitXML({
+        summary: {
+          ...result.summary,
+          duration: result.duration || 0,
+        },
+        results: result.results || [],
+        duration: result.duration || 0,
+      });
+
+      ctx.set('Content-Type', 'application/xml');
+      ctx.set('Content-Disposition', `attachment; filename="apiadmin-junit-${resultId}.xml"`);
+      ctx.body = CICDController.success({
+        format: 'junit',
+        content,
+        contentType: 'application/xml',
+        resultId,
+        summary: result.summary,
+        status: result.status,
+      });
+    } catch (error) {
+      logger.error({ error }, 'Get result JUnit error');
+      ctx.status = 500;
+      ctx.body = CICDController.error(
+        process.env.NODE_ENV === 'production'
+          ? '生成 JUnit 报告失败'
+          : error.message || '生成 JUnit 报告失败'
+      );
+    }
+  }
 }
 
 export default CICDController;

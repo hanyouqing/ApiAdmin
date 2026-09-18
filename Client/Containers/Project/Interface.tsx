@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Card, Button, Table, Space, Modal, Form, Input, Select, Tag, message, InputNumber, Switch, Tabs, Descriptions, Typography, Collapse } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, PlayCircleOutlined, ApiOutlined, SearchOutlined, EyeOutlined } from '@ant-design/icons';
+import { Card, Button, Table, Space, Modal, Form, Input, Select, Tag, message, InputNumber, Switch, Tabs, Descriptions, Typography, Collapse, Empty, Alert, List } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, PlayCircleOutlined, ApiOutlined, SearchOutlined, EyeOutlined, RobotOutlined, LinkOutlined } from '@ant-design/icons';
 import Editor from '@monaco-editor/react';
 import Mock from '../../Utils/safeMock';
 import JSON5 from 'json5';
@@ -11,12 +11,14 @@ import { fetchInterfaces, createInterface, updateInterface, deleteInterface, run
 import { fetchInterfaceCats, createInterfaceCat } from '../../Reducer/Modules/InterfaceCat';
 import { fetchMockExpectations, createMockExpectation, updateMockExpectation, deleteMockExpectation } from '../../Reducer/Modules/MockExpectation';
 import { fetchProjectDetail, fetchProjects } from '../../Reducer/Modules/Project';
+import { api } from '../../Utils/api';
 import type { AppDispatch, RootState } from '../../Reducer/Create';
 import type { Interface } from '../../Reducer/Modules/Interface';
 import type { MockExpectation } from '../../Reducer/Modules/MockExpectation';
 
 const { TextArea } = Input;
 const { Option } = Select;
+const { Text, Paragraph } = Typography;
 
 const InterfaceManagement: React.FC = () => {
   const params = useParams<{ projectId?: string }>();
@@ -46,6 +48,11 @@ const InterfaceManagement: React.FC = () => {
   const [runResult, setRunResult] = useState<any>(null);
   const [running, setRunning] = useState(false);
   const [runForm] = Form.useForm();
+  const [testEnvironments, setTestEnvironments] = useState<any[]>([]);
+  const [aiModalVisible, setAiModalVisible] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiDescription, setAiDescription] = useState('');
+  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
   const [catFilter, setCatFilter] = useState<string | undefined>(undefined);
@@ -57,7 +64,7 @@ const InterfaceManagement: React.FC = () => {
   const projectId = useMemo(() => {
     // 首先检查当前路径是否包含路由关键字，如果是则返回空
     const pathParts = location.pathname.split('/');
-    const routeKeywords = ['interface', 'test', 'setting', 'activity'];
+    const routeKeywords = ['interface', 'test', 'setting', 'activity', 'docs'];
     const hasRouteKeyword = pathParts.some(part => routeKeywords.includes(part));
     
     if (params.projectId) {
@@ -88,12 +95,29 @@ const InterfaceManagement: React.FC = () => {
     return currentProject?._id || '';
   }, [params.projectId, location.pathname, currentProject?._id]);
 
+  const getMockUrl = (iface: Interface) => {
+    if (!projectId || !iface?.path) return '';
+    const origin = window.location.origin;
+    const path = iface.path.startsWith('/') ? iface.path : `/${iface.path}`;
+    return `${origin}/mock/${projectId}${path}`;
+  };
+
   // 获取项目列表
   useEffect(() => {
     if (projects.length === 0) {
       dispatch(fetchProjects());
     }
   }, [dispatch, projects.length]);
+
+  useEffect(() => {
+    if (!projectId) return;
+    api
+      .get('/test/environments', { params: { project_id: projectId } })
+      .then((res) => {
+        setTestEnvironments(res.data?.data || []);
+      })
+      .catch(() => setTestEnvironments([]));
+  }, [projectId]);
 
   useEffect(() => {
     // 如果当前没有 projectId 且项目列表不为空，默认选择第一个项目
@@ -113,6 +137,7 @@ const InterfaceManagement: React.FC = () => {
         projectId !== 'test' && 
         projectId !== 'setting' && 
         projectId !== 'activity' &&
+        projectId !== 'docs' &&
         projectId.length > 0) {
       dispatch(fetchInterfaces(projectId));
       dispatch(fetchInterfaceCats(projectId));
@@ -180,11 +205,19 @@ const InterfaceManagement: React.FC = () => {
     setRunningInterface(record);
     if (projectId) {
       await dispatch(fetchProjectDetail(projectId));
+      try {
+        const res = await api.get('/test/environments', { params: { project_id: projectId } });
+        setTestEnvironments(res.data?.data || []);
+      } catch {
+        /* keep existing */
+      }
     }
     await dispatch(fetchInterfaceDetail(record._id));
     runForm.resetFields();
+    const defaultEnvId = testEnvironments[0]?._id;
     runForm.setFieldsValue({
       _id: record._id,
+      environment_id: defaultEnvId,
       env: currentProject?.env?.[0]?.name || '',
       params: {
         query: '{}',
@@ -194,6 +227,71 @@ const InterfaceManagement: React.FC = () => {
       },
     });
     setRunModalVisible(true);
+  };
+
+  const handleAiGenerate = async () => {
+    if (!aiDescription.trim() || !projectId) {
+      message.warning(t('interface.ai.descriptionRequired'));
+      return;
+    }
+    setAiLoading(true);
+    try {
+      const res = await api.post('/ai/generate', {
+        description: aiDescription,
+        projectId,
+      });
+      const sketch = res.data?.data || {};
+      form.setFieldsValue({
+        project_id: projectId,
+        title: sketch.title || sketch.name || form.getFieldValue('title'),
+        path: sketch.path || form.getFieldValue('path'),
+        method: sketch.method || form.getFieldValue('method') || 'GET',
+        desc: sketch.desc || sketch.description || aiDescription,
+        req_body_other: sketch.req_body_other
+          ? (typeof sketch.req_body_other === 'string'
+            ? sketch.req_body_other
+            : JSON.stringify(sketch.req_body_other, null, 2))
+          : form.getFieldValue('req_body_other'),
+        res_body: sketch.res_body
+          ? (typeof sketch.res_body === 'string'
+            ? sketch.res_body
+            : JSON.stringify(sketch.res_body, null, 2))
+          : form.getFieldValue('res_body'),
+      });
+      setAiModalVisible(false);
+      setAiDescription('');
+      message.success(t('interface.ai.generateFilled'));
+    } catch (error: any) {
+      message.error(error.message || t('interface.ai.generateFailed'));
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleAiSuggestions = async (record: Interface) => {
+    try {
+      const res = await api.get('/ai/suggestions', { params: { interfaceId: record._id } });
+      const suggestions = res.data?.data?.suggestions || res.data?.data || [];
+      const list = Array.isArray(suggestions)
+        ? suggestions.map((s: any) => (typeof s === 'string' ? s : s.message || s.text || JSON.stringify(s)))
+        : [];
+      setAiSuggestions(list);
+      Modal.info({
+        title: t('interface.ai.suggestions'),
+        width: 560,
+        content: list.length ? (
+          <List
+            size="small"
+            dataSource={list}
+            renderItem={(item: string) => <List.Item>{item}</List.Item>}
+          />
+        ) : (
+          <Empty description={t('interface.ai.noSuggestions')} />
+        ),
+      });
+    } catch (error: any) {
+      message.error(error.message || t('interface.ai.suggestionsFailed'));
+    }
   };
 
   const handleRunSubmit = async () => {
@@ -420,14 +518,35 @@ const InterfaceManagement: React.FC = () => {
       render: (status: string) => <Tag color={getStatusColor(status)}>{t(`interface.status.${status}`)}</Tag>,
     },
     {
+      title: t('interface.mockUrl'),
+      key: 'mockUrl',
+      width: 220,
+      ellipsis: true,
+      render: (_: any, record: Interface) => {
+        const url = getMockUrl(record);
+        return url ? (
+          <Paragraph
+            copyable={{ text: url }}
+            style={{ marginBottom: 0 }}
+            ellipsis={{ rows: 1, tooltip: url }}
+          >
+            <Text code style={{ fontSize: 12 }}>{url}</Text>
+          </Paragraph>
+        ) : (
+          '-'
+        );
+      },
+    },
+    {
       title: t('common.operation'),
       key: 'action',
-      width: 200,
+      width: 280,
       render: (_: any, record: Interface) => (
-        <Space>
+        <Space wrap>
           <Button
             type="link"
             icon={<PlayCircleOutlined />}
+            aria-label={t('interface.run')}
             onClick={() => handleRun(record)}
           >
             {t('interface.run')}
@@ -435,6 +554,7 @@ const InterfaceManagement: React.FC = () => {
           <Button
             type="link"
             icon={<EditOutlined />}
+            aria-label={t('common.edit')}
             onClick={() => handleEdit(record)}
           >
             {t('common.edit')}
@@ -442,14 +562,24 @@ const InterfaceManagement: React.FC = () => {
           <Button
             type="link"
             icon={<ApiOutlined />}
+            aria-label={t('interface.mockExpectation.title')}
             onClick={() => handleManageMock(record._id)}
           >
             {t('interface.mockExpectation.title')}
           </Button>
           <Button
             type="link"
+            icon={<RobotOutlined />}
+            aria-label={t('interface.ai.suggestions')}
+            onClick={() => handleAiSuggestions(record)}
+          >
+            {t('interface.ai.suggestions')}
+          </Button>
+          <Button
+            type="link"
             danger
             icon={<DeleteOutlined />}
+            aria-label={t('common.delete')}
             onClick={() => handleDelete(record._id)}
           >
             {t('common.delete')}
@@ -465,8 +595,26 @@ const InterfaceManagement: React.FC = () => {
         title={t('interface.title')}
         extra={
           <Space>
+            <Button onClick={() => navigate(`/project/${projectId}/test`)} icon={<LinkOutlined />}>
+              {t('interface.gotoTest')}
+            </Button>
+            <Button onClick={() => navigate(`/project/${projectId}/docs`)} icon={<LinkOutlined />}>
+              {t('interface.gotoDocs')}
+            </Button>
             <Button onClick={() => setCatModalVisible(true)}>
               {t('interface.cat.create')}
+            </Button>
+            <Button
+              icon={<RobotOutlined />}
+              onClick={() => {
+                setEditingInterface(null);
+                form.resetFields();
+                form.setFieldsValue({ project_id: projectId, method: 'GET', req_body_type: 'json', res_body_type: 'json', status: 'developing' });
+                setAiModalVisible(true);
+                setModalVisible(true);
+              }}
+            >
+              {t('interface.ai.generate')}
             </Button>
             <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate} style={{ color: '#ffffff' }}>
               {t('interface.create')}
@@ -474,6 +622,12 @@ const InterfaceManagement: React.FC = () => {
           </Space>
         }
       >
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+          message={t('interface.lifecycleHint')}
+        />
         <Space style={{ marginBottom: 16, width: '100%' }} direction="vertical">
           <Space>
             <Input
@@ -483,6 +637,7 @@ const InterfaceManagement: React.FC = () => {
               onChange={(e) => setSearchText(e.target.value)}
               style={{ width: 200 }}
               allowClear
+              aria-label={t('interface.searchPlaceholder')}
             />
             <Select
               placeholder={t('interface.filterByStatus')}
@@ -525,6 +680,23 @@ const InterfaceManagement: React.FC = () => {
           dataSource={filteredInterfaces}
           rowKey="_id"
           loading={loading}
+          locale={{
+            emptyText: (
+              <Empty
+                description={t('interface.empty')}
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+              >
+                <Space>
+                  <Button type="primary" onClick={handleCreate} style={{ color: '#ffffff' }}>
+                    {t('interface.create')}
+                  </Button>
+                  <Button onClick={() => navigate(`/project/${projectId}/setting`)}>
+                    {t('interface.importHint')}
+                  </Button>
+                </Space>
+              </Empty>
+            ),
+          }}
           rowSelection={{
             selectedRowKeys,
             onChange: (newSelectedRowKeys) => {
@@ -540,10 +712,39 @@ const InterfaceManagement: React.FC = () => {
         onOk={handleSubmit}
         onCancel={() => {
           setModalVisible(false);
+          setAiModalVisible(false);
           form.resetFields();
         }}
         width={800}
       >
+        {aiModalVisible && (
+          <Alert
+            type="info"
+            showIcon
+            style={{ marginBottom: 12 }}
+            message={t('interface.ai.generate')}
+            description={
+              <Space direction="vertical" style={{ width: '100%' }}>
+                <TextArea
+                  rows={3}
+                  value={aiDescription}
+                  onChange={(e) => setAiDescription(e.target.value)}
+                  placeholder={t('interface.ai.descriptionPlaceholder')}
+                  aria-label={t('interface.ai.descriptionPlaceholder')}
+                />
+                <Button
+                  type="primary"
+                  icon={<RobotOutlined />}
+                  loading={aiLoading}
+                  onClick={handleAiGenerate}
+                  style={{ color: '#ffffff' }}
+                >
+                  {t('interface.ai.fillForm')}
+                </Button>
+              </Space>
+            }
+          />
+        )}
         <Form form={form} layout="vertical">
           <Form.Item name="project_id" hidden>
             <Input />
@@ -724,6 +925,17 @@ const InterfaceManagement: React.FC = () => {
         footer={null}
         width={1000}
       >
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: 12 }}
+          message={t('interface.mockExpectation.hint')}
+          action={
+            <Button size="small" type="link" onClick={() => navigate('/test-pipeline')}>
+              {t('interface.gotoPipeline')}
+            </Button>
+          }
+        />
         <Tabs
           items={[
             {
@@ -873,16 +1085,45 @@ const InterfaceManagement: React.FC = () => {
                   <Form.Item name="_id" hidden>
                     <Input />
                   </Form.Item>
-                  {currentProject?.env && currentProject.env.length > 0 && (
-                    <Form.Item name="env" label={t('interface.run.environment')}>
-                      <Select>
-                        {currentProject.env.map((env: any) => (
-                          <Option key={env.name} value={env.name}>
-                            {env.name} - {env?.host || env?.base_url || ''}
-                          </Option>
-                        ))}
-                      </Select>
-                    </Form.Item>
+                  {runningInterface && (
+                    <Alert
+                      type="info"
+                      showIcon
+                      style={{ marginBottom: 12 }}
+                      message={t('interface.mockUrl')}
+                      description={
+                        <Paragraph copyable={{ text: getMockUrl(runningInterface) }} style={{ marginBottom: 0 }}>
+                          <Text code>{getMockUrl(runningInterface)}</Text>
+                        </Paragraph>
+                      }
+                    />
+                  )}
+                  {(testEnvironments.length > 0 || (currentProject?.env && currentProject.env.length > 0)) && (
+                    <>
+                      {testEnvironments.length > 0 && (
+                        <Form.Item name="environment_id" label={t('interface.run.testEnvironment')}>
+                          <Select
+                            allowClear
+                            placeholder={t('interface.run.selectTestEnvironment')}
+                            options={testEnvironments.map((env: any) => ({
+                              value: env._id,
+                              label: `${env.name} — ${env.base_url || ''}`,
+                            }))}
+                          />
+                        </Form.Item>
+                      )}
+                      {currentProject?.env && currentProject.env.length > 0 && (
+                        <Form.Item name="env" label={t('interface.run.environment')}>
+                          <Select allowClear placeholder={t('interface.run.legacyEnvironment')}>
+                            {currentProject.env.map((env: any) => (
+                              <Option key={env.name} value={env.name}>
+                                {env.name} - {env?.host || env?.base_url || ''}
+                              </Option>
+                            ))}
+                          </Select>
+                        </Form.Item>
+                      )}
+                    </>
                   )}
                   <Form.Item name={['params', 'query']} label={t('interface.run.query')}>
                     <TextArea rows={4} placeholder='{"key": "value"}' />
@@ -896,9 +1137,14 @@ const InterfaceManagement: React.FC = () => {
                     <TextArea rows={4} placeholder='{"Content-Type": "application/json"}' />
                   </Form.Item>
                   <Form.Item>
-                    <Button type="primary" htmlType="submit" loading={running} icon={<PlayCircleOutlined />}>
-                      {t('interface.run')}
-                    </Button>
+                    <Space>
+                      <Button type="primary" htmlType="submit" loading={running} icon={<PlayCircleOutlined />}>
+                        {t('interface.run')}
+                      </Button>
+                      <Button onClick={() => navigate(`/project/${projectId}/test`)}>
+                        {t('interface.gotoTest')}
+                      </Button>
+                    </Space>
                   </Form.Item>
                 </Form>
               ),

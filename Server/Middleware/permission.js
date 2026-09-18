@@ -107,6 +107,16 @@ async function resolveProjectId(ctx) {
     }
   }
 
+  // Resolve via DocumentVersion documentId
+  const documentId = resolveResourceId(ctx, 'documentId', 'document_id');
+  if (documentId && (path.includes('/api/docs/') || path.includes('/document'))) {
+    const DocumentVersion = (await import('../Models/DocumentVersion.js')).default;
+    const doc = await DocumentVersion.findById(documentId).select('project_id').lean();
+    if (doc?.project_id) {
+      return doc.project_id.toString();
+    }
+  }
+
   // CLI token scoped project
   if (ctx.state?.projectId) {
     return ctx.state.projectId.toString();
