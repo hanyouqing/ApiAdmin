@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: OSS Quick Start
+    url: https://github.com/hanyouqing/ApiAdmin/blob/main/Docs/QUICKSTART_OSS.md
+    about: 15-minute golden path before filing DX issues
+  - name: Sprint / roadmap checklist
+    url: https://github.com/hanyouqing/ApiAdmin/blob/main/Docs/SPRINT_6DAY_CHECKLIST.md
+    about: What is in-scope for the current OSS sprint

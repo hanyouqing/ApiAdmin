@@ -1,0 +1,13 @@
+---
+description: 6-day OSS sprint constraints for ApiAdmin
+alwaysApply: true
+---
+
+# OSS sprint (6 days / 3 people)
+
+- Positioning: open-source first; self-host + optional cloud AI; REST only this sprint.
+- AI priorities: Gen Mock (`/api/ai/generate-mock`, `mockGenerator.js`) and code-fix PR suggestions (Cloud Agent on `feat/ai-codefix`).
+- Never send secrets to cloud AI; always ship rule-based fallback.
+- Docs SoT: `Docs/QUICKSTART_OSS.md`, `Docs/SPRINT_6DAY_CHECKLIST.md`, `Docs/CLOUD_AGENT_PROMPTS.md`.
+- Do not claim GraphQL / full MeterSphere / SaaS multi-tenant as done.
+- Prefer `make start` / `make test`; commit only when asked; update `.cursor/rules` before commit+push.

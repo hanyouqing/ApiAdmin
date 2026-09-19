@@ -1,0 +1,35 @@
+name: Good first issue
+description: Small, well-scoped task for new contributors
+title: "[good first issue] "
+labels: ["good first issue"]
+body:
+  - type: dropdown
+    id: starter
+    attributes:
+      label: Suggested starter (pick one or write your own)
+      options:
+        - Nested folder UX polish for interface categories (parent_id)
+        - Preserve Postman pre-request/tests on import
+        - Spec Hub / DocumentCenter route mount + sidebar entry
+        - QUICKSTART_OSS screenshots / GIF
+        - i18n missing keys audit (en + zh-CN)
+        - GraphQL client (roadmap — larger)
+        - Other (describe below)
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Acceptance criteria
+      description: Checklist a PR must meet.
+      value: |
+        - [ ] API + UI (if user-facing) in the same change
+        - [ ] Tests or manual steps in PR description
+        - [ ] No secrets committed; no vm2
+    validations:
+      required: true
+  - type: textarea
+    id: pointers
+    attributes:
+      label: Code pointers
+      placeholder: e.g. Client/Containers/..., Server/Utils/...

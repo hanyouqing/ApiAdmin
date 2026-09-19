@@ -29,6 +29,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "cli": "node tools/apiadmin-cli.mjs",
+    "seed-demo": "node Scripts/seed-demo.mjs",
     "check:node": "node scripts/check-node-version.js",
     "fix:audit": "node scripts/fix-npm-audit.js",
     "fix:audit:simple": "bash scripts/fix-npm-audit-simple.sh",

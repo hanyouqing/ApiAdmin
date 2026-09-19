@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Card, Button, Table, Space, Modal, Form, Input, Select, Tag, message, InputNumber, Switch, Tabs, Descriptions, Typography, Collapse, Empty, Alert, List } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, PlayCircleOutlined, ApiOutlined, SearchOutlined, EyeOutlined, RobotOutlined, LinkOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, PlayCircleOutlined, ApiOutlined, SearchOutlined, EyeOutlined, RobotOutlined, LinkOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import Editor from '@monaco-editor/react';
 import Mock from '../../Utils/safeMock';
 import JSON5 from 'json5';
@@ -42,6 +42,7 @@ const InterfaceManagement: React.FC = () => {
   const [mockModalVisible, setMockModalVisible] = useState(false);
   const [editingInterface, setEditingInterface] = useState<Interface | null>(null);
   const [editingMock, setEditingMock] = useState<MockExpectation | null>(null);
+  const [aiMockLoading, setAiMockLoading] = useState(false);
   const [selectedInterfaceId, setSelectedInterfaceId] = useState<string | null>(null);
   const [runModalVisible, setRunModalVisible] = useState(false);
   const [runningInterface, setRunningInterface] = useState<Interface | null>(null);
@@ -392,6 +393,58 @@ const InterfaceManagement: React.FC = () => {
         body: '{}',
       },
     });
+  };
+
+  const handleAiGenerateMock = async (save = false) => {
+    if (!selectedInterfaceId) return;
+    setAiMockLoading(true);
+    try {
+      const res = await api.post('/ai/generate-mock', {
+        interface_id: selectedInterfaceId,
+        save,
+      });
+      const mock = res.data?.data?.mock;
+      if (!mock) {
+        message.error(t('interface.mockExpectation.aiGenerateFailed'));
+        return;
+      }
+      if (save && res.data?.data?.saved) {
+        message.success(
+          t('interface.mockExpectation.aiGenerateSaved', {
+            source: res.data.data.source || mock.source || 'rule',
+          })
+        );
+        dispatch(fetchMockExpectations(selectedInterfaceId));
+      } else {
+        setEditingMock(null);
+        mockForm.setFieldsValue({
+          interface_id: selectedInterfaceId,
+          name: mock.name,
+          enabled: mock.enabled !== false,
+          priority: mock.priority ?? 10,
+          query_filter: mock.query_filter || {},
+          body_filter: mock.body_filter || {},
+          response: {
+            status_code: mock.response?.status_code ?? 200,
+            delay: mock.response?.delay ?? 0,
+            headers: mock.response?.headers || {},
+            body:
+              typeof mock.response?.body === 'string'
+                ? mock.response.body
+                : JSON.stringify(mock.response?.body ?? {}, null, 2),
+          },
+        });
+        message.success(
+          t('interface.mockExpectation.aiGenerateFilled', {
+            source: mock.source || 'rule',
+          })
+        );
+      }
+    } catch (error: any) {
+      message.error(error.response?.data?.message || t('interface.mockExpectation.aiGenerateFailed'));
+    } finally {
+      setAiMockLoading(false);
+    }
   };
 
   const handleEditMock = (record: MockExpectation) => {
@@ -943,14 +996,29 @@ const InterfaceManagement: React.FC = () => {
               label: t('interface.mockExpectation.title'),
               children: (
                 <div>
-                  <Button
-                    type="primary"
-                    icon={<PlusOutlined />}
-                    onClick={handleCreateMock}
-                    style={{ marginBottom: 16 }}
-                  >
-                    {t('interface.mockExpectation.create')}
-                  </Button>
+                  <Space style={{ marginBottom: 16 }}>
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      onClick={handleCreateMock}
+                    >
+                      {t('interface.mockExpectation.create')}
+                    </Button>
+                    <Button
+                      icon={<ThunderboltOutlined />}
+                      loading={aiMockLoading}
+                      onClick={() => handleAiGenerateMock(false)}
+                    >
+                      {t('interface.mockExpectation.aiGenerate')}
+                    </Button>
+                    <Button
+                      icon={<ThunderboltOutlined />}
+                      loading={aiMockLoading}
+                      onClick={() => handleAiGenerateMock(true)}
+                    >
+                      {t('interface.mockExpectation.aiGenerateAndSave')}
+                    </Button>
+                  </Space>
                   <Table
                     columns={[
                       {

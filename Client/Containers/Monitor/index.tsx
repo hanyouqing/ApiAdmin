@@ -52,6 +52,9 @@ const MonitorsPage: React.FC = () => {
   const [runs, setRuns] = useState<any[]>([]);
   const [runsLoading, setRunsLoading] = useState(false);
   const [activeMonitor, setActiveMonitor] = useState<any | null>(null);
+  const [codeFixLoading, setCodeFixLoading] = useState(false);
+  const [codeFixVisible, setCodeFixVisible] = useState(false);
+  const [codeFixResult, setCodeFixResult] = useState<any>(null);
 
   const fetchProjects = useCallback(async () => {
     try {
@@ -245,6 +248,32 @@ const MonitorsPage: React.FC = () => {
     }
   };
 
+  const suggestFixForRun = async (run: any, createDraftPr = false) => {
+    setCodeFixLoading(true);
+    try {
+      const res = await api.post('/ai/suggest-code-fix', {
+        run_type: 'monitor',
+        run_id: run._id,
+        project_id: projectId || run.project_id,
+        create_draft_pr: createDraftPr,
+      });
+      setCodeFixResult(res.data?.data || null);
+      setCodeFixVisible(true);
+      if (createDraftPr) {
+        const pr = res.data?.data?.pull_request;
+        if (pr?.url) messageApi.success(t('codeFix.prCreated'));
+        else if (pr?.error) messageApi.warning(pr.error);
+        else messageApi.info(t('codeFix.prUnavailable'));
+      } else {
+        messageApi.success(t('codeFix.success'));
+      }
+    } catch (error: any) {
+      messageApi.error(error.response?.data?.message || t('codeFix.failed'));
+    } finally {
+      setCodeFixLoading(false);
+    }
+  };
+
   const columns = [
     { title: t('monitor.name'), dataIndex: 'name', key: 'name' },
     {
@@ -421,6 +450,22 @@ const MonitorsPage: React.FC = () => {
             },
             { title: 'ms', dataIndex: 'duration', width: 80 },
             { title: t('monitor.message'), dataIndex: 'message', ellipsis: true },
+            {
+              title: t('common.actions') || '操作',
+              key: 'fix',
+              width: 120,
+              render: (_: any, record: any) =>
+                record.status === 'passing' ? null : (
+                  <Button
+                    size="small"
+                    type="link"
+                    loading={codeFixLoading}
+                    onClick={() => suggestFixForRun(record, false)}
+                  >
+                    {t('codeFix.suggest')}
+                  </Button>
+                ),
+            },
           ]}
           expandable={{
             expandedRowRender: (record) => (
@@ -440,6 +485,49 @@ const MonitorsPage: React.FC = () => {
           }}
         />
       </Drawer>
+
+      <Modal
+        title={t('codeFix.title')}
+        open={codeFixVisible}
+        onCancel={() => setCodeFixVisible(false)}
+        width={900}
+        footer={
+          <Space>
+            <Button
+              loading={codeFixLoading}
+              disabled={!codeFixResult?.run_id}
+              onClick={() =>
+                codeFixResult?.run_id &&
+                suggestFixForRun({ _id: codeFixResult.run_id, project_id: codeFixResult.project_id }, true)
+              }
+            >
+              {t('codeFix.createDraftPr')}
+            </Button>
+            <Button type="primary" onClick={() => setCodeFixVisible(false)}>
+              {t('common.close') || 'Close'}
+            </Button>
+          </Space>
+        }
+      >
+        {codeFixResult && (
+          <div>
+            <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
+              <Tag>{codeFixResult.source}</Tag>
+              {codeFixResult.summary}
+            </Text>
+            {codeFixResult.pull_request?.url && (
+              <a href={codeFixResult.pull_request.url} target="_blank" rel="noreferrer">
+                {codeFixResult.pull_request.url}
+              </a>
+            )}
+            {(codeFixResult.files || []).map((file: any) => (
+              <Card key={file.path} size="small" title={file.path} style={{ marginBottom: 12 }}>
+                <pre style={{ maxHeight: 260, overflow: 'auto', margin: 0 }}>{file.diff}</pre>
+              </Card>
+            ))}
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

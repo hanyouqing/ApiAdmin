@@ -1,4 +1,4 @@
-.PHONY: help build run test test-coverage test-verbose test-package e2e demo-lifecycle swagger migrate migrate-status migrate-down clean frontend backend start backup restore config-backup config-restore deps install fmt lint check docker docker-up docker-down audit
+.PHONY: help build run test test-coverage test-verbose test-package e2e demo-lifecycle swagger migrate migrate-status migrate-down clean frontend backend start backup restore config-backup config-restore deps install seed-demo fmt lint check docker docker-up docker-down audit
 
 .DEFAULT_GOAL := help
 
@@ -17,6 +17,10 @@ install:
 	SKIP_PREINSTALL=true npm install
 	cd Client && npm install
 	cd Server && PUPPETEER_SKIP_DOWNLOAD=true npm install
+
+# Seed demo user/group/project + import examples/openapi-petstore-mini.json
+seed-demo:
+	node Scripts/seed-demo.mjs
 
 # Alias of install
 deps: install
