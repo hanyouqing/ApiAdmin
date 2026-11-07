@@ -1,6 +1,24 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Card, Button, Table, Space, Modal, Form, Input, Select, Tag, App, InputNumber } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, SearchOutlined } from '@ant-design/icons';
+import {
+  Card,
+  Button,
+  Table,
+  Space,
+  Modal,
+  Form,
+  Input,
+  Select,
+  Tag,
+  App,
+  InputNumber,
+} from 'antd';
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  EyeOutlined,
+  SearchOutlined,
+} from '@ant-design/icons';
 import { useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -49,7 +67,10 @@ const InterfaceManagement: React.FC = () => {
       if (message) {
         message.error(error.response?.data?.message || t('admin.project.fetchFailed'));
       } else {
-        console.error('获取项目列表失败:', error.response?.data?.message || t('admin.project.fetchFailed'));
+        console.error(
+          '获取项目列表失败:',
+          error.response?.data?.message || t('admin.project.fetchFailed')
+        );
       }
     }
   };
@@ -66,12 +87,8 @@ const InterfaceManagement: React.FC = () => {
       setAllInterfaces(interfacesList);
       setInterfaces(interfacesList);
     } catch (error: any) {
-      console.error('获取接口列表失败:', error);
-      if (message) {
-        message.error(error.response?.data?.message || t('admin.interface.fetchFailed'));
-      } else {
-        console.error('获取接口列表失败:', error.response?.data?.message || t('admin.interface.fetchFailed'));
-      }
+      // api interceptor already toasts HTTP errors; avoid duplicate noisy messages
+      console.error('获取接口列表失败:', error?.message || error);
       setAllInterfaces([]);
       setInterfaces([]);
     } finally {
@@ -90,19 +107,20 @@ const InterfaceManagement: React.FC = () => {
     let filtered = allInterfaces;
     if (searchText) {
       filtered = filtered.filter(
-        (item) =>
+        item =>
           item.title.toLowerCase().includes(searchText.toLowerCase()) ||
           item.path.toLowerCase().includes(searchText.toLowerCase())
       );
     }
     if (projectFilter) {
-      filtered = filtered.filter((item) => {
-        const projectId = typeof item.project_id === 'object' ? item.project_id._id : item.project_id;
+      filtered = filtered.filter(item => {
+        const projectId =
+          typeof item.project_id === 'object' ? item.project_id._id : item.project_id;
         return projectId === projectFilter;
       });
     }
     if (statusFilter) {
-      filtered = filtered.filter((item) => item.status === statusFilter);
+      filtered = filtered.filter(item => item.status === statusFilter);
     }
     setInterfaces(filtered);
   }, [searchText, projectFilter, statusFilter, allInterfaces]);
@@ -140,7 +158,10 @@ const InterfaceManagement: React.FC = () => {
           if (message) {
             message.error(error.response?.data?.message || t('admin.interface.deleteFailed'));
           } else {
-            console.error('删除接口失败:', error.response?.data?.message || t('admin.interface.deleteFailed'));
+            console.error(
+              '删除接口失败:',
+              error.response?.data?.message || t('admin.interface.deleteFailed')
+            );
           }
         }
       },
@@ -164,12 +185,19 @@ const InterfaceManagement: React.FC = () => {
           if (message) {
             const data = response.data?.data;
             if (data?.failed > 0) {
-              message.warning(response.data?.message || t('admin.interface.batchDeletePartialSuccess', { 
-                success: data.deleted, 
-                failed: data.failed 
-              }));
+              message.warning(
+                response.data?.message ||
+                  t('admin.interface.batchDeletePartialSuccess', {
+                    success: data.deleted,
+                    failed: data.failed,
+                  })
+              );
             } else {
-              message.success(t('admin.interface.batchDeleteSuccess', { count: data?.deleted || selectedRowKeys.length }));
+              message.success(
+                t('admin.interface.batchDeleteSuccess', {
+                  count: data?.deleted || selectedRowKeys.length,
+                })
+              );
             }
           }
           setSelectedRowKeys([]);
@@ -178,7 +206,10 @@ const InterfaceManagement: React.FC = () => {
           if (message) {
             message.error(error.response?.data?.message || t('admin.interface.batchDeleteFailed'));
           } else {
-            console.error('批量删除接口失败:', error.response?.data?.message || t('admin.interface.batchDeleteFailed'));
+            console.error(
+              '批量删除接口失败:',
+              error.response?.data?.message || t('admin.interface.batchDeleteFailed')
+            );
           }
         }
       },
@@ -206,7 +237,10 @@ const InterfaceManagement: React.FC = () => {
       if (message) {
         message.error(error.response?.data?.message || t('admin.interface.operationFailed'));
       } else {
-        console.error('操作失败:', error.response?.data?.message || t('admin.interface.operationFailed'));
+        console.error(
+          '操作失败:',
+          error.response?.data?.message || t('admin.interface.operationFailed')
+        );
       }
     }
   };
@@ -268,7 +302,8 @@ const InterfaceManagement: React.FC = () => {
       key: 'action',
       width: 200,
       render: (_: any, record: Interface) => {
-        const projectId = typeof record.project_id === 'object' ? record.project_id._id : record.project_id;
+        const projectId =
+          typeof record.project_id === 'object' ? record.project_id._id : record.project_id;
         return (
           <Space>
             <Button
@@ -281,7 +316,12 @@ const InterfaceManagement: React.FC = () => {
             <Button type="link" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
               {t('common.edit')}
             </Button>
-            <Button type="link" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record._id)}>
+            <Button
+              type="link"
+              danger
+              icon={<DeleteOutlined />}
+              onClick={() => handleDelete(record._id)}
+            >
               {t('common.delete')}
             </Button>
           </Space>
@@ -295,7 +335,12 @@ const InterfaceManagement: React.FC = () => {
       <Card
         title={t('admin.interface.title')}
         extra={
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate} style={{ color: '#ffffff' }}>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={handleCreate}
+            style={{ color: '#ffffff' }}
+          >
             {t('admin.interface.create')}
           </Button>
         }
@@ -306,7 +351,7 @@ const InterfaceManagement: React.FC = () => {
               placeholder={t('admin.interface.searchPlaceholder')}
               prefix={<SearchOutlined />}
               value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
+              onChange={e => setSearchText(e.target.value)}
               style={{ width: 200 }}
               allowClear
             />
@@ -336,24 +381,20 @@ const InterfaceManagement: React.FC = () => {
               <Option value="online">{t('interface.status.online')}</Option>
             </Select>
             {selectedRowKeys.length > 0 && (
-              <Button
-                danger
-                icon={<DeleteOutlined />}
-                onClick={handleBatchDelete}
-              >
+              <Button danger icon={<DeleteOutlined />} onClick={handleBatchDelete}>
                 {t('admin.interface.batchDelete', { count: selectedRowKeys.length })}
               </Button>
             )}
           </Space>
         </Space>
-        <Table 
-          columns={columns} 
-          dataSource={interfaces || []} 
-          rowKey="_id" 
+        <Table
+          columns={columns}
+          dataSource={interfaces || []}
+          rowKey="_id"
           loading={loading}
           rowSelection={{
             selectedRowKeys,
-            onChange: (newSelectedRowKeys) => {
+            onChange: newSelectedRowKeys => {
               setSelectedRowKeys(newSelectedRowKeys);
             },
           }}
@@ -429,4 +470,3 @@ const InterfaceManagement: React.FC = () => {
 };
 
 export default InterfaceManagement;
-
