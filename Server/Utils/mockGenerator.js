@@ -14,7 +14,7 @@ export function isSecretKey(key) {
 export function redactSecretsDeep(value, depth = 0) {
   if (depth > 8 || value == null) return value;
   if (Array.isArray(value)) {
-    return value.map((item) => redactSecretsDeep(item, depth + 1));
+    return value.map(item => redactSecretsDeep(item, depth + 1));
   }
   if (typeof value === 'object') {
     const out = {};
@@ -70,12 +70,11 @@ function exampleFromResBody(interfaceData) {
 
 /**
  * @param {object} interfaceData
- * @returns {{ name, query_filter, body_filter, response, enabled, priority, source }}
+ * @returns {{ name: string, query_filter: object, body_filter: object, ip_filter: string, response: object, enabled: boolean, priority: number, source: string }}
  */
 export function buildRuleBasedMock(interfaceData = {}) {
   const bodyObj = exampleFromResBody(interfaceData);
-  const body =
-    typeof bodyObj === 'string' ? bodyObj : JSON.stringify(bodyObj, null, 2);
+  const body = typeof bodyObj === 'string' ? bodyObj : JSON.stringify(bodyObj, null, 2);
 
   return {
     name: `AI Mock — ${interfaceData.title || interfaceData.path || 'default'}`,
@@ -95,9 +94,9 @@ export function buildRuleBasedMock(interfaceData = {}) {
 }
 
 export function sanitizeInterfaceForPrompt(interfaceData = {}) {
-  const scrubParamList = (list) => {
+  const scrubParamList = list => {
     if (!Array.isArray(list)) return list;
-    return list.map((item) => {
+    return list.map(item => {
       if (!item || typeof item !== 'object') return item;
       const name = item.name || item.key || '';
       if (isSecretKey(name)) {

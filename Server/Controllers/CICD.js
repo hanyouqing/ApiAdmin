@@ -7,10 +7,10 @@ import TestCollection from '../Models/TestCollection.js';
 import { SwaggerImporter } from '../Utils/importers/SwaggerImporter.js';
 import Project from '../Models/Project.js';
 import { formatJUnitXML, formatAllureJSON } from '../Utils/reportFormatters.js';
-import { assertSafeOutboundUrl } from '../Utils/security.js';
-
 class CICDController extends BaseController {
-  static get ControllerName() { return 'CICDController'; }
+  static get ControllerName() {
+    return 'CICDController';
+  }
 
   static async generateCLIToken(ctx) {
     try {
@@ -47,15 +47,18 @@ class CICDController extends BaseController {
 
       logger.info({ userId: user._id, tokenId: cliToken._id }, 'CLI token generated');
 
-      ctx.body = CICDController.success({
-        id: cliToken._id,
-        token: rawToken,
-        tokenPrefix: cliToken.tokenPrefix,
-        name: cliToken.name,
-        projectId: cliToken.projectId,
-        expiresAt: cliToken.expiresAt,
-        createdAt: cliToken.createdAt,
-      }, 'CLI Token 生成成功（仅显示一次）');
+      ctx.body = CICDController.success(
+        {
+          id: cliToken._id,
+          token: rawToken,
+          tokenPrefix: cliToken.tokenPrefix,
+          name: cliToken.name,
+          projectId: cliToken.projectId,
+          expiresAt: cliToken.expiresAt,
+          createdAt: cliToken.createdAt,
+        },
+        'CLI Token 生成成功（仅显示一次）'
+      );
     } catch (error) {
       logger.error({ error }, 'Generate CLI token error');
       ctx.status = 500;
@@ -197,9 +200,7 @@ class CICDController extends BaseController {
       logger.error({ error }, 'Run test via CLI error');
       ctx.status = 500;
       ctx.body = CICDController.error(
-        process.env.NODE_ENV === 'production'
-          ? '执行测试失败'
-          : error.message || '执行测试失败'
+        process.env.NODE_ENV === 'production' ? '执行测试失败' : error.message || '执行测试失败'
       );
     }
   }
@@ -242,7 +243,7 @@ class CICDController extends BaseController {
         environment_id: environment?._id || null,
         status: 'running',
         summary: {
-          total: task.test_cases.filter((tc) => tc.enabled).length * (iteration_data?.length || 1),
+          total: task.test_cases.filter(tc => tc.enabled).length * (iteration_data?.length || 1),
           passed: 0,
           failed: 0,
           error: 0,
@@ -269,7 +270,7 @@ class CICDController extends BaseController {
           exitCode: failed > 0 ? 1 : 0,
         });
       } else {
-        runPromise.catch((error) => {
+        runPromise.catch(error => {
           logger.error({ error, taskId, resultId: testResult._id }, 'Pipeline CI run error');
         });
         ctx.body = CICDController.success({
@@ -282,9 +283,7 @@ class CICDController extends BaseController {
       logger.error({ error }, 'Run pipeline via CLI error');
       ctx.status = 500;
       ctx.body = CICDController.error(
-        process.env.NODE_ENV === 'production'
-          ? '执行流水线失败'
-          : error.message || '执行流水线失败'
+        process.env.NODE_ENV === 'production' ? '执行流水线失败' : error.message || '执行流水线失败'
       );
     }
   }
@@ -320,30 +319,30 @@ class CICDController extends BaseController {
         return;
       }
 
-      const safeUrl = assertSafeOutboundUrl(url);
-      const response = await fetch(safeUrl);
-      if (!response.ok) {
-        ctx.status = 400;
-        ctx.body = CICDController.error('无法获取 Swagger 文档');
-        return;
-      }
-
-      const swaggerData = await response.json();
+      const { fetchSwaggerSpec } = await import('../Utils/swaggerSpecFetch.js');
+      const fetched = await fetchSwaggerSpec(url);
 
       const importer = new SwaggerImporter();
-      const result = await importer.import(swaggerData, {
+      const result = await importer.import(fetched.data, {
         projectId,
         userId: ctx.state.user?._id || null,
         mode,
       });
 
-      logger.info({ projectId, url: safeUrl, result }, 'Swagger synced via CLI');
+      logger.info(
+        { projectId, url: fetched.url, source: fetched.source, result },
+        'Swagger synced via CLI'
+      );
 
-      ctx.body = CICDController.success({
-        importedCount: result.importedCount || 0,
-        updatedCount: result.updatedCount || 0,
-        failedCount: result.failedCount || 0,
-      }, 'Swagger 同步完成');
+      ctx.body = CICDController.success(
+        {
+          importedCount: result.importedCount || 0,
+          updatedCount: result.updatedCount || 0,
+          failedCount: result.failedCount || 0,
+          url: fetched.url,
+        },
+        'Swagger 同步完成'
+      );
     } catch (error) {
       logger.error({ error }, 'Sync Swagger via CLI error');
       ctx.status = 500;

@@ -8,7 +8,9 @@ import TestResult from '../Models/TestResult.js';
 import Project from '../Models/Project.js';
 
 class TestController extends BaseController {
-  static get ControllerName() { return 'TestController'; }
+  static get ControllerName() {
+    return 'TestController';
+  }
   static async listCollections(ctx) {
     try {
       const user = ctx.state.user;
@@ -135,9 +137,7 @@ class TestController extends BaseController {
       logger.error({ error }, 'Create test collection error');
       ctx.status = 500;
       ctx.body = TestController.error(
-        process.env.NODE_ENV === 'production'
-          ? '创建失败'
-          : error.message || '创建失败'
+        process.env.NODE_ENV === 'production' ? '创建失败' : error.message || '创建失败'
       );
     }
   }
@@ -196,9 +196,7 @@ class TestController extends BaseController {
       logger.error({ error }, 'Update test collection error');
       ctx.status = 500;
       ctx.body = TestController.error(
-        process.env.NODE_ENV === 'production'
-          ? '更新失败'
-          : error.message || '更新失败'
+        process.env.NODE_ENV === 'production' ? '更新失败' : error.message || '更新失败'
       );
     }
   }
@@ -238,9 +236,7 @@ class TestController extends BaseController {
       logger.error({ error }, 'Delete test collection error');
       ctx.status = 500;
       ctx.body = TestController.error(
-        process.env.NODE_ENV === 'production'
-          ? '删除失败'
-          : error.message || '删除失败'
+        process.env.NODE_ENV === 'production' ? '删除失败' : error.message || '删除失败'
       );
     }
   }
@@ -248,7 +244,8 @@ class TestController extends BaseController {
   static async createTestCase(ctx) {
     try {
       const user = ctx.state.user;
-      const { collection_id, interface_id, name, description, request, assertion_script, order } = ctx.request.body;
+      const { collection_id, interface_id, name, description, request, assertion_script, order } =
+        ctx.request.body;
 
       if (!validateObjectId(collection_id)) {
         ctx.status = 400;
@@ -299,9 +296,7 @@ class TestController extends BaseController {
       logger.error({ error }, 'Create test case error');
       ctx.status = 500;
       ctx.body = TestController.error(
-        process.env.NODE_ENV === 'production'
-          ? '创建失败'
-          : error.message || '创建失败'
+        process.env.NODE_ENV === 'production' ? '创建失败' : error.message || '创建失败'
       );
     }
   }
@@ -359,9 +354,64 @@ class TestController extends BaseController {
       logger.error({ error }, 'Update test case error');
       ctx.status = 500;
       ctx.body = TestController.error(
-        process.env.NODE_ENV === 'production'
-          ? '更新失败'
-          : error.message || '更新失败'
+        process.env.NODE_ENV === 'production' ? '更新失败' : error.message || '更新失败'
+      );
+    }
+  }
+
+  /** Sync CASE request from linked interface definition (MeterSphere-style). */
+  static async syncCaseFromInterface(ctx) {
+    try {
+      const user = ctx.state.user;
+      const { id } = ctx.params;
+
+      if (!validateObjectId(id)) {
+        ctx.status = 400;
+        ctx.body = TestController.error('无效的测试用例ID');
+        return;
+      }
+
+      const testCase = await TestCase.findById(id);
+      if (!testCase) {
+        ctx.status = 404;
+        ctx.body = TestController.error('测试用例不存在');
+        return;
+      }
+
+      if (testCase.uid.toString() !== user._id.toString() && user.role !== 'super_admin') {
+        ctx.status = 403;
+        ctx.body = TestController.error('无权限同步此测试用例');
+        return;
+      }
+
+      const Interface = (await import('../Models/Interface.js')).default;
+      const iface = await Interface.findById(testCase.interface_id);
+      if (!iface) {
+        ctx.status = 404;
+        ctx.body = TestController.error('关联接口不存在');
+        return;
+      }
+
+      const { buildRequestFromInterface } = await import('../Utils/caseSync.js');
+      testCase.request = buildRequestFromInterface(iface);
+      if (iface.pre_request_script) {
+        testCase.pre_request_script = iface.pre_request_script;
+      }
+      if (iface.test_script) {
+        testCase.assertion_script = iface.test_script;
+      }
+      await testCase.save();
+
+      logger.info(
+        { userId: user._id, testCaseId: testCase._id, interfaceId: iface._id },
+        'Test case synced from interface'
+      );
+      ctx.body = TestController.success(testCase, '已从接口定义同步');
+    } catch (error) {
+      logger.error({ error }, 'Sync test case from interface error');
+      ctx.status = 500;
+      ctx.body = TestController.error(
+        process.env.NODE_ENV === 'production' ? '同步失败' : error.message || '同步失败'
       );
     }
   }
@@ -395,9 +445,7 @@ class TestController extends BaseController {
 
       const collection = await TestCollection.findById(testCase.collection_id);
       if (collection) {
-        collection.test_cases = collection.test_cases.filter(
-          (tcId) => tcId.toString() !== id
-        );
+        collection.test_cases = collection.test_cases.filter(tcId => tcId.toString() !== id);
         await collection.save();
       }
 
@@ -408,9 +456,7 @@ class TestController extends BaseController {
       logger.error({ error }, 'Delete test case error');
       ctx.status = 500;
       ctx.body = TestController.error(
-        process.env.NODE_ENV === 'production'
-          ? '删除失败'
-          : error.message || '删除失败'
+        process.env.NODE_ENV === 'production' ? '删除失败' : error.message || '删除失败'
       );
     }
   }
@@ -454,7 +500,10 @@ class TestController extends BaseController {
         await testResult.save();
       }
 
-      logger.info({ userId: user._id, collectionId: collection_id }, 'Test collection run completed');
+      logger.info(
+        { userId: user._id, collectionId: collection_id },
+        'Test collection run completed'
+      );
 
       // 如果测试失败，发送通知
       if (report.failed > 0 || report.errors > 0) {
@@ -477,10 +526,13 @@ class TestController extends BaseController {
             completed_at: report.runAt || new Date(),
             duration: report.duration || 0,
           };
-          
+
           // 异步发送通知，不阻塞响应
-          sendTestFailureNotification(user, mockTask, mockResult).catch((error) => {
-            logger.error({ error, userId: user._id, collectionId: collection_id }, 'Failed to send test failure notification');
+          sendTestFailureNotification(user, mockTask, mockResult).catch(error => {
+            logger.error(
+              { error, userId: user._id, collectionId: collection_id },
+              'Failed to send test failure notification'
+            );
           });
         } catch (error) {
           logger.error({ error, userId: user._id }, 'Error sending test failure notification');
@@ -492,9 +544,7 @@ class TestController extends BaseController {
       logger.error({ error }, 'Run test error');
       ctx.status = 500;
       ctx.body = TestController.error(
-        process.env.NODE_ENV === 'production'
-          ? '测试执行失败'
-          : error.message || '测试执行失败'
+        process.env.NODE_ENV === 'production' ? '测试执行失败' : error.message || '测试执行失败'
       );
     }
   }
@@ -597,7 +647,9 @@ class TestController extends BaseController {
       // 测试集合统计
       const totalCollections = await TestCollection.countDocuments(query);
       const totalTestCases = await TestCase.countDocuments(
-        project_id ? { collection_id: { $in: await TestCollection.find({ project_id }).distinct('_id') } } : {}
+        project_id
+          ? { collection_id: { $in: await TestCollection.find({ project_id }).distinct('_id') } }
+          : {}
       );
 
       // 测试结果统计
@@ -621,7 +673,7 @@ class TestController extends BaseController {
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
       const trendQuery = { ...resultQuery, run_at: { $gte: sevenDaysAgo } };
-      
+
       const trendData = await TestResult.aggregate([
         { $match: trendQuery },
         {
@@ -759,4 +811,3 @@ class TestController extends BaseController {
 }
 
 export default TestController;
-

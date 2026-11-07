@@ -18,7 +18,7 @@ const Activity: React.FC = () => {
   // 从路由路径中提取 projectId
   const projectId = useMemo(() => {
     const routeKeywords = ['interface', 'test', 'setting', 'activity'];
-    
+
     if (params.projectId) {
       // 如果 params.projectId 是路由关键字，返回空
       if (routeKeywords.includes(params.projectId)) {
@@ -26,7 +26,7 @@ const Activity: React.FC = () => {
       }
       return params.projectId;
     }
-    
+
     // 从 URL 路径中提取：/project/:projectId/activity
     const pathMatch = location.pathname.match(/\/project\/([^/]+)/);
     if (pathMatch && pathMatch[1]) {
@@ -42,12 +42,14 @@ const Activity: React.FC = () => {
 
   useEffect(() => {
     // 确保 projectId 有效且不是路由关键字
-    if (projectId && 
-        projectId !== 'interface' && 
-        projectId !== 'test' && 
-        projectId !== 'setting' && 
-        projectId !== 'activity' &&
-        projectId.length > 0) {
+    if (
+      projectId &&
+      projectId !== 'interface' &&
+      projectId !== 'test' &&
+      projectId !== 'setting' &&
+      projectId !== 'activity' &&
+      projectId.length > 0
+    ) {
       fetchActivities();
     }
   }, [projectId]);
@@ -103,7 +105,9 @@ const Activity: React.FC = () => {
           renderItem={(activity: any) => (
             <List.Item>
               <List.Item.Meta
-                avatar={<Avatar src={getAvatarUrl(activity.user_id?.avatar)} icon={<UserOutlined />} />}
+                avatar={
+                  <Avatar src={getAvatarUrl(activity.user_id?.avatar)} icon={<UserOutlined />} />
+                }
                 title={
                   <Space>
                     <Text strong>{activity.user_id?.username || 'Unknown'}</Text>

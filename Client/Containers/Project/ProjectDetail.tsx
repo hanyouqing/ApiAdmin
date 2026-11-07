@@ -46,11 +46,7 @@ const ProjectDetail: React.FC = () => {
   }, [params.projectId, location.pathname, currentProject?._id]);
 
   useEffect(() => {
-    if (
-      projectId &&
-      !routeKeywords.includes(projectId) &&
-      projectId.length > 0
-    ) {
+    if (projectId && !routeKeywords.includes(projectId) && projectId.length > 0) {
       dispatch(fetchProjectDetail(projectId));
     }
   }, [dispatch, projectId]);

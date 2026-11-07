@@ -1,10 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Button, Table, Space, Modal, Form, Input, Select, Tag, message } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, EnvironmentOutlined } from '@ant-design/icons';
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  EyeOutlined,
+  EnvironmentOutlined,
+} from '@ant-design/icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { fetchProjects, createProject, deleteProject, updateProject } from '../../Reducer/Modules/Project';
+import {
+  fetchProjects,
+  createProject,
+  deleteProject,
+  updateProject,
+} from '../../Reducer/Modules/Project';
 import { fetchGroups } from '../../Reducer/Modules/Group';
 import { api } from '../../Utils/api';
 import type { AppDispatch, RootState } from '../../Reducer/Create';
@@ -125,7 +136,7 @@ const ProjectList: React.FC = () => {
       title: t('common.createdAt'),
       dataIndex: 'created_at',
       key: 'created_at',
-      render: (text: string) => text ? new Date(text).toLocaleString() : '-',
+      render: (text: string) => (text ? new Date(text).toLocaleString() : '-'),
     },
     {
       title: t('common.operation'),
@@ -140,11 +151,7 @@ const ProjectList: React.FC = () => {
           >
             {t('common.view')}
           </Button>
-          <Button
-            type="link"
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-          >
+          <Button type="link" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
             {t('common.edit')}
           </Button>
           <Button
@@ -165,7 +172,12 @@ const ProjectList: React.FC = () => {
       <Card
         title={t('project.title')}
         extra={
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate} style={{ color: '#ffffff' }}>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={handleCreate}
+            style={{ color: '#ffffff' }}
+          >
             {t('project.create')}
           </Button>
         }
@@ -200,7 +212,7 @@ const ProjectList: React.FC = () => {
             rules={[{ required: true, message: t('project.groupRequired') }]}
           >
             <Select placeholder={t('project.groupPlaceholder')} disabled={!!editingProject}>
-              {groups.map((group) => (
+              {groups.map(group => (
                 <Select.Option key={group._id} value={group._id}>
                   {group.group_name}
                 </Select.Option>
@@ -230,4 +242,3 @@ const ProjectList: React.FC = () => {
 };
 
 export default ProjectList;
-

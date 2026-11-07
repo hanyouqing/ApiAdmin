@@ -13,7 +13,12 @@ import {
   App,
   Alert,
 } from 'antd';
-import { FileTextOutlined, CloudUploadOutlined, EyeOutlined, ReloadOutlined } from '@ant-design/icons';
+import {
+  FileTextOutlined,
+  CloudUploadOutlined,
+  EyeOutlined,
+  ReloadOutlined,
+} from '@ant-design/icons';
 import { useParams, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
@@ -207,12 +212,7 @@ const Docs: React.FC = () => {
           </Space>
         }
       >
-        <Alert
-          type="info"
-          showIcon
-          style={{ marginBottom: 16 }}
-          message={t('docs.hint')}
-        />
+        <Alert type="info" showIcon style={{ marginBottom: 16 }} message={t('docs.hint')} />
 
         {published ? (
           <Descriptions bordered size="small" column={2} style={{ marginBottom: 16 }}>
@@ -220,19 +220,14 @@ const Docs: React.FC = () => {
               {published.version}
             </Descriptions.Item>
             <Descriptions.Item label={t('docs.publishedAt')}>
-              {published.published_at
-                ? new Date(published.published_at).toLocaleString()
-                : '-'}
+              {published.published_at ? new Date(published.published_at).toLocaleString() : '-'}
             </Descriptions.Item>
             <Descriptions.Item label={t('docs.title')} span={2}>
               {published.title}
             </Descriptions.Item>
           </Descriptions>
         ) : (
-          <Empty
-            style={{ marginBottom: 16 }}
-            description={t('docs.noPublished')}
-          />
+          <Empty style={{ marginBottom: 16 }} description={t('docs.noPublished')} />
         )}
 
         <Table
@@ -269,7 +264,7 @@ const Docs: React.FC = () => {
               <Empty description={t('docs.noInterfaces')} />
             ) : (
               <Collapse
-                items={previewInterfaces.map((iface) => ({
+                items={previewInterfaces.map(iface => ({
                   key: iface.id,
                   label: (
                     <Space>
@@ -278,9 +273,7 @@ const Docs: React.FC = () => {
                       <Text>{iface.title}</Text>
                     </Space>
                   ),
-                  children: (
-                    <Paragraph>{iface.description || t('docs.noDescription')}</Paragraph>
-                  ),
+                  children: <Paragraph>{iface.description || t('docs.noDescription')}</Paragraph>,
                 }))}
               />
             )}

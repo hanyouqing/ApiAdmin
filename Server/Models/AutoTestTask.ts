@@ -1,7 +1,11 @@
 import mongoose, { Schema, Model } from 'mongoose';
 
+export type AutoTestStepType = 'request' | 'wait' | 'if' | 'endif';
+
 export interface IAutoTestTestCase {
-  interface_id: Schema.Types.ObjectId;
+  step_type: AutoTestStepType;
+  step_name: string;
+  interface_id?: Schema.Types.ObjectId | null;
   order: number;
   enabled: boolean;
   custom_headers: any;
@@ -10,6 +14,14 @@ export interface IAutoTestTestCase {
   query_params: any;
   assertion_script: string;
   pre_request_script: string;
+  wait_ms: number;
+  condition: string;
+  loop_count: number;
+}
+
+export interface IAutoTestPassThreshold {
+  min_pass_rate: number;
+  treat_error_as_fail: boolean;
 }
 
 export interface IAutoTestTask {
@@ -20,6 +32,7 @@ export interface IAutoTestTask {
   environment_id: Schema.Types.ObjectId | null;
   common_headers: any;
   base_url: string;
+  pass_threshold: IAutoTestPassThreshold;
   schedule: {
     enabled: boolean;
     cron: string;
@@ -63,10 +76,21 @@ const autoTestTaskSchema = new Schema<IAutoTestTask>(
     },
     test_cases: [
       {
+        step_type: {
+          type: String,
+          enum: ['request', 'wait', 'if', 'endif'],
+          default: 'request',
+        },
+        step_name: {
+          type: String,
+          default: '',
+          trim: true,
+        },
         interface_id: {
           type: Schema.Types.ObjectId,
           ref: 'Interface',
-          required: true,
+          required: false,
+          default: null,
         },
         order: {
           type: Number,
@@ -100,6 +124,18 @@ const autoTestTaskSchema = new Schema<IAutoTestTask>(
           type: String,
           default: '',
         },
+        wait_ms: {
+          type: Number,
+          default: 0,
+        },
+        condition: {
+          type: String,
+          default: '',
+        },
+        loop_count: {
+          type: Number,
+          default: 1,
+        },
       },
     ],
     environment_id: {
@@ -115,6 +151,18 @@ const autoTestTaskSchema = new Schema<IAutoTestTask>(
       type: String,
       default: '',
       trim: true,
+    },
+    pass_threshold: {
+      min_pass_rate: {
+        type: Number,
+        default: 100,
+        min: 0,
+        max: 100,
+      },
+      treat_error_as_fail: {
+        type: Boolean,
+        default: true,
+      },
     },
     schedule: {
       enabled: {
@@ -188,6 +236,9 @@ const autoTestTaskSchema = new Schema<IAutoTestTask>(
 autoTestTaskSchema.index({ project_id: 1, enabled: 1 });
 autoTestTaskSchema.index({ 'schedule.enabled': 1 });
 
-const AutoTestTask = mongoose.model<IAutoTestTask, AutoTestTaskModel>('AutoTestTask', autoTestTaskSchema);
+const AutoTestTask = mongoose.model<IAutoTestTask, AutoTestTaskModel>(
+  'AutoTestTask',
+  autoTestTaskSchema
+);
 
 export default AutoTestTask;

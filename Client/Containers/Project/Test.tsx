@@ -1,6 +1,30 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Button, Table, Space, Modal, Form, Input, Select, Tag, message, Switch, InputNumber, Tabs, Descriptions, Typography, Collapse } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, PlayCircleOutlined, DownloadOutlined, EyeOutlined } from '@ant-design/icons';
+import {
+  Card,
+  Button,
+  Table,
+  Space,
+  Modal,
+  Form,
+  Input,
+  Select,
+  Tag,
+  message,
+  Switch,
+  InputNumber,
+  Tabs,
+  Descriptions,
+  Typography,
+  Collapse,
+} from 'antd';
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  PlayCircleOutlined,
+  DownloadOutlined,
+  EyeOutlined,
+} from '@ant-design/icons';
 import { api } from '../../Utils/api';
 import { useDispatch, useSelector } from 'react-redux';
 import { useParams, useLocation } from 'react-router-dom';
@@ -14,6 +38,7 @@ import {
   fetchTestCollection,
   createTestCase,
   updateTestCase,
+  syncCaseFromInterface,
   deleteTestCase,
   runTest,
   fetchTestHistory,
@@ -31,7 +56,7 @@ const TestManagement: React.FC = () => {
   const location = useLocation();
   const dispatch = useDispatch<AppDispatch>();
   const { currentProject } = useSelector((state: RootState) => state.project);
-  
+
   // 从路由路径中提取 projectId，或从 Redux store 获取
   const projectId = useMemo(() => {
     if (params.projectId) {
@@ -61,7 +86,13 @@ const TestManagement: React.FC = () => {
   const [selectedResult, setSelectedResult] = useState<any>(null);
 
   useEffect(() => {
-    if (projectId && projectId !== 'test' && projectId !== 'interface' && projectId !== 'setting' && projectId !== 'activity') {
+    if (
+      projectId &&
+      projectId !== 'test' &&
+      projectId !== 'interface' &&
+      projectId !== 'setting' &&
+      projectId !== 'activity'
+    ) {
       dispatch(fetchTestCollections(projectId));
       dispatch(fetchInterfaces(projectId));
     }
@@ -166,7 +197,7 @@ const TestManagement: React.FC = () => {
   const handleSubmitCase = async () => {
     try {
       const values = await caseForm.validateFields();
-      
+
       // Parse JSON strings to objects
       const request: any = { ...values.request };
       if (typeof request.query === 'string') {
@@ -192,7 +223,7 @@ const TestManagement: React.FC = () => {
       }
 
       const data = { ...values, request };
-      
+
       if (editingCase) {
         await dispatch(updateTestCase({ id: editingCase._id, data })).unwrap();
         message.success(t('test.case.updateSuccess'));
@@ -276,17 +307,10 @@ const TestManagement: React.FC = () => {
       width: 250,
       render: (_: any, record: TestCollection) => (
         <Space>
-          <Button
-            type="link"
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-          >
+          <Button type="link" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
             {t('common.edit')}
           </Button>
-          <Button
-            type="link"
-            onClick={() => handleViewCollection(record._id)}
-          >
+          <Button type="link" onClick={() => handleViewCollection(record._id)}>
             {t('test.viewCases')}
           </Button>
           <Button
@@ -313,7 +337,7 @@ const TestManagement: React.FC = () => {
       dataIndex: 'interface_id',
       key: 'interface_id',
       render: (id: string) => {
-        const inter = interfaces.find((i) => i._id === id);
+        const inter = interfaces.find(i => i._id === id);
         return inter ? `${inter.method} ${inter.path}` : '-';
       },
     },
@@ -328,20 +352,36 @@ const TestManagement: React.FC = () => {
       dataIndex: 'enabled',
       key: 'enabled',
       width: 100,
-      render: (enabled: boolean) => <Tag color={enabled ? 'green' : 'default'}>{enabled ? t('common.yes') : t('common.no')}</Tag>,
+      render: (enabled: boolean) => (
+        <Tag color={enabled ? 'green' : 'default'}>
+          {enabled ? t('common.yes') : t('common.no')}
+        </Tag>
+      ),
     },
     {
       title: t('common.operation'),
       key: 'action',
-      width: 200,
+      width: 280,
       render: (_: any, record: TestCase) => (
         <Space>
+          <Button type="link" icon={<EditOutlined />} onClick={() => handleEditCase(record)}>
+            {t('common.edit')}
+          </Button>
           <Button
             type="link"
-            icon={<EditOutlined />}
-            onClick={() => handleEditCase(record)}
+            onClick={async () => {
+              try {
+                await dispatch(syncCaseFromInterface(record._id)).unwrap();
+                message.success(t('test.case.syncSuccess') || '已从接口定义同步');
+                if (currentCollection) {
+                  dispatch(fetchTestCollection(currentCollection._id));
+                }
+              } catch (error: any) {
+                message.error(error.message || t('message.operationFailed'));
+              }
+            }}
           >
-            {t('common.edit')}
+            {t('test.case.syncFromInterface') || '同步接口'}
           </Button>
           <Button
             type="link"
@@ -367,7 +407,12 @@ const TestManagement: React.FC = () => {
               <Card
                 title={t('test.title')}
                 extra={
-                  <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate} style={{ color: '#ffffff' }}>
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={handleCreate}
+                    style={{ color: '#ffffff' }}
+                  >
                     {t('test.create')}
                   </Button>
                 }
@@ -439,7 +484,11 @@ const TestManagement: React.FC = () => {
                             failed: 'red',
                             running: 'blue',
                           };
-                          return <Tag color={colors[status]}>{t(`test.result.statusOptions.${status}`)}</Tag>;
+                          return (
+                            <Tag color={colors[status]}>
+                              {t(`test.result.statusOptions.${status}`)}
+                            </Tag>
+                          );
                         },
                       },
                       {
@@ -544,7 +593,7 @@ const TestManagement: React.FC = () => {
             rules={[{ required: true, message: t('test.case.interfaceRequired') }]}
           >
             <Select placeholder={t('test.case.interfacePlaceholder')}>
-              {interfaces.map((inter) => (
+              {interfaces.map(inter => (
                 <Option key={inter._id} value={inter._id}>
                   {inter.method} {inter.path}
                 </Option>
@@ -641,4 +690,3 @@ const TestManagement: React.FC = () => {
 };
 
 export default TestManagement;
-

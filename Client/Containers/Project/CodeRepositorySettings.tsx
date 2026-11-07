@@ -1,6 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Form, Input, Button, Select, Switch, Space, message, App, Modal } from 'antd';
-import { CheckCircleOutlined, ReloadOutlined, DownloadOutlined, BugOutlined, FileTextOutlined } from '@ant-design/icons';
+import {
+  CheckCircleOutlined,
+  ReloadOutlined,
+  DownloadOutlined,
+  BugOutlined,
+  FileTextOutlined,
+} from '@ant-design/icons';
 import { api } from '../../Utils/api';
 import { useTranslation } from 'react-i18next';
 
@@ -132,12 +138,7 @@ const CodeRepositorySettings: React.FC<CodeRepositorySettingsProps> = ({ project
         )
       }
     >
-      <Form
-        form={form}
-        layout="vertical"
-        onFinish={handleSubmit}
-        style={{ maxWidth: 800 }}
-      >
+      <Form form={form} layout="vertical" onFinish={handleSubmit} style={{ maxWidth: 800 }}>
         <Form.Item
           name="provider"
           label={t('project.repository.provider')}
@@ -164,19 +165,11 @@ const CodeRepositorySettings: React.FC<CodeRepositorySettingsProps> = ({ project
           <Input placeholder="https://github.com/owner/repo" />
         </Form.Item>
 
-        <Form.Item
-          name="branch"
-          label={t('project.repository.branch')}
-          initialValue="main"
-        >
+        <Form.Item name="branch" label={t('project.repository.branch')} initialValue="main">
           <Input placeholder="main" />
         </Form.Item>
 
-        <Form.Item
-          name="auth_type"
-          label={t('project.repository.authType')}
-          initialValue="token"
-        >
+        <Form.Item name="auth_type" label={t('project.repository.authType')} initialValue="token">
           <Select>
             <Option value="token">{t('project.repository.authTypeToken')}</Option>
             <Option value="ssh">{t('project.repository.authTypeSSH')}</Option>
@@ -185,7 +178,9 @@ const CodeRepositorySettings: React.FC<CodeRepositorySettingsProps> = ({ project
 
         <Form.Item
           noStyle
-          shouldUpdate={(prevValues, currentValues) => prevValues.auth_type !== currentValues.auth_type}
+          shouldUpdate={(prevValues, currentValues) =>
+            prevValues.auth_type !== currentValues.auth_type
+          }
         >
           {({ getFieldValue }) =>
             getFieldValue('auth_type') === 'token' ? (
@@ -213,8 +208,8 @@ const CodeRepositorySettings: React.FC<CodeRepositorySettingsProps> = ({ project
                   label={t('project.repository.sshPrivateKey')}
                   tooltip={t('project.repository.sshPrivateKeyTooltip')}
                 >
-                  <TextArea 
-                    rows={6} 
+                  <TextArea
+                    rows={6}
                     placeholder={t('project.repository.sshPrivateKeyPlaceholder')}
                   />
                 </Form.Item>
@@ -223,7 +218,9 @@ const CodeRepositorySettings: React.FC<CodeRepositorySettingsProps> = ({ project
                   label={t('project.repository.sshPrivateKeyPassword')}
                   tooltip={t('project.repository.sshPrivateKeyPasswordTooltip')}
                 >
-                  <Input.Password placeholder={t('project.repository.sshPrivateKeyPasswordPlaceholder')} />
+                  <Input.Password
+                    placeholder={t('project.repository.sshPrivateKeyPasswordPlaceholder')}
+                  />
                 </Form.Item>
               </>
             )
@@ -257,11 +254,7 @@ const CodeRepositorySettings: React.FC<CodeRepositorySettingsProps> = ({ project
               {t('project.repository.testConnection')}
             </Button>
             {repository && (
-              <Button 
-                icon={<DownloadOutlined />} 
-                onClick={handlePullCode} 
-                loading={pulling}
-              >
+              <Button icon={<DownloadOutlined />} onClick={handlePullCode} loading={pulling}>
                 {t('project.repository.pullCode')}
               </Button>
             )}
@@ -273,4 +266,3 @@ const CodeRepositorySettings: React.FC<CodeRepositorySettingsProps> = ({ project
 };
 
 export default CodeRepositorySettings;
-

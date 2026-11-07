@@ -11,13 +11,27 @@ import Project from '../Models/Project.js';
 import { AutoTestRunner } from '../Utils/autoTestRunner.js';
 
 class AutoTestTaskController extends BaseController {
-  static get ControllerName() { return 'AutoTestTaskController'; }
+  static get ControllerName() {
+    return 'AutoTestTaskController';
+  }
 
   // 创建自动测试任务
   static async createTask(ctx) {
     try {
       const user = ctx.state.user;
-      let { name, description, project_id, test_cases, environment_id, base_url, schedule, notification, code_repository_id, ai_config_provider } = ctx.request.body;
+      let {
+        name,
+        description,
+        project_id,
+        test_cases,
+        environment_id,
+        base_url,
+        schedule,
+        notification,
+        code_repository_id,
+        ai_config_provider,
+        pass_threshold,
+      } = ctx.request.body;
 
       if (!name || !project_id) {
         ctx.status = 400;
@@ -43,9 +57,13 @@ class AutoTestTaskController extends BaseController {
         description = sanitizeInput(description);
       }
 
-      // 验证接口ID
+      // 验证接口ID（控制步骤 wait/if/endif 可不绑定接口）
       if (test_cases && Array.isArray(test_cases)) {
         for (const testCase of test_cases) {
+          const stepType = testCase.step_type || 'request';
+          if (stepType !== 'request') {
+            continue;
+          }
           if (!validateObjectId(testCase.interface_id)) {
             ctx.status = 400;
             ctx.body = AutoTestTaskController.error(`无效的接口ID: ${testCase.interface_id}`);
@@ -78,8 +96,22 @@ class AutoTestTaskController extends BaseController {
         test_cases: test_cases || [],
         environment_id: environment_id || null,
         base_url: base_url ? base_url.trim() : '',
-        code_repository_id: code_repository_id && validateObjectId(code_repository_id) ? code_repository_id : null,
-        ai_config_provider: ai_config_provider && typeof ai_config_provider === 'string' ? ai_config_provider.trim() : null,
+        pass_threshold:
+          pass_threshold && typeof pass_threshold === 'object'
+            ? {
+                min_pass_rate: Math.min(
+                  100,
+                  Math.max(0, Number(pass_threshold.min_pass_rate) || 100)
+                ),
+                treat_error_as_fail: pass_threshold.treat_error_as_fail !== false,
+              }
+            : { min_pass_rate: 100, treat_error_as_fail: true },
+        code_repository_id:
+          code_repository_id && validateObjectId(code_repository_id) ? code_repository_id : null,
+        ai_config_provider:
+          ai_config_provider && typeof ai_config_provider === 'string'
+            ? ai_config_provider.trim()
+            : null,
         schedule: schedule || { enabled: false },
         notification: notification || { enabled: false },
         enabled: true,
@@ -126,7 +158,10 @@ class AutoTestTaskController extends BaseController {
       // 检查数据库连接
       const mongoose = (await import('mongoose')).default;
       if (mongoose.connection.readyState !== 1) {
-        logger.warn({ readyState: mongoose.connection.readyState }, 'Database not connected in listTasks');
+        logger.warn(
+          { readyState: mongoose.connection.readyState },
+          'Database not connected in listTasks'
+        );
         ctx.status = 503;
         ctx.body = AutoTestTaskController.success([]);
         return;
@@ -148,34 +183,37 @@ class AutoTestTaskController extends BaseController {
           .populate({
             path: 'project_id',
             select: 'project_name',
-            options: { lean: true }
+            options: { lean: true },
           })
           .populate({
             path: 'environment_id',
             select: 'name base_url',
-            options: { lean: true }
+            options: { lean: true },
           })
           .populate({
             path: 'createdBy',
             select: 'username email',
-            options: { lean: true }
+            options: { lean: true },
           })
           .sort({ createdAt: -1 })
           .lean();
       } catch (dbError) {
-        logger.error({ 
-          error: {
-            name: dbError?.name,
-            message: dbError?.message,
-            stack: dbError?.stack,
+        logger.error(
+          {
+            error: {
+              name: dbError?.name,
+              message: dbError?.message,
+              stack: dbError?.stack,
+            },
+            query,
           },
-          query
-        }, 'Failed to query auto test tasks from database');
+          'Failed to query auto test tasks from database'
+        );
         // 如果查询失败，返回空数组而不是错误
         ctx.body = AutoTestTaskController.success([]);
         return;
       }
-      
+
       // 如果 tasks 为 null 或 undefined，设置为空数组
       if (!tasks || !Array.isArray(tasks)) {
         tasks = [];
@@ -187,14 +225,17 @@ class AutoTestTaskController extends BaseController {
       try {
         serializedTasks = JSON.parse(JSON.stringify(tasks));
       } catch (serializeError) {
-        logger.error({ 
-          error: serializeError.message,
-          stack: serializeError.stack,
-          taskCount: tasks.length
-        }, 'Failed to serialize tasks, trying manual serialization');
-        
+        logger.error(
+          {
+            error: serializeError.message,
+            stack: serializeError.stack,
+            taskCount: tasks.length,
+          },
+          'Failed to serialize tasks, trying manual serialization'
+        );
+
         // 如果 JSON 序列化失败，尝试手动序列化
-        serializedTasks = tasks.map((task) => {
+        serializedTasks = tasks.map(task => {
           try {
             // 如果 task 是 Mongoose 文档，转换为普通对象
             if (task && typeof task.toObject === 'function') {
@@ -202,12 +243,22 @@ class AutoTestTaskController extends BaseController {
             }
             // 如果已经是普通对象，创建一个新的纯对象
             const taskObj = {};
-            Object.keys(task).forEach((key) => {
-              if (key !== '__v' && key !== '_id' || key === '_id') {
+            Object.keys(task).forEach(key => {
+              if ((key !== '__v' && key !== '_id') || key === '_id') {
                 const value = task[key];
-                if (value && typeof value === 'object' && !Array.isArray(value) && typeof value.toObject === 'function') {
+                if (
+                  value &&
+                  typeof value === 'object' &&
+                  !Array.isArray(value) &&
+                  typeof value.toObject === 'function'
+                ) {
                   taskObj[key] = value.toObject({ virtuals: false });
-                } else if (value && typeof value === 'object' && value.constructor && value.constructor.name === 'ObjectId') {
+                } else if (
+                  value &&
+                  typeof value === 'object' &&
+                  value.constructor &&
+                  value.constructor.name === 'ObjectId'
+                ) {
                   taskObj[key] = value.toString();
                 } else {
                   taskObj[key] = value;
@@ -220,7 +271,10 @@ class AutoTestTaskController extends BaseController {
             }
             return taskObj;
           } catch (itemError) {
-            logger.warn({ error: itemError.message, taskId: task?._id }, 'Failed to serialize task item');
+            logger.warn(
+              { error: itemError.message, taskId: task?._id },
+              'Failed to serialize task item'
+            );
             // 返回一个最小化的对象，至少包含 _id
             return { _id: task?._id?.toString() || null, name: task?.name || 'Unknown' };
           }
@@ -233,23 +287,29 @@ class AutoTestTaskController extends BaseController {
         JSON.stringify(serializedTasks);
         ctx.body = AutoTestTaskController.success(serializedTasks);
       } catch (testSerializeError) {
-        logger.error({ 
-          error: testSerializeError.message,
-          stack: testSerializeError.stack,
-          taskCount: serializedTasks.length
-        }, 'Response body serialization test failed');
-        
+        logger.error(
+          {
+            error: testSerializeError.message,
+            stack: testSerializeError.stack,
+            taskCount: serializedTasks.length,
+          },
+          'Response body serialization test failed'
+        );
+
         // 如果测试序列化失败，返回空数组
         ctx.body = AutoTestTaskController.success([]);
       }
     } catch (error) {
-      logger.error({ 
-        error: {
-          name: error?.name,
-          message: error?.message,
-          stack: error?.stack,
-        }
-      }, 'List auto test tasks error');
+      logger.error(
+        {
+          error: {
+            name: error?.name,
+            message: error?.message,
+            stack: error?.stack,
+          },
+        },
+        'List auto test tasks error'
+      );
       ctx.status = 500;
       ctx.body = AutoTestTaskController.error(
         process.env.NODE_ENV === 'production'
@@ -297,7 +357,19 @@ class AutoTestTaskController extends BaseController {
   static async updateTask(ctx) {
     try {
       const { id } = ctx.params;
-      const { name, description, test_cases, environment_id, base_url, schedule, notification, enabled, code_repository_id, ai_config_provider } = ctx.request.body;
+      const {
+        name,
+        description,
+        test_cases,
+        environment_id,
+        base_url,
+        schedule,
+        notification,
+        enabled,
+        code_repository_id,
+        ai_config_provider,
+        pass_threshold,
+      } = ctx.request.body;
 
       if (!validateObjectId(id)) {
         ctx.status = 400;
@@ -319,49 +391,83 @@ class AutoTestTaskController extends BaseController {
         task.description = sanitizeInput(description);
       }
       if (test_cases !== undefined) {
-        // 验证接口ID并清理数据
+        // 验证接口ID并清理数据（控制步骤可不绑定接口）
         const cleanedTestCases = [];
         for (let i = 0; i < test_cases.length; i++) {
           const testCase = test_cases[i];
-          
-          // 确保 interface_id 是有效的 ObjectId
-          if (!testCase.interface_id) {
-            ctx.status = 400;
-            ctx.body = AutoTestTaskController.error(`测试用例 ${i + 1} 缺少接口ID`);
-            return;
+          const stepType = ['request', 'wait', 'if', 'endif'].includes(testCase.step_type)
+            ? testCase.step_type
+            : 'request';
+
+          let interfaceId = null;
+          if (stepType === 'request') {
+            if (!testCase.interface_id) {
+              ctx.status = 400;
+              ctx.body = AutoTestTaskController.error(`测试用例 ${i + 1} 缺少接口ID`);
+              return;
+            }
+            interfaceId =
+              typeof testCase.interface_id === 'string'
+                ? testCase.interface_id
+                : (testCase.interface_id?._id || testCase.interface_id)?.toString();
+            if (!validateObjectId(interfaceId)) {
+              ctx.status = 400;
+              ctx.body = AutoTestTaskController.error(
+                `测试用例 ${i + 1} 的接口ID无效: ${interfaceId}`
+              );
+              return;
+            }
           }
-          
-          // 处理 interface_id 可能是对象的情况
-          const interfaceId = typeof testCase.interface_id === 'string' 
-            ? testCase.interface_id 
-            : (testCase.interface_id?._id || testCase.interface_id)?.toString();
-          
-          if (!validateObjectId(interfaceId)) {
-            ctx.status = 400;
-            ctx.body = AutoTestTaskController.error(`测试用例 ${i + 1} 的接口ID无效: ${interfaceId}`);
-            return;
-          }
-          
-          // 清理并验证测试用例数据
-          const cleanedCase = {
+
+          cleanedTestCases.push({
+            step_type: stepType,
+            step_name: typeof testCase.step_name === 'string' ? testCase.step_name : '',
             interface_id: interfaceId,
             order: typeof testCase.order === 'number' ? testCase.order : i,
             enabled: testCase.enabled !== undefined ? Boolean(testCase.enabled) : true,
-            custom_headers: testCase.custom_headers && typeof testCase.custom_headers === 'object' ? testCase.custom_headers : {},
-            custom_data: testCase.custom_data && typeof testCase.custom_data === 'object' ? testCase.custom_data : {},
-            path_params: testCase.path_params && typeof testCase.path_params === 'object' ? testCase.path_params : {},
-            query_params: testCase.query_params && typeof testCase.query_params === 'object' ? testCase.query_params : {},
-            assertion_script: typeof testCase.assertion_script === 'string' ? testCase.assertion_script : '',
-          };
-          
-          cleanedTestCases.push(cleanedCase);
+            custom_headers:
+              testCase.custom_headers && typeof testCase.custom_headers === 'object'
+                ? testCase.custom_headers
+                : {},
+            custom_data:
+              testCase.custom_data && typeof testCase.custom_data === 'object'
+                ? testCase.custom_data
+                : {},
+            path_params:
+              testCase.path_params && typeof testCase.path_params === 'object'
+                ? testCase.path_params
+                : {},
+            query_params:
+              testCase.query_params && typeof testCase.query_params === 'object'
+                ? testCase.query_params
+                : {},
+            assertion_script:
+              typeof testCase.assertion_script === 'string' ? testCase.assertion_script : '',
+            pre_request_script:
+              typeof testCase.pre_request_script === 'string' ? testCase.pre_request_script : '',
+            wait_ms: typeof testCase.wait_ms === 'number' ? testCase.wait_ms : 0,
+            condition: typeof testCase.condition === 'string' ? testCase.condition : '',
+            loop_count: typeof testCase.loop_count === 'number' ? testCase.loop_count : 1,
+          });
         }
         task.test_cases = cleanedTestCases;
+      }
+      if (pass_threshold !== undefined && pass_threshold && typeof pass_threshold === 'object') {
+        const rate = Number(pass_threshold.min_pass_rate);
+        task.pass_threshold = {
+          min_pass_rate: Number.isFinite(rate) ? Math.min(100, Math.max(0, rate)) : 100,
+          treat_error_as_fail: pass_threshold.treat_error_as_fail !== false,
+        };
       }
       // 处理 environment_id：支持 null、undefined、空字符串
       if (environment_id !== undefined) {
         // 处理空字符串、null、undefined 等情况
-        if (environment_id && typeof environment_id === 'string' && environment_id.trim() !== '' && validateObjectId(environment_id)) {
+        if (
+          environment_id &&
+          typeof environment_id === 'string' &&
+          environment_id.trim() !== '' &&
+          validateObjectId(environment_id)
+        ) {
           const environment = await TestEnvironment.findById(environment_id);
           if (!environment) {
             ctx.status = 400;
@@ -369,7 +475,9 @@ class AutoTestTaskController extends BaseController {
             return;
           }
           // 获取项目ID（可能是对象或字符串）
-          const projectId = task.project_id?._id ? task.project_id._id.toString() : task.project_id.toString();
+          const projectId = task.project_id?._id
+            ? task.project_id._id.toString()
+            : task.project_id.toString();
           const envProjectId = environment.project_id.toString();
           if (envProjectId !== projectId) {
             ctx.status = 400;
@@ -386,10 +494,14 @@ class AutoTestTaskController extends BaseController {
         task.base_url = typeof base_url === 'string' ? base_url.trim() : '';
       }
       if (code_repository_id !== undefined) {
-        task.code_repository_id = code_repository_id && validateObjectId(code_repository_id) ? code_repository_id : null;
+        task.code_repository_id =
+          code_repository_id && validateObjectId(code_repository_id) ? code_repository_id : null;
       }
       if (ai_config_provider !== undefined) {
-        task.ai_config_provider = ai_config_provider && typeof ai_config_provider === 'string' ? ai_config_provider.trim() : null;
+        task.ai_config_provider =
+          ai_config_provider && typeof ai_config_provider === 'string'
+            ? ai_config_provider.trim()
+            : null;
       }
       if (schedule !== undefined) {
         task.schedule = schedule;
@@ -411,31 +523,38 @@ class AutoTestTaskController extends BaseController {
       try {
         await task.save();
       } catch (saveError) {
-        logger.error({ error: saveError, taskId: id, taskData: { 
-          test_cases_count: task.test_cases?.length,
-          test_cases: task.test_cases?.map((tc, i) => ({
-            index: i,
-            interface_id: tc.interface_id,
-            interface_id_type: typeof tc.interface_id,
-            order: tc.order,
-            enabled: tc.enabled,
-          }))
-        }}, 'Failed to save auto test task');
-        
+        logger.error(
+          {
+            error: saveError,
+            taskId: id,
+            taskData: {
+              test_cases_count: task.test_cases?.length,
+              test_cases: task.test_cases?.map((tc, i) => ({
+                index: i,
+                interface_id: tc.interface_id,
+                interface_id_type: typeof tc.interface_id,
+                order: tc.order,
+                enabled: tc.enabled,
+              })),
+            },
+          },
+          'Failed to save auto test task'
+        );
+
         // 提取详细的错误信息
         let errorMessage = saveError.message || '更新自动测试任务失败';
         if (saveError.name === 'ValidationError') {
-          const validationErrors = Object.values(saveError.errors || {}).map((e) => e.message).join(', ');
+          const validationErrors = Object.values(saveError.errors || {})
+            .map(e => e.message)
+            .join(', ');
           errorMessage = `验证失败: ${validationErrors}`;
         } else if (saveError.name === 'CastError') {
           errorMessage = `类型转换失败: ${saveError.message}`;
         }
-        
+
         ctx.status = 500;
         ctx.body = AutoTestTaskController.error(
-          process.env.NODE_ENV === 'production'
-            ? '更新自动测试任务失败'
-            : errorMessage
+          process.env.NODE_ENV === 'production' ? '更新自动测试任务失败' : errorMessage
         );
         return;
       }
@@ -444,7 +563,9 @@ class AutoTestTaskController extends BaseController {
 
       // 记录操作日志
       const user = ctx.state.user;
-      const projectId = task.project_id?._id ? task.project_id._id.toString() : task.project_id.toString();
+      const projectId = task.project_id?._id
+        ? task.project_id._id.toString()
+        : task.project_id.toString();
       await logOperation({
         type: 'test',
         action: 'update',
@@ -495,7 +616,9 @@ class AutoTestTaskController extends BaseController {
 
       const user = ctx.state.user;
       const taskName = task.name;
-      const projectId = task.project_id?._id ? task.project_id._id.toString() : task.project_id.toString();
+      const projectId = task.project_id?._id
+        ? task.project_id._id.toString()
+        : task.project_id.toString();
 
       await task.deleteOne();
 
@@ -559,8 +682,10 @@ class AutoTestTaskController extends BaseController {
       // 确定使用的环境
       let environment = null;
       // 获取项目ID（可能是对象或字符串）
-      const projectId = task.project_id?._id ? task.project_id._id.toString() : task.project_id.toString();
-      
+      const projectId = task.project_id?._id
+        ? task.project_id._id.toString()
+        : task.project_id.toString();
+
       const envId = environment_id || task.environment_id;
       if (envId && validateObjectId(envId)) {
         environment = await TestEnvironment.findById(envId);
@@ -579,8 +704,8 @@ class AutoTestTaskController extends BaseController {
       } else {
         // 使用项目的默认环境
         // Mongoose 可以接受字符串格式的 ObjectId，但为了确保一致性，使用 ObjectId 对象
-        const projectObjectId = mongoose.Types.ObjectId.isValid(projectId) 
-          ? new mongoose.Types.ObjectId(projectId) 
+        const projectObjectId = mongoose.Types.ObjectId.isValid(projectId)
+          ? new mongoose.Types.ObjectId(projectId)
           : projectId;
         environment = await TestEnvironment.findOne({
           project_id: projectObjectId,
@@ -630,8 +755,11 @@ class AutoTestTaskController extends BaseController {
 
       // 异步执行测试
       const runner = new AutoTestRunner();
-      runner.runTask(task, environment, testResult._id).catch((error) => {
-        logger.error({ error, taskId: id, resultId: testResult._id }, 'Auto test task execution error');
+      runner.runTask(task, environment, testResult._id).catch(error => {
+        logger.error(
+          { error, taskId: id, resultId: testResult._id },
+          'Auto test task execution error'
+        );
       });
 
       ctx.body = AutoTestTaskController.success(
@@ -690,8 +818,10 @@ class AutoTestTaskController extends BaseController {
 
       // 确定使用的环境
       let environment = null;
-      const projectId = task.project_id?._id ? task.project_id._id.toString() : task.project_id.toString();
-      
+      const projectId = task.project_id?._id
+        ? task.project_id._id.toString()
+        : task.project_id.toString();
+
       const envId = environment_id || task.environment_id;
       if (envId && validateObjectId(envId)) {
         const TestEnvironment = (await import('../Models/TestEnvironment.js')).default;
@@ -710,8 +840,8 @@ class AutoTestTaskController extends BaseController {
       } else {
         const mongoose = (await import('mongoose')).default;
         const TestEnvironment = (await import('../Models/TestEnvironment.js')).default;
-        const projectObjectId = mongoose.Types.ObjectId.isValid(projectId) 
-          ? new mongoose.Types.ObjectId(projectId) 
+        const projectObjectId = mongoose.Types.ObjectId.isValid(projectId)
+          ? new mongoose.Types.ObjectId(projectId)
           : projectId;
         environment = await TestEnvironment.findOne({
           project_id: projectObjectId,
@@ -771,7 +901,7 @@ class AutoTestTaskController extends BaseController {
 
         // 检查用户是否是任务创建者
         const isCreator = task.createdBy && task.createdBy.toString() === user._id.toString();
-        
+
         // 检查用户是否有权限访问项目
         if (!isCreator && task.project_id) {
           const Project = (await import('../Models/Project.js')).default;
@@ -797,11 +927,11 @@ class AutoTestTaskController extends BaseController {
             populate: {
               path: 'project_id',
               select: 'project_name project_desc basepath',
-            }
+            },
           })
           .populate('environment_id', 'name base_url')
           .lean();
-        
+
         // 手动 populate results 数组中的 interface_id
         // 因为 Mongoose 的 populate 对嵌套数组的支持有限
         if (result && result.results && Array.isArray(result.results)) {
@@ -817,10 +947,13 @@ class AutoTestTaskController extends BaseController {
                 }
               } catch (populateError) {
                 // 如果 populate 失败，保留原始的 interface_id
-                logger.warn({ 
-                  interfaceId: result.results[i].interface_id,
-                  error: populateError.message 
-                }, 'Failed to populate interface_id in result');
+                logger.warn(
+                  {
+                    interfaceId: result.results[i].interface_id,
+                    error: populateError.message,
+                  },
+                  'Failed to populate interface_id in result'
+                );
               }
             }
           }
@@ -831,20 +964,26 @@ class AutoTestTaskController extends BaseController {
         result = await AutoTestResult.findById(resultId).lean();
       }
 
-      logger.info({ 
-        resultId,
-        status: result.status,
-        resultsCount: result.results?.length || 0,
-      }, 'Test result fetched successfully');
+      logger.info(
+        {
+          resultId,
+          status: result.status,
+          resultsCount: result.results?.length || 0,
+        },
+        'Test result fetched successfully'
+      );
 
       ctx.body = AutoTestTaskController.success(result);
     } catch (error) {
-      logger.error({ 
-        error: error.message,
-        stack: error.stack,
-        resultId: ctx.params.resultId,
-        userId: ctx.state.user?._id,
-      }, 'Get test result error');
+      logger.error(
+        {
+          error: error.message,
+          stack: error.stack,
+          resultId: ctx.params.resultId,
+          userId: ctx.state.user?._id,
+        },
+        'Get test result error'
+      );
       ctx.status = 500;
       ctx.body = AutoTestTaskController.error(
         process.env.NODE_ENV === 'production'
@@ -877,7 +1016,7 @@ class AutoTestTaskController extends BaseController {
             populate: {
               path: 'project_id',
               select: 'project_name project_desc basepath',
-            }
+            },
           })
           .populate('environment_id', 'name base_url')
           .sort({ started_at: -1 })
@@ -926,7 +1065,7 @@ class AutoTestTaskController extends BaseController {
           populate: {
             path: 'project_id',
             select: 'project_name project_desc basepath',
-          }
+          },
         })
         .populate('environment_id', 'name base_url')
         .lean();
@@ -950,10 +1089,13 @@ class AutoTestTaskController extends BaseController {
                 result.results[i].interface_id = interfaceDoc;
               }
             } catch (populateError) {
-              logger.warn({ 
-                interfaceId: result.results[i].interface_id,
-                error: populateError.message 
-              }, 'Failed to populate interface_id in result');
+              logger.warn(
+                {
+                  interfaceId: result.results[i].interface_id,
+                  error: populateError.message,
+                },
+                'Failed to populate interface_id in result'
+              );
             }
           }
         }
@@ -974,12 +1116,14 @@ class AutoTestTaskController extends BaseController {
           } catch (importError) {
             logger.error({ error: importError }, 'Failed to import puppeteer');
             ctx.status = 400;
-            ctx.body = AutoTestTaskController.error('PDF 导出功能需要安装 puppeteer 依赖。请在 Server 目录下运行: npm install puppeteer');
+            ctx.body = AutoTestTaskController.error(
+              'PDF 导出功能需要安装 puppeteer 依赖。请在 Server 目录下运行: npm install puppeteer'
+            );
             return;
           }
 
           const html = AutoTestTaskController.generateHTMLReport(result);
-          
+
           let browser;
           try {
             browser = await puppeteer.default.launch({
@@ -1000,11 +1144,11 @@ class AutoTestTaskController extends BaseController {
             );
             return;
           }
-          
+
           try {
             const page = await browser.newPage();
             await page.setContent(html, { waitUntil: 'networkidle0', timeout: 30000 });
-            
+
             const pdf = await page.pdf({
               format: 'A4',
               printBackground: true,
@@ -1015,9 +1159,9 @@ class AutoTestTaskController extends BaseController {
                 left: '15mm',
               },
             });
-            
+
             await browser.close();
-            
+
             ctx.set('Content-Type', 'application/pdf');
             ctx.set('Content-Disposition', `attachment; filename="test-report-${resultId}.pdf"`);
             ctx.body = pdf;
@@ -1031,15 +1175,19 @@ class AutoTestTaskController extends BaseController {
             throw pdfError;
           }
         } catch (error) {
-          logger.error({ 
-            error: error.message,
-            stack: error.stack,
-            resultId 
-          }, 'PDF generation error');
+          logger.error(
+            {
+              error: error.message,
+              stack: error.stack,
+              resultId,
+            },
+            'PDF generation error'
+          );
           ctx.status = 500;
-          const errorMessage = process.env.NODE_ENV === 'production'
-            ? 'PDF 生成失败，请检查服务器日志'
-            : `PDF 生成失败: ${error.message}。如果 puppeteer 未安装，请在 Server 目录下运行: npm install puppeteer`;
+          const errorMessage =
+            process.env.NODE_ENV === 'production'
+              ? 'PDF 生成失败，请检查服务器日志'
+              : `PDF 生成失败: ${error.message}。如果 puppeteer 未安装，请在 Server 目录下运行: npm install puppeteer`;
           ctx.body = AutoTestTaskController.error(errorMessage);
         }
       } else {
@@ -1050,37 +1198,36 @@ class AutoTestTaskController extends BaseController {
       logger.error({ error }, 'Export test result error');
       ctx.status = 500;
       ctx.body = AutoTestTaskController.error(
-        process.env.NODE_ENV === 'production'
-          ? '导出失败'
-          : error.message || '导出失败'
+        process.env.NODE_ENV === 'production' ? '导出失败' : error.message || '导出失败'
       );
     }
   }
 
   // 生成 HTML 报告
   static generateHTMLReport(result) {
-    const isAllPassed = result.summary.total > 0 && 
-                        result.summary.passed === result.summary.total && 
-                        result.summary.failed === 0 && 
-                        result.summary.error === 0;
+    const isAllPassed =
+      result.summary.total > 0 &&
+      result.summary.passed === result.summary.total &&
+      result.summary.failed === 0 &&
+      result.summary.error === 0;
     const overallStatus = isAllPassed ? '成功' : '失败';
     const overallStatusColor = isAllPassed ? '#52c41a' : '#ff4d4f';
     const failedCount = result.summary.failed + result.summary.error;
-    
-    const formatDate = (dateStr) => {
+
+    const formatDate = dateStr => {
       if (!dateStr) return 'N/A';
       const date = new Date(dateStr);
-      return date.toLocaleString('zh-CN', { 
-        year: 'numeric', 
-        month: '2-digit', 
-        day: '2-digit', 
-        hour: '2-digit', 
-        minute: '2-digit', 
-        second: '2-digit' 
+      return date.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
       });
     };
 
-    const formatJSON = (obj) => {
+    const formatJSON = obj => {
       if (!obj) return 'N/A';
       try {
         return JSON.stringify(obj, null, 2);
@@ -1348,12 +1495,20 @@ class AutoTestTaskController extends BaseController {
     
     <div class="test-cases">
       <h2 style="margin-bottom: 20px; font-size: 18px;">测试用例详情</h2>
-      ${(result.results || []).map((testCase, index) => {
-        const statusClass = testCase.status === 'passed' ? 'passed' : 
-                           testCase.status === 'failed' ? 'failed' : 'error';
-        const interfaceName = testCase.interface_name || 
-                              (testCase.interface_id?.title || testCase.interface_id?.path || '未知接口');
-        return `
+      ${(result.results || [])
+        .map((testCase, index) => {
+          const statusClass =
+            testCase.status === 'passed'
+              ? 'passed'
+              : testCase.status === 'failed'
+                ? 'failed'
+                : 'error';
+          const interfaceName =
+            testCase.interface_name ||
+            testCase.interface_id?.title ||
+            testCase.interface_id?.path ||
+            '未知接口';
+          return `
         <div class="test-case">
           <div class="test-case-header ${statusClass}">
             <span class="test-case-number">${index + 1}</span>
@@ -1367,76 +1522,121 @@ class AutoTestTaskController extends BaseController {
               <div class="section-content">
                 <div style="margin-bottom: 10px;"><strong>URL:</strong> ${testCase.request?.url || 'N/A'}</div>
                 <div style="margin-bottom: 10px;"><strong>方法:</strong> ${testCase.request?.method || 'N/A'}</div>
-                ${testCase.request?.query && Object.keys(testCase.request.query).length > 0 ? `
+                ${
+                  testCase.request?.query && Object.keys(testCase.request.query).length > 0
+                    ? `
                 <div style="margin-bottom: 10px;"><strong>查询参数:</strong></div>
                 <pre>${formatJSON(testCase.request.query)}</pre>
-                ` : ''}
-                ${testCase.request?.body ? `
+                `
+                    : ''
+                }
+                ${
+                  testCase.request?.body
+                    ? `
                 <div style="margin-bottom: 10px;"><strong>请求体:</strong></div>
                 <pre>${formatJSON(testCase.request.body)}</pre>
-                ` : ''}
-                ${testCase.request?.headers && Object.keys(testCase.request.headers).length > 0 ? `
+                `
+                    : ''
+                }
+                ${
+                  testCase.request?.headers && Object.keys(testCase.request.headers).length > 0
+                    ? `
                 <div style="margin-bottom: 10px;"><strong>请求头:</strong></div>
                 <pre>${formatJSON(testCase.request.headers)}</pre>
-                ` : ''}
+                `
+                    : ''
+                }
               </div>
             </div>
             
-            ${testCase.response ? `
+            ${
+              testCase.response
+                ? `
             <div class="section">
               <div class="section-title">响应信息</div>
               <div class="section-content">
                 <div style="margin-bottom: 10px;"><strong>状态码:</strong> ${testCase.response.status_code || 'N/A'}</div>
                 <div style="margin-bottom: 10px;"><strong>耗时:</strong> ${testCase.response.duration || 0}ms</div>
-                ${testCase.response.headers && Object.keys(testCase.response.headers).length > 0 ? `
+                ${
+                  testCase.response.headers && Object.keys(testCase.response.headers).length > 0
+                    ? `
                 <div style="margin-bottom: 10px;"><strong>响应头:</strong></div>
                 <pre>${formatJSON(testCase.response.headers)}</pre>
-                ` : ''}
-                ${testCase.response.body ? `
+                `
+                    : ''
+                }
+                ${
+                  testCase.response.body
+                    ? `
                 <div style="margin-bottom: 10px;"><strong>响应体:</strong></div>
                 <pre>${formatJSON(testCase.response.body)}</pre>
-                ` : ''}
+                `
+                    : ''
+                }
               </div>
             </div>
-            ` : ''}
+            `
+                : ''
+            }
             
-            ${testCase.error ? `
+            ${
+              testCase.error
+                ? `
             <div class="section">
               <div class="section-title">错误信息</div>
               <div class="section-content">
                 <div class="error-message" style="margin-bottom: 10px;"><strong>错误:</strong> ${testCase.error.message || '未知错误'}</div>
                 ${testCase.error.code ? `<div style="margin-bottom: 10px;"><strong>错误码:</strong> ${testCase.error.code}</div>` : ''}
-                ${testCase.error.stack ? `
+                ${
+                  testCase.error.stack
+                    ? `
                 <div style="margin-bottom: 10px;"><strong>堆栈:</strong></div>
                 <pre>${testCase.error.stack}</pre>
-                ` : ''}
+                `
+                    : ''
+                }
               </div>
             </div>
-            ` : ''}
+            `
+                : ''
+            }
             
-            ${testCase.assertion_result ? `
+            ${
+              testCase.assertion_result
+                ? `
             <div class="section">
               <div class="section-title">断言结果</div>
               <div class="section-content">
                 <div class="${testCase.assertion_result.passed ? 'assertion-passed' : 'assertion-failed'}" style="margin-bottom: 10px;">
                   <strong>状态:</strong> ${testCase.assertion_result.passed ? '通过' : '失败'}
                 </div>
-                ${testCase.assertion_result.message ? `
+                ${
+                  testCase.assertion_result.message
+                    ? `
                 <div style="margin-bottom: 10px;"><strong>消息:</strong> ${testCase.assertion_result.message}</div>
-                ` : ''}
-                ${testCase.assertion_result.errors && testCase.assertion_result.errors.length > 0 ? `
+                `
+                    : ''
+                }
+                ${
+                  testCase.assertion_result.errors && testCase.assertion_result.errors.length > 0
+                    ? `
                 <div style="margin-bottom: 10px;"><strong>错误列表:</strong></div>
                 <ul style="margin-left: 20px;">
-                  ${testCase.assertion_result.errors.map((err) => `<li class="error-message">${String(err).replace(/</g, '&lt;').replace(/>/g, '&gt;')}</li>`).join('')}
+                  ${testCase.assertion_result.errors.map(err => `<li class="error-message">${String(err).replace(/</g, '&lt;').replace(/>/g, '&gt;')}</li>`).join('')}
                 </ul>
-                ` : ''}
+                `
+                    : ''
+                }
               </div>
             </div>
-            ` : ''}
+            `
+                : ''
+            }
           </div>
         </div>
         `;
-      }).join('')}
+        })
+        .join('')}
     </div>
     
     <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e8e8e8; text-align: center; color: #8c8c8c; font-size: 12px;">
@@ -1492,7 +1692,7 @@ class AutoTestTaskController extends BaseController {
                 base_url: task.environment_id.base_url,
               }
             : null,
-          test_cases: task.test_cases.map((tc) => ({
+          test_cases: task.test_cases.map(tc => ({
             interface: tc.interface_id
               ? {
                   title: tc.interface_id.title,
@@ -1514,7 +1714,9 @@ class AutoTestTaskController extends BaseController {
 
       // 记录操作日志
       const user = ctx.state.user;
-      const projectId = task.project_id?._id ? task.project_id._id.toString() : task.project_id.toString();
+      const projectId = task.project_id?._id
+        ? task.project_id._id.toString()
+        : task.project_id.toString();
       await logOperation({
         type: 'test',
         action: 'export',
@@ -1544,9 +1746,7 @@ class AutoTestTaskController extends BaseController {
       logger.error({ error }, 'Export test task error');
       ctx.status = 500;
       ctx.body = AutoTestTaskController.error(
-        process.env.NODE_ENV === 'production'
-          ? '导出失败'
-          : error.message || '导出失败'
+        process.env.NODE_ENV === 'production' ? '导出失败' : error.message || '导出失败'
       );
     }
   }
@@ -1718,9 +1918,7 @@ class AutoTestTaskController extends BaseController {
       logger.error({ error }, 'Import test task error');
       ctx.status = 500;
       ctx.body = AutoTestTaskController.error(
-        process.env.NODE_ENV === 'production'
-          ? '导入失败'
-          : error.message || '导入失败'
+        process.env.NODE_ENV === 'production' ? '导入失败' : error.message || '导入失败'
       );
     }
   }
@@ -1745,7 +1943,7 @@ class AutoTestTaskController extends BaseController {
           populate: {
             path: 'project_id',
             select: 'project_name project_desc basepath',
-          }
+          },
         })
         .lean();
 
@@ -1776,13 +1974,223 @@ class AutoTestTaskController extends BaseController {
       logger.error({ error }, 'Trigger AI analysis error');
       ctx.status = 500;
       ctx.body = AutoTestTaskController.error(
-        process.env.NODE_ENV === 'production'
-          ? 'AI分析失败'
-          : error.message || 'AI分析失败'
+        process.env.NODE_ENV === 'production' ? 'AI分析失败' : error.message || 'AI分析失败'
       );
+    }
+  }
+
+  /**
+   * Create or refresh a public share link for a pipeline result (MeterSphere-style report share).
+   * Body: { expires_in_days?: number } default 7, max 90.
+   */
+  static async createShare(ctx) {
+    try {
+      const user = ctx.state.user;
+      const { resultId } = ctx.params;
+      const expiresInDays = Math.min(
+        90,
+        Math.max(1, parseInt(String(ctx.request.body?.expires_in_days || 7), 10) || 7)
+      );
+
+      if (!validateObjectId(resultId)) {
+        ctx.status = 400;
+        ctx.body = AutoTestTaskController.error('无效的结果ID');
+        return;
+      }
+
+      const result = await AutoTestResult.findById(resultId).populate(
+        'task_id',
+        'project_id createdBy'
+      );
+      if (!result) {
+        ctx.status = 404;
+        ctx.body = AutoTestTaskController.error('测试结果不存在');
+        return;
+      }
+
+      const task = result.task_id;
+      if (!task) {
+        ctx.status = 404;
+        ctx.body = AutoTestTaskController.error('关联的测试任务不存在');
+        return;
+      }
+
+      if (user.role !== 'super_admin') {
+        const isCreator = task.createdBy && task.createdBy.toString() === user._id.toString();
+        if (!isCreator && task.project_id) {
+          const project = await Project.findOne({
+            _id: task.project_id,
+            $or: [{ uid: user._id }, { member: user._id }],
+          });
+          if (!project) {
+            ctx.status = 403;
+            ctx.body = AutoTestTaskController.error('无权限分享该测试结果');
+            return;
+          }
+        }
+      }
+
+      const { randomBytes } = await import('node:crypto');
+      const token = randomBytes(24).toString('hex');
+      const expires = new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000);
+
+      result.share_token = token;
+      result.share_expires_at = expires;
+      result.share_created_by = user._id;
+      await result.save();
+
+      const base =
+        (ctx.request.headers['x-forwarded-proto']
+          ? `${ctx.request.headers['x-forwarded-proto']}:`
+          : ctx.request.protocol) +
+        '//' +
+        (ctx.request.headers['x-forwarded-host'] || ctx.request.host);
+      const shareUrl = `${base}/api/public/auto-test/reports/${token}`;
+
+      await logOperation({
+        type: 'test',
+        action: 'share_report',
+        targetId: resultId,
+        targetName: 'auto-test-result',
+        userId: String(user._id),
+        username: user.username,
+        projectId: task.project_id || null,
+        details: { expires_in_days: expiresInDays },
+        ip: ctx.ip || '',
+        userAgent: ctx.headers['user-agent'] || '',
+        uri: ctx.request.url || '',
+      });
+
+      ctx.body = AutoTestTaskController.success(
+        {
+          share_token: token,
+          share_url: shareUrl,
+          expires_at: expires.toISOString(),
+        },
+        '分享链接已生成'
+      );
+    } catch (error) {
+      logger.error({ error }, 'Create share link error');
+      ctx.status = 500;
+      ctx.body = AutoTestTaskController.error(
+        process.env.NODE_ENV === 'production'
+          ? '生成分享链接失败'
+          : error.message || '生成分享链接失败'
+      );
+    }
+  }
+
+  static async revokeShare(ctx) {
+    try {
+      const user = ctx.state.user;
+      const { resultId } = ctx.params;
+
+      if (!validateObjectId(resultId)) {
+        ctx.status = 400;
+        ctx.body = AutoTestTaskController.error('无效的结果ID');
+        return;
+      }
+
+      const result = await AutoTestResult.findById(resultId).populate(
+        'task_id',
+        'project_id createdBy'
+      );
+      if (!result) {
+        ctx.status = 404;
+        ctx.body = AutoTestTaskController.error('测试结果不存在');
+        return;
+      }
+
+      const task = result.task_id;
+      if (user.role !== 'super_admin' && task) {
+        const isCreator = task.createdBy && task.createdBy.toString() === user._id.toString();
+        if (!isCreator && task.project_id) {
+          const project = await Project.findOne({
+            _id: task.project_id,
+            $or: [{ uid: user._id }, { member: user._id }],
+          });
+          if (!project) {
+            ctx.status = 403;
+            ctx.body = AutoTestTaskController.error('无权限撤销分享');
+            return;
+          }
+        }
+      }
+
+      result.share_token = null;
+      result.share_expires_at = null;
+      result.share_created_by = null;
+      await result.save();
+
+      ctx.body = AutoTestTaskController.success(null, '分享已撤销');
+    } catch (error) {
+      logger.error({ error }, 'Revoke share link error');
+      ctx.status = 500;
+      ctx.body = AutoTestTaskController.error(
+        process.env.NODE_ENV === 'production' ? '撤销分享失败' : error.message || '撤销分享失败'
+      );
+    }
+  }
+
+  /** Public HTML report — no auth; token + expiry gate. */
+  static async getPublicReport(ctx) {
+    try {
+      const { token } = ctx.params;
+      if (!token || !/^[a-f0-9]{48}$/.test(token)) {
+        ctx.status = 400;
+        ctx.body = 'Invalid share token';
+        return;
+      }
+
+      const result = await AutoTestResult.findOne({ share_token: token })
+        .populate({
+          path: 'task_id',
+          select: 'name description project_id',
+          populate: { path: 'project_id', select: 'project_name project_desc basepath' },
+        })
+        .populate('environment_id', 'name base_url')
+        .lean();
+
+      if (!result) {
+        ctx.status = 404;
+        ctx.body = 'Report not found or share revoked';
+        return;
+      }
+
+      if (result.share_expires_at && new Date(result.share_expires_at) < new Date()) {
+        ctx.status = 410;
+        ctx.body = 'Share link expired';
+        return;
+      }
+
+      if (result.results && Array.isArray(result.results)) {
+        const Interface = (await import('../Models/Interface.js')).default;
+        for (let i = 0; i < result.results.length; i++) {
+          if (result.results[i].interface_id) {
+            try {
+              const interfaceDoc = await Interface.findById(result.results[i].interface_id)
+                .select('title path method')
+                .lean();
+              if (interfaceDoc) {
+                result.results[i].interface_id = interfaceDoc;
+              }
+            } catch {
+              /* ignore */
+            }
+          }
+        }
+      }
+
+      const html = AutoTestTaskController.generateHTMLReport(result);
+      ctx.set('Content-Type', 'text/html; charset=utf-8');
+      ctx.set('Cache-Control', 'no-store');
+      ctx.body = html;
+    } catch (error) {
+      logger.error({ error }, 'Get public report error');
+      ctx.status = 500;
+      ctx.body = 'Failed to load report';
     }
   }
 }
 
 export default AutoTestTaskController;
-

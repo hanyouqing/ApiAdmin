@@ -3,9 +3,11 @@ import mongoose, { Schema, Model } from 'mongoose';
 export type AutoTestOverallStatus = 'running' | 'passed' | 'failed' | 'error' | 'cancelled';
 export type AutoTestStepStatus = 'pending' | 'running' | 'passed' | 'failed' | 'error' | 'skipped';
 export type AutoTestTriggerSource = 'manual' | 'schedule' | 'webhook';
+export type AutoTestStepType = 'request' | 'wait' | 'if' | 'endif';
 
 export interface IAutoTestStepResult {
-  interface_id: Schema.Types.ObjectId;
+  step_type: AutoTestStepType;
+  interface_id: Schema.Types.ObjectId | null;
   interface_name: string;
   order: number;
   status: AutoTestStepStatus;
@@ -55,6 +57,9 @@ export interface IAutoTestResult {
   triggered_by: AutoTestTriggerSource;
   triggered_by_user: Schema.Types.ObjectId | null;
   ai_analysis: any;
+  share_token: string | null;
+  share_expires_at: Date | null;
+  share_created_by: Schema.Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -104,10 +109,16 @@ const autoTestResultSchema = new Schema<IAutoTestResult>(
     },
     results: [
       {
+        step_type: {
+          type: String,
+          enum: ['request', 'wait', 'if', 'endif'],
+          default: 'request',
+        },
         interface_id: {
           type: Schema.Types.ObjectId,
           ref: 'Interface',
-          required: true,
+          required: false,
+          default: null,
         },
         interface_name: {
           type: String,
@@ -231,6 +242,21 @@ const autoTestResultSchema = new Schema<IAutoTestResult>(
       type: Schema.Types.Mixed,
       default: null,
     },
+    share_token: {
+      type: String,
+      default: null,
+      index: true,
+      sparse: true,
+    },
+    share_expires_at: {
+      type: Date,
+      default: null,
+    },
+    share_created_by: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -240,6 +266,9 @@ const autoTestResultSchema = new Schema<IAutoTestResult>(
 autoTestResultSchema.index({ task_id: 1, started_at: -1 });
 autoTestResultSchema.index({ status: 1, started_at: -1 });
 
-const AutoTestResult = mongoose.model<IAutoTestResult, AutoTestResultModel>('AutoTestResult', autoTestResultSchema);
+const AutoTestResult = mongoose.model<IAutoTestResult, AutoTestResultModel>(
+  'AutoTestResult',
+  autoTestResultSchema
+);
 
 export default AutoTestResult;
