@@ -34,12 +34,22 @@ import CICDController from './Controllers/CICD.js';
 import DocumentCenterController from './Controllers/DocumentCenter.js';
 import ProjectVariableController from './Controllers/ProjectVariable.js';
 import ApiMonitorController from './Controllers/ApiMonitor.js';
+import BugController from './Controllers/Bug.js';
 import { projectTokenAuth } from './Middleware/projectTokenAuth.js';
 import { cliTokenAuth, authOrCliToken } from './Middleware/cliTokenAuth.js';
 import { authMiddleware } from './Middleware/auth.js';
-import { checkPermission, checkProjectPermission, checkGroupPermission } from './Middleware/permission.js';
+import {
+  checkPermission,
+  checkProjectPermission,
+  checkGroupPermission,
+} from './Middleware/permission.js';
 import { upload, handleUploadError } from './Middleware/upload.js';
-import { apiRateLimiter, authRateLimiter, registerRateLimiter, emailCodeRateLimiter } from './Middleware/rateLimiter.js';
+import {
+  apiRateLimiter,
+  authRateLimiter,
+  registerRateLimiter,
+  emailCodeRateLimiter,
+} from './Middleware/rateLimiter.js';
 import { getVersionInfoFormatted } from './Utils/version.js';
 import Koa from 'koa';
 
@@ -79,227 +89,1231 @@ router.post('/api/user/login', authRateLimiter as any, UserController.login as a
 router.post('/api/user/logout', authMiddleware as any, UserController.logout as any);
 router.get('/api/user/info', authMiddleware as any, UserController.getInfo as any);
 router.put('/api/user/info', authMiddleware as any, UserController.updateInfo as any);
-router.post('/api/user/password/reset/request', authRateLimiter as any, UserController.requestPasswordReset as any);
-router.post('/api/user/password/reset', authRateLimiter as any, UserController.resetPassword as any);
-router.post('/api/user/password/change', apiRateLimiter as any, authMiddleware as any, UserController.changePassword as any);
+router.post(
+  '/api/user/password/reset/request',
+  authRateLimiter as any,
+  UserController.requestPasswordReset as any
+);
+router.post(
+  '/api/user/password/reset',
+  authRateLimiter as any,
+  UserController.resetPassword as any
+);
+router.post(
+  '/api/user/password/change',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  UserController.changePassword as any
+);
 
 // Admin users
-router.get('/api/admin/user/list', apiRateLimiter as any, authMiddleware as any, requireSuperAdmin as any, UserController.listUsers as any);
-router.post('/api/admin/user/add', apiRateLimiter as any, authMiddleware as any, requireSuperAdmin as any, UserController.createUser as any);
-router.put('/api/admin/user/up', apiRateLimiter as any, authMiddleware as any, requireSuperAdmin as any, UserController.updateUser as any);
-router.delete('/api/admin/user/del', apiRateLimiter as any, authMiddleware as any, requireSuperAdmin as any, UserController.deleteUser as any);
+router.get(
+  '/api/admin/user/list',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireSuperAdmin as any,
+  UserController.listUsers as any
+);
+router.post(
+  '/api/admin/user/add',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireSuperAdmin as any,
+  UserController.createUser as any
+);
+router.put(
+  '/api/admin/user/up',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireSuperAdmin as any,
+  UserController.updateUser as any
+);
+router.delete(
+  '/api/admin/user/del',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireSuperAdmin as any,
+  UserController.deleteUser as any
+);
 
 // Group
-router.get('/api/group/list', apiRateLimiter as any, authMiddleware as any, GroupController.list as any);
-router.post('/api/group/add', apiRateLimiter as any, authMiddleware as any, GroupController.add as any);
-router.put('/api/group/up', apiRateLimiter as any, authMiddleware as any, requireGroupMember, GroupController.update as any);
-router.delete('/api/group/del', apiRateLimiter as any, authMiddleware as any, requireGroupMember, GroupController.delete as any);
-router.get('/api/group/get', apiRateLimiter as any, authMiddleware as any, GroupController.get as any);
-router.post('/api/group/member/add', apiRateLimiter as any, authMiddleware as any, requireGroupMember, GroupController.addMember as any);
-router.delete('/api/group/member/del', apiRateLimiter as any, authMiddleware as any, requireGroupMember, GroupController.removeMember as any);
-router.post('/api/group/member/setLeader', apiRateLimiter as any, authMiddleware as any, requireGroupMember, GroupController.setLeader as any);
+router.get(
+  '/api/group/list',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  GroupController.list as any
+);
+router.post(
+  '/api/group/add',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  GroupController.add as any
+);
+router.put(
+  '/api/group/up',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireGroupMember,
+  GroupController.update as any
+);
+router.delete(
+  '/api/group/del',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireGroupMember,
+  GroupController.delete as any
+);
+router.get(
+  '/api/group/get',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  GroupController.get as any
+);
+router.post(
+  '/api/group/member/add',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireGroupMember,
+  GroupController.addMember as any
+);
+router.delete(
+  '/api/group/member/del',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireGroupMember,
+  GroupController.removeMember as any
+);
+router.post(
+  '/api/group/member/setLeader',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireGroupMember,
+  GroupController.setLeader as any
+);
 
 // Project
-router.get('/api/project/list', apiRateLimiter as any, authMiddleware as any, ProjectController.list as any);
-router.post('/api/project/add', apiRateLimiter as any, authMiddleware as any, ProjectController.add as any);
-router.put('/api/project/up', apiRateLimiter as any, authMiddleware as any, requireProjectMember, ProjectController.update as any);
-router.delete('/api/project/del', apiRateLimiter as any, authMiddleware as any, requireProjectMember, ProjectController.delete as any);
-router.get('/api/project/get', apiRateLimiter as any, authMiddleware as any, ProjectController.get as any);
-router.post('/api/project/environment/add', apiRateLimiter as any, authMiddleware as any, requireProjectMember, ProjectController.addEnvironment as any);
-router.put('/api/project/environment/up', apiRateLimiter as any, authMiddleware as any, requireProjectMember, ProjectController.updateEnvironment as any);
-router.delete('/api/project/environment/del', apiRateLimiter as any, authMiddleware as any, requireProjectMember, ProjectController.deleteEnvironment as any);
-router.post('/api/project/member/add', apiRateLimiter as any, authMiddleware as any, requireProjectMember, ProjectController.addMember as any);
-router.delete('/api/project/member/del', apiRateLimiter as any, authMiddleware as any, requireProjectMember, ProjectController.removeMember as any);
-router.get('/api/project/activities', apiRateLimiter as any, authMiddleware as any, ProjectController.getActivities as any);
-router.post('/api/project/migrate', apiRateLimiter as any, authMiddleware as any, requireProjectMember, ProjectController.migrate as any);
-router.post('/api/project/copy', apiRateLimiter as any, authMiddleware as any, requireProjectMember, ProjectController.copy as any);
-router.get('/api/admin/project/list', apiRateLimiter as any, authMiddleware as any, requireSuperAdmin as any, ProjectController.list as any);
+router.get(
+  '/api/project/list',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  ProjectController.list as any
+);
+router.post(
+  '/api/project/add',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  ProjectController.add as any
+);
+router.put(
+  '/api/project/up',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  ProjectController.update as any
+);
+router.delete(
+  '/api/project/del',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  ProjectController.delete as any
+);
+router.get(
+  '/api/project/get',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  ProjectController.get as any
+);
+router.post(
+  '/api/project/environment/add',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  ProjectController.addEnvironment as any
+);
+router.put(
+  '/api/project/environment/up',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  ProjectController.updateEnvironment as any
+);
+router.delete(
+  '/api/project/environment/del',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  ProjectController.deleteEnvironment as any
+);
+router.post(
+  '/api/project/member/add',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  ProjectController.addMember as any
+);
+router.delete(
+  '/api/project/member/del',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  ProjectController.removeMember as any
+);
+router.get(
+  '/api/project/activities',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  ProjectController.getActivities as any
+);
+router.post(
+  '/api/project/migrate',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  ProjectController.migrate as any
+);
+router.post(
+  '/api/project/copy',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  ProjectController.copy as any
+);
+router.get(
+  '/api/admin/project/list',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireSuperAdmin as any,
+  ProjectController.list as any
+);
 
 // Interface
-router.get('/api/interface/list', apiRateLimiter as any, authMiddleware as any, InterfaceController.list as any);
-router.post('/api/interface/add', apiRateLimiter as any, authMiddleware as any, requireProjectMember, InterfaceController.add as any);
-router.put('/api/interface/up', apiRateLimiter as any, authMiddleware as any, requireProjectMember, InterfaceController.update as any);
-router.delete('/api/interface/del', apiRateLimiter as any, authMiddleware as any, requireProjectMember, InterfaceController.delete as any);
-router.post('/api/interface/batch-delete', apiRateLimiter as any, authMiddleware as any, requireProjectMember, InterfaceController.batchDelete as any);
-router.get('/api/interface/get', apiRateLimiter as any, authMiddleware as any, InterfaceController.get as any);
-router.post('/api/interface/run', apiRateLimiter as any, authMiddleware as any, requireProjectMember, InterfaceController.run as any);
+router.get(
+  '/api/interface/list',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  InterfaceController.list as any
+);
+router.get(
+  '/api/admin/interface/list',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireSuperAdmin as any,
+  InterfaceController.list as any
+);
+router.post(
+  '/api/interface/add',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  InterfaceController.add as any
+);
+router.put(
+  '/api/interface/up',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  InterfaceController.update as any
+);
+router.delete(
+  '/api/interface/del',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  InterfaceController.delete as any
+);
+router.post(
+  '/api/interface/batch-delete',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  InterfaceController.batchDelete as any
+);
+router.get(
+  '/api/interface/get',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  InterfaceController.get as any
+);
+router.post(
+  '/api/interface/run',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  InterfaceController.run as any
+);
 
 // Interface categories
-router.get('/api/interface/cat/list', apiRateLimiter as any, authMiddleware as any, InterfaceCatController.list as any);
-router.post('/api/interface/cat/add', apiRateLimiter as any, authMiddleware as any, requireProjectMember, InterfaceCatController.add as any);
-router.put('/api/interface/cat/up', apiRateLimiter as any, authMiddleware as any, requireProjectMember, InterfaceCatController.update as any);
-router.delete('/api/interface/cat/del', apiRateLimiter as any, authMiddleware as any, requireProjectMember, InterfaceCatController.delete as any);
+router.get(
+  '/api/interface/cat/list',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  InterfaceCatController.list as any
+);
+router.post(
+  '/api/interface/cat/add',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  InterfaceCatController.add as any
+);
+router.put(
+  '/api/interface/cat/up',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  InterfaceCatController.update as any
+);
+router.delete(
+  '/api/interface/cat/del',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  InterfaceCatController.delete as any
+);
 
 // Mock expectations
-router.get('/api/mock/expectation/list', apiRateLimiter as any, authMiddleware as any, MockExpectationController.list as any);
-router.post('/api/mock/expectation/add', apiRateLimiter as any, authMiddleware as any, requireProjectMember, MockExpectationController.add as any);
-router.put('/api/mock/expectation/up', apiRateLimiter as any, authMiddleware as any, requireProjectMember, MockExpectationController.update as any);
-router.delete('/api/mock/expectation/del', apiRateLimiter as any, authMiddleware as any, requireProjectMember, MockExpectationController.delete as any);
+router.get(
+  '/api/mock/expectation/list',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  MockExpectationController.list as any
+);
+router.post(
+  '/api/mock/expectation/add',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  MockExpectationController.add as any
+);
+router.put(
+  '/api/mock/expectation/up',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  MockExpectationController.update as any
+);
+router.delete(
+  '/api/mock/expectation/del',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  MockExpectationController.delete as any
+);
 
 // Analytics & Monitor
-router.get('/api/monitor/stats', apiRateLimiter as any, authMiddleware as any, MonitorController.getStats as any);
-router.get('/api/monitor/hierarchy', apiRateLimiter as any, authMiddleware as any, MonitorController.getHierarchy as any);
-router.get('/api/metrics', apiRateLimiter as any, authMiddleware as any, MonitorController.getMetrics as any);
-router.get('/api/projects/:projectId/health', apiRateLimiter as any, authMiddleware as any, AnalyticsController.getProjectHealth as any);
+router.get(
+  '/api/monitor/stats',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  MonitorController.getStats as any
+);
+router.get(
+  '/api/monitor/hierarchy',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  MonitorController.getHierarchy as any
+);
+router.get(
+  '/api/metrics',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  MonitorController.getMetrics as any
+);
+router.get(
+  '/api/projects/:projectId/health',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  AnalyticsController.getProjectHealth as any
+);
 
 // Import/Export
-router.post('/api/import', apiRateLimiter as any, authMiddleware as any, requireProjectMember, ImportExportController.import as any);
-router.get('/api/export', apiRateLimiter as any, authMiddleware as any, requireProjectMember, ImportExportController.export as any);
+router.post(
+  '/api/import',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  ImportExportController.import as any
+);
+router.get(
+  '/api/export',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  ImportExportController.export as any
+);
 
 // SSO — public login path + admin CRUD
-router.get('/api/sso/public-providers', authRateLimiter as any, SSOController.listPublicProviders as any);
+router.get(
+  '/api/sso/public-providers',
+  authRateLimiter as any,
+  SSOController.listPublicProviders as any
+);
 router.get('/api/sso/auth/:providerId', authRateLimiter as any, SSOController.initiateAuth as any);
-router.get('/api/sso/auth/:providerId/callback', authRateLimiter as any, SSOController.handleCallback as any);
-router.post('/api/sso/auth/:providerId/callback', authRateLimiter as any, SSOController.handleCallback as any);
-router.get('/api/sso/providers', apiRateLimiter as any, authMiddleware as any, requireSuperAdmin as any, SSOController.listProviders as any);
-router.get('/api/sso/providers/:id', apiRateLimiter as any, authMiddleware as any, requireSuperAdmin as any, SSOController.getProvider as any);
-router.post('/api/sso/providers', apiRateLimiter as any, authMiddleware as any, requireSuperAdmin as any, SSOController.createProvider as any);
-router.put('/api/sso/providers/:id', apiRateLimiter as any, authMiddleware as any, requireSuperAdmin as any, SSOController.updateProvider as any);
-router.delete('/api/sso/providers/:id', apiRateLimiter as any, authMiddleware as any, requireSuperAdmin as any, SSOController.deleteProvider as any);
+router.get(
+  '/api/sso/auth/:providerId/callback',
+  authRateLimiter as any,
+  SSOController.handleCallback as any
+);
+router.post(
+  '/api/sso/auth/:providerId/callback',
+  authRateLimiter as any,
+  SSOController.handleCallback as any
+);
+router.get(
+  '/api/sso/providers',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireSuperAdmin as any,
+  SSOController.listProviders as any
+);
+router.get(
+  '/api/sso/providers/:id',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireSuperAdmin as any,
+  SSOController.getProvider as any
+);
+router.post(
+  '/api/sso/providers',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireSuperAdmin as any,
+  SSOController.createProvider as any
+);
+router.put(
+  '/api/sso/providers/:id',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireSuperAdmin as any,
+  SSOController.updateProvider as any
+);
+router.delete(
+  '/api/sso/providers/:id',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireSuperAdmin as any,
+  SSOController.deleteProvider as any
+);
 
 // Third party auth
-router.get('/api/auth/third-party/providers', authRateLimiter as any, ThirdPartyAuthController.getEnabledProviders as any);
+router.get(
+  '/api/auth/third-party/providers',
+  authRateLimiter as any,
+  ThirdPartyAuthController.getEnabledProviders as any
+);
 router.get('/api/auth/github', ThirdPartyAuthController.githubAuth as any);
-router.post('/api/auth/email/send-code', emailCodeRateLimiter as any, ThirdPartyAuthController.sendEmailCode as any);
-router.post('/api/auth/email/login', authRateLimiter as any, ThirdPartyAuthController.emailLogin as any);
-router.get('/api/admin/auth/third-party/config', apiRateLimiter as any, authMiddleware as any, requireSuperAdmin as any, ThirdPartyAuthController.getAdminConfigs as any);
-router.post('/api/admin/auth/third-party/config/:provider', apiRateLimiter as any, authMiddleware as any, requireSuperAdmin as any, ThirdPartyAuthController.saveAdminConfig as any);
+router.post(
+  '/api/auth/email/send-code',
+  emailCodeRateLimiter as any,
+  ThirdPartyAuthController.sendEmailCode as any
+);
+router.post(
+  '/api/auth/email/login',
+  authRateLimiter as any,
+  ThirdPartyAuthController.emailLogin as any
+);
+router.get(
+  '/api/admin/auth/third-party/config',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireSuperAdmin as any,
+  ThirdPartyAuthController.getAdminConfigs as any
+);
+router.post(
+  '/api/admin/auth/third-party/config/:provider',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireSuperAdmin as any,
+  ThirdPartyAuthController.saveAdminConfig as any
+);
 
 // Upload
-router.post('/api/upload', apiRateLimiter as any, authMiddleware as any, handleUploadError as any, upload.single('file') as any, UploadController.uploadFile as any);
-router.post('/api/upload/avatar', apiRateLimiter as any, authMiddleware as any, handleUploadError as any, upload.single('file') as any, UploadController.uploadAvatar as any);
+router.post(
+  '/api/upload',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  handleUploadError as any,
+  upload.single('file') as any,
+  UploadController.uploadFile as any
+);
+router.post(
+  '/api/upload/avatar',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  handleUploadError as any,
+  upload.single('file') as any,
+  UploadController.uploadAvatar as any
+);
 
 // Search
-router.get('/api/search', apiRateLimiter as any, authMiddleware as any, SearchController.search as any);
+router.get(
+  '/api/search',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  SearchController.search as any
+);
 
 // Plugins
-router.get('/api/plugins', apiRateLimiter as any, authMiddleware as any, PluginController.listPlugins as any);
-router.get('/api/plugins/:id', apiRateLimiter as any, authMiddleware as any, PluginController.getPlugin as any);
-router.post('/api/plugins/:id/enable', apiRateLimiter as any, authMiddleware as any, requireSuperAdmin as any, PluginController.enablePlugin as any);
+router.get(
+  '/api/plugins',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  PluginController.listPlugins as any
+);
+router.get(
+  '/api/plugins/:id',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  PluginController.getPlugin as any
+);
+router.post(
+  '/api/plugins/:id/enable',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireSuperAdmin as any,
+  PluginController.enablePlugin as any
+);
 
 // Email / Whitelist / Logs (admin)
-router.get('/api/email/config', apiRateLimiter as any, authMiddleware as any, requireSuperAdmin as any, EmailController.getConfig as any);
-router.put('/api/email/config', apiRateLimiter as any, authMiddleware as any, requireSuperAdmin as any, EmailController.updateConfig as any);
-router.post('/api/email/test', apiRateLimiter as any, authMiddleware as any, requireSuperAdmin as any, EmailController.testEmail as any);
-router.get('/api/whitelist/config', apiRateLimiter as any, authMiddleware as any, requireSuperAdmin as any, WhitelistController.getConfig as any);
-router.put('/api/whitelist/config', apiRateLimiter as any, authMiddleware as any, requireSuperAdmin as any, WhitelistController.updateConfig as any);
-router.get('/api/whitelist/entries', apiRateLimiter as any, authMiddleware as any, requireSuperAdmin as any, WhitelistController.listEntries as any);
-router.post('/api/whitelist/entries', apiRateLimiter as any, authMiddleware as any, requireSuperAdmin as any, WhitelistController.addEntry as any);
-router.delete('/api/whitelist/entries/:id', apiRateLimiter as any, authMiddleware as any, requireSuperAdmin as any, WhitelistController.deleteEntry as any);
-router.get('/api/login-logs', apiRateLimiter as any, authMiddleware as any, requireSuperAdmin as any, LoginLogController.listLogs as any);
-router.get('/api/login-logs/statistics', apiRateLimiter as any, authMiddleware as any, requireSuperAdmin as any, LoginLogController.getStatistics as any);
-router.get('/api/logs', apiRateLimiter as any, authMiddleware as any, requireSuperAdmin as any, OperationLogController.listLogs as any);
-router.get('/api/logs/export', apiRateLimiter as any, authMiddleware as any, requireSuperAdmin as any, OperationLogController.exportLogs as any);
+router.get(
+  '/api/email/config',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireSuperAdmin as any,
+  EmailController.getConfig as any
+);
+router.put(
+  '/api/email/config',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireSuperAdmin as any,
+  EmailController.updateConfig as any
+);
+router.post(
+  '/api/email/test',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireSuperAdmin as any,
+  EmailController.testEmail as any
+);
+router.get(
+  '/api/whitelist/config',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireSuperAdmin as any,
+  WhitelistController.getConfig as any
+);
+router.put(
+  '/api/whitelist/config',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireSuperAdmin as any,
+  WhitelistController.updateConfig as any
+);
+router.get(
+  '/api/whitelist/entries',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireSuperAdmin as any,
+  WhitelistController.listEntries as any
+);
+router.post(
+  '/api/whitelist/entries',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireSuperAdmin as any,
+  WhitelistController.addEntry as any
+);
+router.delete(
+  '/api/whitelist/entries/:id',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireSuperAdmin as any,
+  WhitelistController.deleteEntry as any
+);
+router.get(
+  '/api/login-logs',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireSuperAdmin as any,
+  LoginLogController.listLogs as any
+);
+router.get(
+  '/api/login-logs/statistics',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireSuperAdmin as any,
+  LoginLogController.getStatistics as any
+);
+router.get(
+  '/api/logs',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireSuperAdmin as any,
+  OperationLogController.listLogs as any
+);
+router.get(
+  '/api/logs/export',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireSuperAdmin as any,
+  OperationLogController.exportLogs as any
+);
 
 // User center / notifications / stars
-router.get('/api/user/projects', apiRateLimiter as any, authMiddleware as any, UserCenterController.getUserProjects as any);
-router.get('/api/user/statistics', apiRateLimiter as any, authMiddleware as any, UserCenterController.getUserStats as any);
-router.get('/api/user/notifications', apiRateLimiter as any, authMiddleware as any, NotificationController.listNotifications as any);
-router.post('/api/user/notifications/:id/read', apiRateLimiter as any, authMiddleware as any, NotificationController.markAsRead as any);
-router.post('/api/user/notifications/read-all', apiRateLimiter as any, authMiddleware as any, NotificationController.markAllAsRead as any);
-router.delete('/api/user/notifications/:id', apiRateLimiter as any, authMiddleware as any, NotificationController.deleteNotification as any);
-router.get('/api/notifications/settings', apiRateLimiter as any, authMiddleware as any, NotificationController.getSettings as any);
-router.put('/api/notifications/settings', apiRateLimiter as any, authMiddleware as any, NotificationController.updateSettings as any);
-router.get('/api/user/stars', apiRateLimiter as any, authMiddleware as any, ProjectFollowController.listFollowing as any);
-router.delete('/api/user/stars/:projectId', apiRateLimiter as any, authMiddleware as any, ProjectFollowController.unfollowProject as any);
+router.get(
+  '/api/user/projects',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  UserCenterController.getUserProjects as any
+);
+router.get(
+  '/api/user/statistics',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  UserCenterController.getUserStats as any
+);
+router.get(
+  '/api/user/notifications',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  NotificationController.listNotifications as any
+);
+router.post(
+  '/api/user/notifications/:id/read',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  NotificationController.markAsRead as any
+);
+router.post(
+  '/api/user/notifications/read-all',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  NotificationController.markAllAsRead as any
+);
+router.delete(
+  '/api/user/notifications/:id',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  NotificationController.deleteNotification as any
+);
+router.get(
+  '/api/notifications/settings',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  NotificationController.getSettings as any
+);
+router.put(
+  '/api/notifications/settings',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  NotificationController.updateSettings as any
+);
+router.get(
+  '/api/user/stars',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  ProjectFollowController.listFollowing as any
+);
+router.delete(
+  '/api/user/stars/:projectId',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  ProjectFollowController.unfollowProject as any
+);
 
 // AI
-router.post('/api/ai/generate', apiRateLimiter as any, authMiddleware as any, AIAssistantController.generateInterface as any);
-router.post('/api/ai/generate-mock', apiRateLimiter as any, authMiddleware as any, AIAssistantController.generateMock as any);
-router.post('/api/ai/suggest-code-fix', apiRateLimiter as any, authMiddleware as any, AIAssistantController.suggestCodeFix as any);
-router.get('/api/ai/suggestions', apiRateLimiter as any, authMiddleware as any, AIAssistantController.getDesignSuggestions as any);
-router.get('/api/admin/ai/configs', apiRateLimiter as any, authMiddleware as any, requireSuperAdmin as any, AIConfigController.listConfigs as any);
-router.post('/api/admin/ai/configs', apiRateLimiter as any, authMiddleware as any, requireSuperAdmin as any, AIConfigController.saveConfig as any);
-router.post('/api/admin/ai/configs/:provider/test', apiRateLimiter as any, authMiddleware as any, requireSuperAdmin as any, AIConfigController.testConfig as any);
+router.post(
+  '/api/ai/generate',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  AIAssistantController.generateInterface as any
+);
+router.post(
+  '/api/ai/generate-mock',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  AIAssistantController.generateMock as any
+);
+router.post(
+  '/api/ai/suggest-code-fix',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  AIAssistantController.suggestCodeFix as any
+);
+router.get(
+  '/api/ai/suggestions',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  AIAssistantController.getDesignSuggestions as any
+);
+router.get(
+  '/api/admin/ai/configs',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireSuperAdmin as any,
+  AIConfigController.listConfigs as any
+);
+router.post(
+  '/api/admin/ai/configs',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireSuperAdmin as any,
+  AIConfigController.saveConfig as any
+);
+router.post(
+  '/api/admin/ai/configs/:provider/test',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireSuperAdmin as any,
+  AIConfigController.testConfig as any
+);
 
 // Auto test
-router.get('/api/auto-test/config', apiRateLimiter as any, authMiddleware as any, AutoTestController.getConfig as any);
-router.post('/api/auto-test/generate', apiRateLimiter as any, authMiddleware as any, requireProjectMember, AutoTestController.generateTestCases as any);
-router.post('/api/auto-test/run', apiRateLimiter as any, authMiddleware as any, requireProjectMember, AutoTestController.runAutoTest as any);
-router.get('/api/auto-test/tasks', apiRateLimiter as any, authMiddleware as any, AutoTestTaskController.listTasks as any);
-router.post('/api/auto-test/tasks', apiRateLimiter as any, authMiddleware as any, requireProjectMember, AutoTestTaskController.createTask as any);
-router.get('/api/auto-test/tasks/:id', apiRateLimiter as any, authMiddleware as any, AutoTestTaskController.getTask as any);
-router.put('/api/auto-test/tasks/:id', apiRateLimiter as any, authMiddleware as any, requireProjectMember, AutoTestTaskController.updateTask as any);
-router.delete('/api/auto-test/tasks/:id', apiRateLimiter as any, authMiddleware as any, requireProjectMember, AutoTestTaskController.deleteTask as any);
-router.post('/api/auto-test/tasks/:id/run', apiRateLimiter as any, authMiddleware as any, requireProjectMember, AutoTestTaskController.runTask as any);
-router.post('/api/auto-test/tasks/:id/run-single', apiRateLimiter as any, authMiddleware as any, requireProjectMember, AutoTestTaskController.runSingleCase as any);
-router.get('/api/auto-test/results/:resultId', apiRateLimiter as any, authMiddleware as any, AutoTestTaskController.getResult as any);
-router.post('/api/auto-test/results/:id/analyze', apiRateLimiter as any, authMiddleware as any, requireProjectMember, AutoTestTaskController.triggerAIAnalysis as any);
-router.get('/api/auto-test/results/:resultId/export', apiRateLimiter as any, authMiddleware as any, AutoTestTaskController.exportResult as any);
-router.get('/api/auto-test/tasks/:id/export', apiRateLimiter as any, authMiddleware as any, AutoTestTaskController.exportTask as any);
-router.post('/api/auto-test/tasks/import', apiRateLimiter as any, authMiddleware as any, requireProjectMember, AutoTestTaskController.importTask as any);
+router.get(
+  '/api/auto-test/config',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  AutoTestController.getConfig as any
+);
+router.post(
+  '/api/auto-test/generate',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  AutoTestController.generateTestCases as any
+);
+router.post(
+  '/api/auto-test/run',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  AutoTestController.runAutoTest as any
+);
+router.get(
+  '/api/auto-test/tasks',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  AutoTestTaskController.listTasks as any
+);
+router.post(
+  '/api/auto-test/tasks',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  AutoTestTaskController.createTask as any
+);
+router.get(
+  '/api/auto-test/tasks/:id',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  AutoTestTaskController.getTask as any
+);
+router.put(
+  '/api/auto-test/tasks/:id',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  AutoTestTaskController.updateTask as any
+);
+router.delete(
+  '/api/auto-test/tasks/:id',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  AutoTestTaskController.deleteTask as any
+);
+router.post(
+  '/api/auto-test/tasks/:id/run',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  AutoTestTaskController.runTask as any
+);
+router.post(
+  '/api/auto-test/tasks/:id/run-single',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  AutoTestTaskController.runSingleCase as any
+);
+router.get(
+  '/api/auto-test/results/:resultId',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  AutoTestTaskController.getResult as any
+);
+router.post(
+  '/api/auto-test/results/:id/analyze',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  AutoTestTaskController.triggerAIAnalysis as any
+);
+router.get(
+  '/api/auto-test/results/:resultId/export',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  AutoTestTaskController.exportResult as any
+);
+router.post(
+  '/api/auto-test/results/:resultId/share',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  AutoTestTaskController.createShare as any
+);
+router.delete(
+  '/api/auto-test/results/:resultId/share',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  AutoTestTaskController.revokeShare as any
+);
+router.get(
+  '/api/public/auto-test/reports/:token',
+  apiRateLimiter as any,
+  AutoTestTaskController.getPublicReport as any
+);
+router.get(
+  '/api/auto-test/tasks/:id/export',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  AutoTestTaskController.exportTask as any
+);
+router.post(
+  '/api/auto-test/tasks/import',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  AutoTestTaskController.importTask as any
+);
 
 // Test collections / environments / rules
-router.get('/api/test/collection/list', apiRateLimiter as any, authMiddleware as any, TestController.listCollections as any);
-router.post('/api/test/collection/add', apiRateLimiter as any, authMiddleware as any, requireProjectMember, TestController.createCollection as any);
-router.get('/api/test/collection/:id', apiRateLimiter as any, authMiddleware as any, TestController.getCollection as any);
-router.put('/api/test/collection/:id', apiRateLimiter as any, authMiddleware as any, TestController.updateCollection as any);
-router.delete('/api/test/collection/:id', apiRateLimiter as any, authMiddleware as any, TestController.deleteCollection as any);
-router.post('/api/test/case/add', apiRateLimiter as any, authMiddleware as any, TestController.createTestCase as any);
-router.put('/api/test/case/:id', apiRateLimiter as any, authMiddleware as any, TestController.updateTestCase as any);
-router.delete('/api/test/case/:id', apiRateLimiter as any, authMiddleware as any, TestController.deleteTestCase as any);
-router.post('/api/test/run', apiRateLimiter as any, authMiddleware as any, TestController.runTest as any);
-router.get('/api/test/history', apiRateLimiter as any, authMiddleware as any, TestController.getTestHistory as any);
-router.get('/api/admin/test/collections', apiRateLimiter as any, authMiddleware as any, requireSuperAdmin as any, TestController.listAllCollections as any);
-router.get('/api/admin/test/results', apiRateLimiter as any, authMiddleware as any, requireSuperAdmin as any, TestController.listAllResults as any);
-router.get('/api/admin/test/statistics', apiRateLimiter as any, authMiddleware as any, requireSuperAdmin as any, TestController.getTestStatistics as any);
+router.get(
+  '/api/test/collection/list',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  TestController.listCollections as any
+);
+router.post(
+  '/api/test/collection/add',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  TestController.createCollection as any
+);
+router.get(
+  '/api/test/collection/:id',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  TestController.getCollection as any
+);
+router.put(
+  '/api/test/collection/:id',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  TestController.updateCollection as any
+);
+router.delete(
+  '/api/test/collection/:id',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  TestController.deleteCollection as any
+);
+router.post(
+  '/api/test/case/add',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  TestController.createTestCase as any
+);
+router.put(
+  '/api/test/case/:id',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  TestController.updateTestCase as any
+);
+router.post(
+  '/api/test/case/:id/sync-from-interface',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  TestController.syncCaseFromInterface as any
+);
+router.delete(
+  '/api/test/case/:id',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  TestController.deleteTestCase as any
+);
+router.post(
+  '/api/test/run',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  TestController.runTest as any
+);
+router.get(
+  '/api/test/history',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  TestController.getTestHistory as any
+);
+router.get(
+  '/api/admin/test/collections',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireSuperAdmin as any,
+  TestController.listAllCollections as any
+);
+router.get(
+  '/api/admin/test/results',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireSuperAdmin as any,
+  TestController.listAllResults as any
+);
+router.get(
+  '/api/admin/test/statistics',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireSuperAdmin as any,
+  TestController.getTestStatistics as any
+);
 
 // CI/CD + Newman-like automation (JWT or CLI token)
-router.post('/api/cicd/tokens', apiRateLimiter as any, authMiddleware as any, CICDController.generateCLIToken as any);
-router.get('/api/cicd/tokens', apiRateLimiter as any, authMiddleware as any, CICDController.listCLITokens as any);
-router.delete('/api/cicd/tokens/:id', apiRateLimiter as any, authMiddleware as any, CICDController.deleteCLIToken as any);
-router.post('/api/cicd/run', apiRateLimiter as any, authOrCliToken as any, CICDController.runTest as any);
-router.post('/api/cicd/run-pipeline', apiRateLimiter as any, authOrCliToken as any, CICDController.runPipeline as any);
-router.post('/api/cicd/sync-swagger', apiRateLimiter as any, authOrCliToken as any, CICDController.syncSwagger as any);
-router.get('/api/cicd/results/:resultId/junit', apiRateLimiter as any, authMiddleware as any, CICDController.getResultJUnit as any);
+router.post(
+  '/api/cicd/tokens',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  CICDController.generateCLIToken as any
+);
+router.get(
+  '/api/cicd/tokens',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  CICDController.listCLITokens as any
+);
+router.delete(
+  '/api/cicd/tokens/:id',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  CICDController.deleteCLIToken as any
+);
+router.post(
+  '/api/cicd/run',
+  apiRateLimiter as any,
+  authOrCliToken as any,
+  CICDController.runTest as any
+);
+router.post(
+  '/api/cicd/run-pipeline',
+  apiRateLimiter as any,
+  authOrCliToken as any,
+  CICDController.runPipeline as any
+);
+router.post(
+  '/api/cicd/sync-swagger',
+  apiRateLimiter as any,
+  authOrCliToken as any,
+  CICDController.syncSwagger as any
+);
+router.get(
+  '/api/cicd/results/:resultId/junit',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  CICDController.getResultJUnit as any
+);
 
 // DocumentCenter (path A — publish + portal preview)
-router.post('/api/docs/generate', apiRateLimiter as any, authMiddleware as any, requireProjectMember, DocumentCenterController.generateDocument as any);
-router.post('/api/docs/publish', apiRateLimiter as any, authMiddleware as any, requireProjectMember, DocumentCenterController.publishDocument as any);
-router.get('/api/docs/published', apiRateLimiter as any, authMiddleware as any, DocumentCenterController.getPublishedDocument as any);
-router.get('/api/docs/versions', apiRateLimiter as any, authMiddleware as any, DocumentCenterController.listDocumentVersions as any);
-router.get('/api/docs/compare', apiRateLimiter as any, authMiddleware as any, DocumentCenterController.compareDocumentVersions as any);
+router.post(
+  '/api/docs/generate',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  DocumentCenterController.generateDocument as any
+);
+router.post(
+  '/api/docs/publish',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  DocumentCenterController.publishDocument as any
+);
+router.get(
+  '/api/docs/published',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  DocumentCenterController.getPublishedDocument as any
+);
+router.get(
+  '/api/docs/versions',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  DocumentCenterController.listDocumentVersions as any
+);
+router.get(
+  '/api/docs/compare',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  DocumentCenterController.compareDocumentVersions as any
+);
 
 // OpenAPI (project token) — machine-to-machine interface CRUD
-router.get('/api/open/interfaces', apiRateLimiter as any, projectTokenAuth as any, OpenAPIController.listInterfaces as any);
-router.get('/api/open/interfaces/:id', apiRateLimiter as any, projectTokenAuth as any, OpenAPIController.getInterface as any);
-router.post('/api/open/interfaces', apiRateLimiter as any, projectTokenAuth as any, OpenAPIController.createInterface as any);
-router.put('/api/open/interfaces/:id', apiRateLimiter as any, projectTokenAuth as any, OpenAPIController.updateInterface as any);
-router.delete('/api/open/interfaces/:id', apiRateLimiter as any, projectTokenAuth as any, OpenAPIController.deleteInterface as any);
+router.get(
+  '/api/open/interfaces',
+  apiRateLimiter as any,
+  projectTokenAuth as any,
+  OpenAPIController.listInterfaces as any
+);
+router.get(
+  '/api/open/interfaces/:id',
+  apiRateLimiter as any,
+  projectTokenAuth as any,
+  OpenAPIController.getInterface as any
+);
+router.post(
+  '/api/open/interfaces',
+  apiRateLimiter as any,
+  projectTokenAuth as any,
+  OpenAPIController.createInterface as any
+);
+router.put(
+  '/api/open/interfaces/:id',
+  apiRateLimiter as any,
+  projectTokenAuth as any,
+  OpenAPIController.updateInterface as any
+);
+router.delete(
+  '/api/open/interfaces/:id',
+  apiRateLimiter as any,
+  projectTokenAuth as any,
+  OpenAPIController.deleteInterface as any
+);
 
-router.get('/api/test/environments', apiRateLimiter as any, authMiddleware as any, TestEnvironmentController.listEnvironments as any);
-router.post('/api/test/environments', apiRateLimiter as any, authMiddleware as any, requireProjectMember, TestEnvironmentController.createEnvironment as any);
-router.get('/api/test/environments/:id', apiRateLimiter as any, authMiddleware as any, TestEnvironmentController.getEnvironment as any);
-router.put('/api/test/environments/:id', apiRateLimiter as any, authMiddleware as any, TestEnvironmentController.updateEnvironment as any);
-router.delete('/api/test/environments/:id', apiRateLimiter as any, authMiddleware as any, TestEnvironmentController.deleteEnvironment as any);
+router.get(
+  '/api/test/environments',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  TestEnvironmentController.listEnvironments as any
+);
+router.post(
+  '/api/test/environments',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  TestEnvironmentController.createEnvironment as any
+);
+router.get(
+  '/api/test/environments/:id',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  TestEnvironmentController.getEnvironment as any
+);
+router.put(
+  '/api/test/environments/:id',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  TestEnvironmentController.updateEnvironment as any
+);
+router.delete(
+  '/api/test/environments/:id',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  TestEnvironmentController.deleteEnvironment as any
+);
 
 // Unified variables (globals + TestEnvironment summary)
-router.get('/api/projects/:projectId/variables', apiRateLimiter as any, authMiddleware as any, ProjectVariableController.getVariables as any);
-router.put('/api/projects/:projectId/variables/globals', apiRateLimiter as any, authMiddleware as any, ProjectVariableController.updateGlobals as any);
-router.post('/api/projects/:projectId/variables/sync-legacy', apiRateLimiter as any, authMiddleware as any, ProjectVariableController.syncFromLegacyEnv as any);
+router.get(
+  '/api/projects/:projectId/variables',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  ProjectVariableController.getVariables as any
+);
+router.put(
+  '/api/projects/:projectId/variables/globals',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  ProjectVariableController.updateGlobals as any
+);
+router.post(
+  '/api/projects/:projectId/variables/sync-legacy',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  ProjectVariableController.syncFromLegacyEnv as any
+);
 
 // API Monitors (uptime / probe)
-router.get('/api/monitors', apiRateLimiter as any, authMiddleware as any, ApiMonitorController.list as any);
-router.post('/api/monitors', apiRateLimiter as any, authMiddleware as any, ApiMonitorController.create as any);
-router.get('/api/monitors/:id', apiRateLimiter as any, authMiddleware as any, ApiMonitorController.get as any);
-router.put('/api/monitors/:id', apiRateLimiter as any, authMiddleware as any, ApiMonitorController.update as any);
-router.delete('/api/monitors/:id', apiRateLimiter as any, authMiddleware as any, ApiMonitorController.remove as any);
-router.post('/api/monitors/:id/run', apiRateLimiter as any, authMiddleware as any, ApiMonitorController.run as any);
-router.get('/api/monitors/:id/runs', apiRateLimiter as any, authMiddleware as any, ApiMonitorController.listRuns as any);
-router.get('/api/test/rules', apiRateLimiter as any, authMiddleware as any, TestRuleConfigController.listRules as any);
-router.post('/api/test/rules', apiRateLimiter as any, authMiddleware as any, requireProjectMember, TestRuleConfigController.createRule as any);
-router.put('/api/test/rules/:id', apiRateLimiter as any, authMiddleware as any, requireProjectMember, TestRuleConfigController.updateRule as any);
-router.delete('/api/test/rules/:id', apiRateLimiter as any, authMiddleware as any, requireProjectMember, TestRuleConfigController.deleteRule as any);
+router.get(
+  '/api/monitors',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  ApiMonitorController.list as any
+);
+router.post(
+  '/api/monitors',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  ApiMonitorController.create as any
+);
+router.get(
+  '/api/monitors/:id',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  ApiMonitorController.get as any
+);
+router.put(
+  '/api/monitors/:id',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  ApiMonitorController.update as any
+);
+router.delete(
+  '/api/monitors/:id',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  ApiMonitorController.remove as any
+);
+router.post(
+  '/api/monitors/:id/run',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  ApiMonitorController.run as any
+);
+router.get(
+  '/api/monitors/:id/runs',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  ApiMonitorController.listRuns as any
+);
+
+// Bug / defect management (local; optional external_url for Jira/禅道/etc.)
+router.get('/api/bugs', apiRateLimiter as any, authMiddleware as any, BugController.list as any);
+router.post(
+  '/api/bugs',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  BugController.create as any
+);
+router.get('/api/bugs/:id', apiRateLimiter as any, authMiddleware as any, BugController.get as any);
+router.put(
+  '/api/bugs/:id',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  BugController.update as any
+);
+router.delete(
+  '/api/bugs/:id',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  BugController.remove as any
+);
+router.post(
+  '/api/bugs/:id/restore',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  BugController.restore as any
+);
+router.delete(
+  '/api/bugs/:id/purge',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  BugController.purge as any
+);
+router.post(
+  '/api/bugs/:id/comments',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  BugController.addComment as any
+);
+
+router.get(
+  '/api/test/rules',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  TestRuleConfigController.listRules as any
+);
+router.post(
+  '/api/test/rules',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  TestRuleConfigController.createRule as any
+);
+router.put(
+  '/api/test/rules/:id',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  TestRuleConfigController.updateRule as any
+);
+router.delete(
+  '/api/test/rules/:id',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  TestRuleConfigController.deleteRule as any
+);
 
 // Code repository
-router.get('/api/projects/:projectId/repository', apiRateLimiter as any, authMiddleware as any, CodeRepositoryController.getRepository as any);
-router.post('/api/projects/:projectId/repository', apiRateLimiter as any, authMiddleware as any, requireProjectMember, CodeRepositoryController.saveRepository as any);
-router.delete('/api/projects/:projectId/repository', apiRateLimiter as any, authMiddleware as any, requireProjectMember, CodeRepositoryController.deleteRepository as any);
-router.post('/api/projects/:projectId/repository/pull', apiRateLimiter as any, authMiddleware as any, requireProjectMember, CodeRepositoryController.pullCode as any);
-router.post('/api/projects/:projectId/repository/test', apiRateLimiter as any, authMiddleware as any, requireProjectMember, CodeRepositoryController.testConnection as any);
+router.get(
+  '/api/projects/:projectId/repository',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  CodeRepositoryController.getRepository as any
+);
+router.post(
+  '/api/projects/:projectId/repository',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  CodeRepositoryController.saveRepository as any
+);
+router.delete(
+  '/api/projects/:projectId/repository',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  CodeRepositoryController.deleteRepository as any
+);
+router.post(
+  '/api/projects/:projectId/repository/pull',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  CodeRepositoryController.pullCode as any
+);
+router.post(
+  '/api/projects/:projectId/repository/test',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  CodeRepositoryController.testConnection as any
+);
 
-router.post('/api/projects/:projectId/tokens', apiRateLimiter as any, authMiddleware as any, requireProjectMember, ProjectTokenController.generateToken as any);
-router.get('/api/projects/:projectId/tokens', apiRateLimiter as any, authMiddleware as any, requireProjectMember, ProjectTokenController.listTokens as any);
-router.delete('/api/projects/:projectId/tokens/:tokenId', apiRateLimiter as any, authMiddleware as any, requireProjectMember, ProjectTokenController.deleteToken as any);
+router.post(
+  '/api/projects/:projectId/tokens',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  ProjectTokenController.generateToken as any
+);
+router.get(
+  '/api/projects/:projectId/tokens',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  ProjectTokenController.listTokens as any
+);
+router.delete(
+  '/api/projects/:projectId/tokens/:tokenId',
+  apiRateLimiter as any,
+  authMiddleware as any,
+  requireProjectMember,
+  ProjectTokenController.deleteToken as any
+);
 
 export default router;

@@ -22,6 +22,7 @@ import SwaggerImport from './Containers/Admin/SwaggerImport';
 import PostmanImport from './Containers/Admin/PostmanImport';
 import TestPipeline from './Containers/TestPipeline';
 import MonitorsPage from './Containers/Monitor';
+import BugsPage from './Containers/Bug';
 
 import { setGlobalAppInstance } from './Utils/messageInstance';
 import { pluginLoader } from './Utils/pluginLoader';
@@ -41,7 +42,7 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   useEffect(() => {
     // 检查 token（优先使用 Redux state，其次使用 localStorage）
     const currentToken = token || localStorage.getItem('token');
-    
+
     if (!currentToken) {
       // 没有 token，不需要检查
       setHasChecked(true);
@@ -66,7 +67,7 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
   // 检查 token（优先使用 Redux state，其次使用 localStorage）
   const currentToken = token || localStorage.getItem('token');
-  
+
   if (!currentToken) {
     return <Navigate to="/login" replace />;
   }
@@ -82,12 +83,12 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 // 内部组件，用于获取 App 实例
 const AppContent: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const app = App.useApp();
-  
+
   // 将 App 实例保存到全局变量，供拦截器使用
   React.useEffect(() => {
     setGlobalAppInstance(app);
   }, [app]);
-  
+
   return <>{children}</>;
 };
 
@@ -95,7 +96,9 @@ const Application: React.FC = () => {
   const locale = useSelector((state: RootState) => state.ui.locale);
   const isAuthenticated = useSelector((state: RootState) => state.user.isAuthenticated);
   const token = useSelector((state: RootState) => state.user.token);
-  const [pluginRoutes, setPluginRoutes] = useState<Array<{ path: string; component: React.ComponentType<any> }>>([]);
+  const [pluginRoutes, setPluginRoutes] = useState<
+    Array<{ path: string; component: React.ComponentType<any> }>
+  >([]);
 
   useEffect(() => {
     const loadPlugins = async () => {
@@ -110,7 +113,7 @@ const Application: React.FC = () => {
         // api.ts 的 baseURL 已经是 '/api'，所以这里只需要 'plugins'
         const response = await api.get('/plugins', { params: { enabled: true } });
         const plugins = response.data?.data || [];
-        
+
         for (const plugin of plugins) {
           if (plugin.manifest) {
             try {
@@ -121,7 +124,7 @@ const Application: React.FC = () => {
             }
           }
         }
-        
+
         setPluginRoutes(pluginLoader.getRoutes());
       } catch (error: any) {
         // 如果是 401 错误，说明 token 无效，静默处理
@@ -165,6 +168,7 @@ const Application: React.FC = () => {
                         <Route path="/postman-import" element={<PostmanImport />} />
                         <Route path="/test-pipeline" element={<TestPipeline />} />
                         <Route path="/monitors" element={<MonitorsPage />} />
+                        <Route path="/bugs" element={<BugsPage />} />
                         <Route path="/user/*" element={<User />} />
                         <Route path="/admin/*" element={<Admin />} />
                         {pluginRoutes.map((route, index) => (
@@ -183,6 +187,4 @@ const Application: React.FC = () => {
   );
 };
 
-
 export default Application;
-
