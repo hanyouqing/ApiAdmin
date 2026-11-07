@@ -253,7 +253,7 @@ jobs:
 
       - name: Scan image (Trivy CRITICAL)
         if: steps.push-targets.outputs.push_ghcr == 'true' || steps.push-targets.outputs.push_dockerhub == 'true'
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ steps.push-targets.outputs.push_ghcr == 'true' && format('ghcr.io/{0}/apiadmin@{1}', steps.names.outputs.owner, steps.build.outputs.digest) || format('{0}/apiadmin@{1}', steps.names.outputs.owner, steps.build.outputs.digest) }}
           format: table
