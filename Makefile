@@ -1,9 +1,17 @@
-.PHONY: help build run test test-coverage test-verbose test-package e2e demo-lifecycle swagger migrate migrate-status migrate-down clean frontend backend start backup restore config-backup config-restore deps install seed-demo fmt lint check docker docker-up docker-down audit
+.PHONY: help build run test test-coverage test-verbose test-package e2e demo-lifecycle swagger migrate migrate-status migrate-down clean frontend backend start stop free-ports backup restore config-backup config-restore deps install seed-demo reset-password fmt format-check lint check docker docker-up docker-down mongo-up mongo-down audit tg-init tg-plan tg-apply tg-lint
 
 .DEFAULT_GOAL := help
 
 BACKUP_DIR ?= ./backups
 COMPOSE ?= docker-compose
+MONGO_CONTAINER ?= apiadmin-mongo
+MONGO_IMAGE ?= mongo:7
+MONGO_PORT ?= 27017
+EMAIL ?= demo@apiadmin.local
+PASSWORD ?= Demo1234!
+CREATE ?= 0
+DEV_PORTS ?= 3000 3001 3002
+ROOT_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
 # Show available targets
 help:
@@ -20,7 +28,11 @@ install:
 
 # Seed demo user/group/project + import examples/openapi-petstore-mini.json
 seed-demo:
-	node Scripts/seed-demo.mjs
+	cd Server && npx tsx scripts/seed-demo.mjs
+
+# Reset local user password — make reset-password [EMAIL=...] [PASSWORD=...] [CREATE=1]
+reset-password:
+	@cd Server && EMAIL="$(EMAIL)" PASSWORD="$(PASSWORD)" CREATE="$(CREATE)" npx tsx scripts/reset-password.mjs
 
 # Alias of install
 deps: install
@@ -44,16 +56,75 @@ docker-down:
 # Run application (alias of start)
 run: start
 
+# Ensure local MongoDB Docker container is up (no auth; matches default MONGODB_URL)
+mongo-up:
+	@command -v docker >/dev/null || { echo "❌ docker is required for local MongoDB"; exit 1; }
+	@if ! docker inspect $(MONGO_CONTAINER) >/dev/null 2>&1; then \
+		echo "▶️  Creating MongoDB container $(MONGO_CONTAINER) on 127.0.0.1:$(MONGO_PORT)..."; \
+		docker run -d --name $(MONGO_CONTAINER) \
+			-p 127.0.0.1:$(MONGO_PORT):27017 \
+			-v $(MONGO_CONTAINER)-data:/data/db \
+			$(MONGO_IMAGE) >/dev/null; \
+	elif [ "$$(docker inspect -f '{{.State.Running}}' $(MONGO_CONTAINER))" != "true" ]; then \
+		echo "▶️  Starting existing MongoDB container $(MONGO_CONTAINER)..."; \
+		docker start $(MONGO_CONTAINER) >/dev/null; \
+	else \
+		echo "✅ MongoDB container $(MONGO_CONTAINER) already running"; \
+	fi
+	@for i in $$(seq 1 30); do \
+		if docker exec $(MONGO_CONTAINER) mongosh --quiet --eval 'db.runCommand({ ping: 1 }).ok' 2>/dev/null | grep -q 1; then \
+			echo "✅ MongoDB ready at mongodb://127.0.0.1:$(MONGO_PORT)/apiadmin"; \
+			exit 0; \
+		fi; \
+		sleep 1; \
+	done; \
+	echo "❌ MongoDB container did not become ready"; exit 1
+
+# Stop local MongoDB Docker container (data volume kept)
+mongo-down:
+	@if [ "$$(docker inspect -f '{{.State.Running}}' $(MONGO_CONTAINER) 2>/dev/null)" = "true" ]; then \
+		docker stop $(MONGO_CONTAINER) >/dev/null && echo "✅ Stopped $(MONGO_CONTAINER)"; \
+	else \
+		echo "ℹ️  $(MONGO_CONTAINER) is not running"; \
+	fi
+
+# Free local Vite/API ports and stop ApiAdmin concurrent/tsx/vite processes
+free-ports:
+	@echo "▶️  Stopping ApiAdmin dev processes…"
+	@-pkill -f "$(ROOT_DIR)/.*concurrently" 2>/dev/null || true
+	@-pkill -f "$(ROOT_DIR)/.*tsx watch App" 2>/dev/null || true
+	@-pkill -f "$(ROOT_DIR)/Client/.*vite" 2>/dev/null || true
+	@for port in $(DEV_PORTS); do \
+		pids=$$(lsof -tiTCP:$$port -sTCP:LISTEN 2>/dev/null || true); \
+		if [ -n "$$pids" ]; then \
+			echo "▶️  Killing listeners on $$port: $$pids"; \
+			kill $$pids 2>/dev/null || true; \
+		fi; \
+	done
+	@sleep 1
+	@busy=0; \
+	for port in $(DEV_PORTS); do \
+		if lsof -nP -iTCP:$$port -sTCP:LISTEN >/dev/null 2>&1; then \
+			echo "❌ Port $$port still in use"; busy=1; \
+		else \
+			echo "✅ Port $$port free"; \
+		fi; \
+	done; \
+	if [ "$$busy" -ne 0 ]; then exit 1; fi
+
+# Alias of free-ports
+stop: free-ports
+
 # Run frontend dev server (Vite)
 frontend:
 	cd Client && npm run dev
 
-# Run backend dev server
-backend:
+# Run backend dev server (starts local MongoDB container first)
+backend: mongo-up
 	cd Server && npm run dev
 
-# Run both frontend and backend in development
-start:
+# Run both frontend and backend in development (starts local MongoDB container first)
+start: mongo-up
 	npm run dev
 
 # Run unit tests (uses in-memory MongoDB via vitest setup)
@@ -86,12 +157,14 @@ test-package:
 	@if [ -z "$(FILE)" ]; then echo "❌ Usage: make test-package FILE=tests/unit/Security.test.js"; exit 1; fi
 	npx vitest run $(FILE)
 
-# Enable / generate Swagger notes (served when SWAGGER_ENABLED=true)
+# Show Swagger / OpenAPI endpoints
 swagger:
-	@echo "Swagger is generated at runtime by Server/Utils/swagger.js"
-	@echo "Set SWAGGER_ENABLED=true and restart the server, then open:"
+	@echo "OpenAPI JSON (always on):"
+	@echo "  http://localhost:$${PORT:-3000}/swagger.json"
+	@echo "Swagger UI (optional): set SWAGGER_ENABLED=true and restart, then open:"
 	@echo "  http://localhost:$${PORT:-3000}/swagger"
-	@echo "Allowed IPs: $${SWAGGER_ALLOWED_IP_ADDRESSES:-127.0.0.1}"
+	@echo "URL import accepts /swagger and maps it to /swagger.json on the server."
+	@echo "UI IP allowlist: $${SWAGGER_ALLOWED_IP_ADDRESSES:-(open when unset)}"
 
 # Initialize MongoDB (indexes / app DB user) — ApiAdmin uses schema-on-write
 migrate:
@@ -121,7 +194,11 @@ lint:
 	npm run lint
 
 # Run format, lint, and unit tests
-check: fmt lint test
+check: format-check lint test
+
+# Prettier check only (no write)
+format-check:
+	npm run format:check
 
 # Run npm security audits (root + Client + Server)
 audit:
@@ -148,3 +225,26 @@ config-backup:
 config-restore:
 	@if [ -z "$(FILE)" ]; then echo "❌ Usage: make config-restore FILE=path/to/config.json"; exit 1; fi
 	node Scripts/config-restore.js --file "$(FILE)"
+
+# Terragrunt: init repository + actions units (terraform-github-modules)
+tg-init:
+	cd terragrunt/prod/github/apiadmin/repository && terragrunt init
+	cd terragrunt/prod/github/apiadmin/actions && terragrunt init
+
+# Terragrunt: tflint (canonical config: terragrunt/tflint.hcl — not .tflint.hcl,
+# which Terragrunt auto-detects and injects broken --var flags)
+tg-lint:
+	@CFG="$(CURDIR)/terragrunt/tflint.hcl"; \
+	tflint --init --config "$$CFG"; \
+	for unit in repository actions; do \
+	  echo "==> tflint $$unit"; \
+	  tflint --config "$$CFG" --chdir="$(CURDIR)/terragrunt/prod/github/apiadmin/$$unit"; \
+	done
+
+# Terragrunt: plan both units (dependency order via actions → repository)
+tg-plan:
+	cd terragrunt/prod/github/apiadmin && terragrunt run --all -- plan -input=false
+
+# Terragrunt: apply repository then actions (run --all respects dependencies)
+tg-apply:
+	cd terragrunt/prod/github/apiadmin && terragrunt run --all -- apply -input=false -auto-approve

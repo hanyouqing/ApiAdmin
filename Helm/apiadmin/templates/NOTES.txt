@@ -1,0 +1,31 @@
+ApiAdmin {{ .Chart.Version }} (app {{ .Chart.AppVersion }}) is installed in namespace {{ .Release.Namespace }}.
+
+Image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+
+{{- if not .Values.config.existingSecret }}
+
+Credentials were stored in Secret {{ include "apiadmin.secretName" . }}.
+Read the generated JWT secret once and keep it outside the cluster:
+
+  kubectl get secret --namespace {{ .Release.Namespace }} {{ include "apiadmin.secretName" . }} -o jsonpath='{.data.jwt-secret}' | base64 -d; echo
+{{- if .Values.mongodb.enabled }}
+
+Bundled MongoDB: {{ include "apiadmin.mongodb.host" . }}:27017
+{{- end }}
+{{- if .Values.redis.enabled }}
+
+Bundled Redis: {{ include "apiadmin.redis.host" . }}:6379
+{{- end }}
+{{- end }}
+
+Open the app:
+{{- if .Values.ingress.enabled }}
+{{- range .Values.ingress.hosts }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}
+{{- end }}
+{{- else }}
+  kubectl --namespace {{ .Release.Namespace }} port-forward svc/{{ include "apiadmin.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}
+  http://127.0.0.1:{{ .Values.service.port }}
+{{- end }}
+
+Production installs should set config.requireExplicitSecrets=true and supply jwt, MongoDB, and Redis secrets. See values-examples.yaml.

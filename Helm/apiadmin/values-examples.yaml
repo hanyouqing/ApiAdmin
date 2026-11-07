@@ -1,0 +1,36 @@
+# Production example. Bundled MongoDB and Redis stay off; point at external endpoints.
+replicaCount: 2
+
+image:
+  repository: ghcr.io/hanyouqing/apiadmin
+  tag: '0.1.0' # apiadmin-image-tag
+
+ingress:
+  enabled: true
+  hosts:
+    - host: apiadmin.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+
+mongodb:
+  enabled: false
+  external:
+    url: 'mongodb://apiadmin:change-me@mongo.internal:27017/apiadmin?authSource=admin'
+
+redis:
+  enabled: false
+  external:
+    url: 'redis://:change-me@redis.internal:6379'
+
+env:
+  NODE_ENV: production
+  CORS_ORIGIN: 'https://apiadmin.example.com'
+  ALLOW_PUBLIC_REGISTRATION: 'false'
+  ALLOW_PRIVATE_OUTBOUND: 'false'
+  SWAGGER_ENABLED: 'false'
+
+config:
+  requireExplicitSecrets: true
+  jwtSecret: '0123456789abcdef0123456789abcdef'
+  jwtExpiresIn: '7d'

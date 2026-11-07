@@ -1,0 +1,15 @@
+.local-state/
+.terragrunt-cache/
+**/.terragrunt-cache/
+**/.terraform/
+*.tfstate
+*.tfstate.*
+tfplan
+*.tfplan
+.env.sh
+backend.secrets.hcl
+crash.log
+crash.*.log
+backend.tf
+provider_tg.tf
+imports.tf

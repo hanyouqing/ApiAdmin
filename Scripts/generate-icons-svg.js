@@ -3,7 +3,7 @@
 /**
  * 生成 ApiAdmin 项目图标（SVG 格式）
  * 基于 hanyouqing.com 的颜色方案
- * 
+ *
  * 颜色方案：
  * - 主色调（绿色）：#16a34a
  * - 主题色（深蓝）：#1a365d
@@ -39,7 +39,7 @@ function createIconSVG(size) {
   const borderRadius = Math.floor(size * 0.15);
   const gradientId = `grad${size}`;
   const filterId = `shadow${size}`;
-  
+
   return `<svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="${gradientId}" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -70,7 +70,7 @@ function createIconSVG(size) {
 function generateIcon(size, filename) {
   const svg = createIconSVG(size);
   const outputPath = path.join(__dirname, '..', 'Static', 'icons', filename);
-  
+
   try {
     fs.writeFileSync(outputPath, svg, 'utf8');
     console.log(`✓ 生成 ${filename} (${size}x${size})`);
@@ -85,7 +85,7 @@ function generateIcon(size, filename) {
 function generateFavicon() {
   const svg = createIconSVG(32);
   const outputPath = path.join(__dirname, '..', 'Static', 'icons', 'favicon.svg');
-  
+
   try {
     fs.writeFileSync(outputPath, svg, 'utf8');
     console.log(`✓ 生成 favicon.svg`);
@@ -99,25 +99,27 @@ function generateFavicon() {
 // 主函数
 function main() {
   console.log('开始生成 ApiAdmin 图标（SVG 格式）...\n');
-  
+
   // 确保目录存在
   const imagesDir = path.join(__dirname, '..', 'Static', 'icons');
   if (!fs.existsSync(imagesDir)) {
     fs.mkdirSync(imagesDir, { recursive: true });
   }
-  
+
   // 生成所有尺寸的图标
   const results = iconSizes.map(({ size, name }) => generateIcon(size, name));
-  
+
   // 生成 favicon
   generateFavicon();
-  
+
   // 统计
   const successCount = results.filter(r => r).length;
   console.log(`\n完成！成功生成 ${successCount + 1}/${iconSizes.length + 1} 个图标文件`);
   console.log(`图标文件保存在: ${imagesDir}`);
-  console.log(`\n注意：生成的是 SVG 格式，如需 PNG 格式，请使用在线工具转换或安装 sharp 库后运行 generate-icons.js`);
-  
+  console.log(
+    `\n注意：生成的是 SVG 格式，如需 PNG 格式，请使用在线工具转换或安装 sharp 库后运行 generate-icons.js`
+  );
+
   // 生成 README
   const readmeContent = `# ApiAdmin 图标文件
 
@@ -190,4 +192,3 @@ node Scripts/generate-icons-svg.js
 
 // 运行
 main();
-

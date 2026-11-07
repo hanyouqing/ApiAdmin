@@ -48,6 +48,7 @@ Become the **API Collaboration Center** connecting frontend, backend, testing, a
 Claims below match **wired** `Server/Router.ts` + Client routes. Unwired modules are marked 🚧 or omitted.
 
 ### 🔐 User & Permission Management
+
 - User registration, login, password recovery
 - Flat roles (Super Admin, Group Leader, Project Leader, Developer, Guest)
 - **Project/group membership checks on mutating API routes** (non-members → 403)
@@ -57,6 +58,7 @@ Claims below match **wired** `Server/Router.ts` + Client routes. Unwired modules
 - Whitelist management (admin)
 
 ### 📁 Group & Project Management
+
 - Group management (create, edit, delete, member management)
 - Project management (create, edit, delete, migrate, copy)
 - Project settings (environment configuration, global variables, Token configuration)
@@ -64,6 +66,7 @@ Claims below match **wired** `Server/Router.ts` + Client routes. Unwired modules
 - Project activity (operation logs)
 
 ### 🔌 Interface Management
+
 - Interface CRUD operations
 - Interface category management
 - Interface editing (request parameters, response data, Headers)
@@ -74,6 +77,7 @@ Claims below match **wired** `Server/Router.ts` + Client routes. Unwired modules
 - Support JSON Schema and Mockjs data generation
 
 ### 🎭 Mock Service
+
 - Basic Mock (based on Mockjs and Json5)
 - Mock expectations (return different data based on request conditions)
 - Custom Mock scripts via `node:vm` (gated; off in production / regulated mode by default)
@@ -81,6 +85,7 @@ Claims below match **wired** `Server/Router.ts` + Client routes. Unwired modules
 - Mock priority management
 
 ### 🧪 Automated Testing
+
 - Test collection management
 - Test case editing (request parameters, assertion scripts)
 - Test execution and reporting
@@ -90,6 +95,7 @@ Claims below match **wired** `Server/Router.ts` + Client routes. Unwired modules
 - Code repository integration for analysis
 
 ### 📥 Data Import/Export
+
 - Postman import (Collection v1/v2)
 - Swagger import (2.0 / OpenAPI 3.0)
 - HAR import
@@ -100,17 +106,20 @@ Claims below match **wired** `Server/Router.ts` + Client routes. Unwired modules
 - 🚧 Swagger auto-sync UI polish
 
 ### 🔌 Plugin System
+
 - Plugin architecture design
 - Plugin management (install, uninstall, enable/disable)
 - Built-in plugins (code generation, statistics, Wiki, etc.)
 
 ### 💻 Code Repository Management
+
 - Code repository configuration (GitHub, GitLab, Gitee, etc.)
 - SSH private key authentication with password support
 - Repository connection testing
 - Code pull and synchronization
 
 ### 🤖 AI Configuration & Analysis
+
 - Providers: OpenAI (ChatGPT), DeepSeek, Doubao, Gemini, Kimi, Aliyun, **custom (Ollama / OpenAI-compatible)**
 - Local-first: enabled `custom` preferred over cloud
 - API keys encrypted at rest
@@ -118,6 +127,7 @@ Claims below match **wired** `Server/Router.ts` + Client routes. Unwired modules
 - Code quality analysis
 
 ### 📊 System Features
+
 - Operation logs
 - Login logs
 - Internationalization support (Chinese, English)
@@ -135,17 +145,20 @@ Claims below match **wired** `Server/Router.ts` + Client routes. Unwired modules
 ## 🌟 Highlights
 
 ### 1. Modern Technology Stack
+
 - **Frontend**: React 18 + TypeScript + Ant Design 5 + Vite
 - **Backend**: Node.js + Koa + MongoDB
 - **Developer Experience**: Hot reload, TypeScript type checking, ESLint + Prettier
 
 ### 2. Powerful Mock Capabilities
+
 - Flexible data generation based on Mockjs and Json5
 - Support Mock expectations, return different data based on conditions
 - Support custom JavaScript scripts
 - Mock strict mode with parameter validation
 
 ### 3. Comprehensive Testing Support
+
 - Visual test case editing
 - Support variable parameters and expressions
 - JavaScript assertion scripts
@@ -155,22 +168,26 @@ Claims below match **wired** `Server/Router.ts` + Client routes. Unwired modules
 - Code repository integration for comprehensive testing
 
 ### 4. Flexible Import/Export
+
 - Support multiple format imports (Postman, Swagger, HAR)
 - Support multiple format exports (JSON, Swagger, Markdown, HTML)
 - Smart merge and overwrite modes
 
 ### 5. Extensible Plugin System
+
 - Plugin architecture supporting custom extensions
 - Multiple built-in utility plugins
 - Support Hook and routing extensions
 
 ### 6. Enterprise Features
+
 - Complete permission management system
 - Operation logs and auditing
 - Monitoring and statistics (Prometheus)
 - Docker and Kubernetes deployment support
 
 ### 7. Developer Friendly
+
 - Complete unit testing framework (Vitest)
 - **High test coverage target** (aiming for near 100%)
 - Swagger API documentation
@@ -178,6 +195,7 @@ Claims below match **wired** `Server/Router.ts` + Client routes. Unwired modules
 - Version information query
 
 ### 8. AI-Enhanced Workflow
+
 - AI-powered test analysis and optimization
 - Automatic bug detection and fixing suggestions
 - Test case improvement recommendations
@@ -186,6 +204,7 @@ Claims below match **wired** `Server/Router.ts` + Client routes. Unwired modules
 ## 🛠 Technology Stack
 
 ### Frontend
+
 - **Framework**: React 18 + TypeScript
 - **UI Library**: Ant Design 5
 - **State Management**: Redux Toolkit
@@ -196,6 +215,7 @@ Claims below match **wired** `Server/Router.ts` + Client routes. Unwired modules
 - **Real-time Collaboration**: Yjs + y-websocket
 
 ### Backend
+
 - **Framework**: Koa 2
 - **Database**: MongoDB + Mongoose
 - **Authentication**: JWT (jsonwebtoken)
@@ -207,6 +227,7 @@ Claims below match **wired** `Server/Router.ts` + Client routes. Unwired modules
 - **API Documentation**: Swagger (swagger-jsdoc)
 
 ### Development Tools
+
 - **Testing**: Vitest
 - **Code Standards**: ESLint + Prettier
 - **Type Checking**: TypeScript
@@ -215,7 +236,8 @@ Claims below match **wired** `Server/Router.ts` + Client routes. Unwired modules
 ## 🚀 Quick Start
 
 > **15-minute OSS demo:** see **[Docs/QUICKSTART_OSS.md](Docs/QUICKSTART_OSS.md)** (Import → Mock → Run → Pipeline → Monitor).  
-> Sprint board: [Docs/SPRINT_6DAY_CHECKLIST.md](Docs/SPRINT_6DAY_CHECKLIST.md) · Cloud Agents: [Docs/CLOUD_AGENT_PROMPTS.md](Docs/CLOUD_AGENT_PROMPTS.md)
+> Sprint board: [Docs/SPRINT_6DAY_CHECKLIST.md](Docs/SPRINT_6DAY_CHECKLIST.md) · Cloud Agents: [Docs/CLOUD_AGENT_PROMPTS.md](Docs/CLOUD_AGENT_PROMPTS.md)  
+> MeterSphere parity (API-test focus): [Docs/METERSPHERE_PARITY.md](Docs/METERSPHERE_PARITY.md)
 
 ### Requirements
 
@@ -309,7 +331,21 @@ npm run build
 
 ## 🐳 Deployment
 
+Published images (auto-built on `main` / tags `v*`):
+
+- GHCR: `ghcr.io/hanyouqing/apiadmin`
+- Docker Hub: `hanyouqing/apiadmin`
+
+See [Docs/PUBLISH.md](Docs/PUBLISH.md) for GitHub Actions, secrets/variables, and Terragrunt bootstrap.
+
 ### Docker Deployment (Recommended)
+
+#### Pull pre-built image
+
+```bash
+docker pull ghcr.io/hanyouqing/apiadmin:latest
+# or: docker pull hanyouqing/apiadmin:latest
+```
 
 #### Using build script
 
@@ -392,12 +428,12 @@ ApiAdmin/
 │   ├── CodeGenerator/   # Code generation plugin
 │   └── _template/        # Plugin template
 ├── Docs/                # Documentation
+├── terragrunt/          # Terragrunt stack → terraform-github-modules
 ├── Scripts/             # Scripts
 ├── tests/               # Unit tests
 ├── Helm/                # Kubernetes Helm Chart
 └── Static/              # Static resources
 ```
-
 
 ## 🧪 Testing
 
@@ -423,7 +459,7 @@ npm run test:ui
 ### Test Coverage Goals
 
 - **Target Coverage**: Near 100% for all critical paths
-- **Current Focus**: 
+- **Current Focus**:
   - Unit tests for all Controllers
   - Unit tests for all Models
   - Unit tests for all Utils

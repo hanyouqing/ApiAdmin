@@ -44,6 +44,7 @@ ApiAdmin 是一个现代化的 API 管理平台，通过可视化的方式帮助
 ## ✨ 核心功能
 
 ### 🔐 用户与权限管理
+
 - 用户注册、登录、密码找回
 - 扁平化权限设计（超级管理员、分组组长、项目组长、开发者、游客）
 - JWT 认证机制
@@ -52,6 +53,7 @@ ApiAdmin 是一个现代化的 API 管理平台，通过可视化的方式帮助
 - 🚧 白名单管理
 
 ### 📁 分组与项目管理
+
 - 分组管理（创建、编辑、删除、成员管理）
 - 项目管理（创建、编辑、删除、迁移、复制）
 - 项目设置（环境配置、全局变量、Token 配置）
@@ -59,6 +61,7 @@ ApiAdmin 是一个现代化的 API 管理平台，通过可视化的方式帮助
 - 项目动态（操作日志）
 
 ### 🔌 接口管理
+
 - 接口 CRUD 操作
 - 接口分类管理
 - 接口编辑（请求参数、返回数据、Headers）
@@ -69,6 +72,7 @@ ApiAdmin 是一个现代化的 API 管理平台，通过可视化的方式帮助
 - 支持 JSON Schema 和 Mockjs 数据生成
 
 ### 🎭 Mock 服务
+
 - 基础 Mock（基于 Mockjs 和 Json5）
 - Mock 期望（根据请求条件返回不同数据）
 - 自定义 Mock 脚本（JavaScript）
@@ -77,6 +81,7 @@ ApiAdmin 是一个现代化的 API 管理平台，通过可视化的方式帮助
 - 支持参数替换和正则表达式
 
 ### 🧪 自动化测试
+
 - 测试集合管理
 - 测试用例编辑（请求参数、断言脚本）
 - 变量参数支持（`$.{key}.{params|body}.{path}`）
@@ -89,6 +94,7 @@ ApiAdmin 是一个现代化的 API 管理平台，通过可视化的方式帮助
 - 🚧 已导入接口自动化测试
 
 ### 📥 数据导入导出
+
 - Postman 导入（Collection v1/v2）
 - Swagger 导入（2.0 / OpenAPI 3.0）
 - HAR 导入
@@ -97,6 +103,7 @@ ApiAdmin 是一个现代化的 API 管理平台，通过可视化的方式帮助
 - 🚧 Swagger 自动同步（定时同步）
 
 ### 🔌 插件系统
+
 - 插件架构设计
 - 插件管理（安装、卸载、启用/禁用）
 - 内置插件（代码生成、统计、Wiki 等）
@@ -105,6 +112,7 @@ ApiAdmin 是一个现代化的 API 管理平台，通过可视化的方式帮助
 - 🚧 前端插件集成
 
 ### 💻 代码仓库管理
+
 - 代码仓库配置（GitHub、GitLab、Gitee 等）
 - SSH 私钥认证（支持密码保护）
 - 仓库连接测试
@@ -112,6 +120,7 @@ ApiAdmin 是一个现代化的 API 管理平台，通过可视化的方式帮助
 - 与测试流水线集成，支持 AI 分析
 
 ### 🤖 AI 配置与分析
+
 - AI 服务提供商配置（OpenAI、DeepSeek 等）
 - AI 智能测试结果分析
 - 自动 bug 检测和修复建议
@@ -119,6 +128,7 @@ ApiAdmin 是一个现代化的 API 管理平台，通过可视化的方式帮助
 - 代码质量分析
 
 ### 📊 系统功能
+
 - 操作日志
 - 登录日志
 - 国际化支持（中文、英文）
@@ -136,17 +146,20 @@ ApiAdmin 是一个现代化的 API 管理平台，通过可视化的方式帮助
 ## 🌟 亮点特性
 
 ### 1. 现代化技术栈
+
 - **前端**：React 18 + TypeScript + Ant Design 5 + Vite
 - **后端**：Node.js + Koa + MongoDB
 - **开发体验**：热更新、TypeScript 类型检查、ESLint + Prettier
 
 ### 2. 强大的 Mock 能力
+
 - 基于 Mockjs 和 Json5 的灵活数据生成
 - 支持 Mock 期望，根据条件返回不同数据
 - 支持自定义 JavaScript 脚本
 - Mock 严格模式，参数校验
 
 ### 3. 完善的测试支持
+
 - 可视化测试用例编辑
 - 支持变量参数和表达式
 - JavaScript 断言脚本
@@ -156,22 +169,26 @@ ApiAdmin 是一个现代化的 API 管理平台，通过可视化的方式帮助
 - 代码仓库集成，实现全面测试
 
 ### 4. 灵活的导入导出
+
 - 支持多种格式导入（Postman、Swagger、HAR）
 - 支持多种格式导出（JSON、Swagger、Markdown、HTML）
 - 智能合并和覆盖模式
 
 ### 5. 可扩展的插件系统
+
 - 插件化架构，支持自定义扩展
 - 内置多个实用插件
 - 支持 Hook 和路由扩展
 
 ### 6. 企业级特性
+
 - 完整的权限管理体系
 - 操作日志和审计
 - 监控和统计（Prometheus）
 - 支持 Docker 和 Kubernetes 部署
 
 ### 7. 开发者友好
+
 - 完整的单元测试框架（Vitest）
 - **高测试覆盖率目标**（目标接近 100%）
 - Swagger API 文档
@@ -179,6 +196,7 @@ ApiAdmin 是一个现代化的 API 管理平台，通过可视化的方式帮助
 - 版本信息查询
 
 ### 8. AI 增强工作流
+
 - AI 智能测试分析和优化
 - 自动 bug 检测和修复建议
 - 测试用例改进建议
@@ -187,6 +205,7 @@ ApiAdmin 是一个现代化的 API 管理平台，通过可视化的方式帮助
 ## 🛠 技术栈
 
 ### 前端
+
 - **框架**：React 18 + TypeScript
 - **UI 库**：Ant Design 5
 - **状态管理**：Redux Toolkit
@@ -197,6 +216,7 @@ ApiAdmin 是一个现代化的 API 管理平台，通过可视化的方式帮助
 - **实时协作**：Yjs + y-websocket
 
 ### 后端
+
 - **框架**：Koa 2
 - **数据库**：MongoDB + Mongoose
 - **认证**：JWT (jsonwebtoken)
@@ -208,6 +228,7 @@ ApiAdmin 是一个现代化的 API 管理平台，通过可视化的方式帮助
 - **API 文档**：Swagger (swagger-jsdoc)
 
 ### 开发工具
+
 - **测试**：Vitest
 - **代码规范**：ESLint + Prettier
 - **类型检查**：TypeScript
@@ -216,7 +237,8 @@ ApiAdmin 是一个现代化的 API 管理平台，通过可视化的方式帮助
 ## 🚀 快速开始
 
 > **15 分钟开源演示：** 见 **[Docs/QUICKSTART_OSS.md](Docs/QUICKSTART_OSS.md)**（导入 → Mock → Run → 流水线 → Monitor）。  
-> 冲刺清单：[Docs/SPRINT_6DAY_CHECKLIST.md](Docs/SPRINT_6DAY_CHECKLIST.md) · Cloud Agents：[Docs/CLOUD_AGENT_PROMPTS.md](Docs/CLOUD_AGENT_PROMPTS.md)
+> 冲刺清单：[Docs/SPRINT_6DAY_CHECKLIST.md](Docs/SPRINT_6DAY_CHECKLIST.md) · Cloud Agents：[Docs/CLOUD_AGENT_PROMPTS.md](Docs/CLOUD_AGENT_PROMPTS.md)  
+> MeterSphere 对标（接口测试主干）：[Docs/METERSPHERE_PARITY.md](Docs/METERSPHERE_PARITY.md)
 
 ### 环境要求
 
@@ -310,7 +332,21 @@ npm run build
 
 ## 🐳 部署方式
 
+已发布镜像（`main` / 标签 `v*` 自动构建）：
+
+- GHCR：`ghcr.io/hanyouqing/apiadmin`
+- Docker Hub：`hanyouqing/apiadmin`
+
+详见 [Docs/PUBLISH.md](Docs/PUBLISH.md)（Actions、Secrets/Variables、Terragrunt）。
+
 ### Docker 部署（推荐）
+
+#### 拉取预构建镜像
+
+```bash
+docker pull ghcr.io/hanyouqing/apiadmin:latest
+# 或: docker pull hanyouqing/apiadmin:latest
+```
 
 #### 使用构建脚本
 
@@ -495,5 +531,5 @@ npm run format
 <div align="center">
 
 **如果这个项目对你有帮助，请给一个 ⭐ Star！**
-</div>
 
+</div>

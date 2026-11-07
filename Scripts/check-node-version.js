@@ -66,7 +66,9 @@ function main() {
 
     const hasNvm = checkNvm() || checkNvmWindows();
     if (hasNvm) {
-      console.log(`   nvm install ${RECOMMENDED_NODE_VERSION} && nvm use ${RECOMMENDED_NODE_VERSION}\n`);
+      console.log(
+        `   nvm install ${RECOMMENDED_NODE_VERSION} && nvm use ${RECOMMENDED_NODE_VERSION}\n`
+      );
     } else {
       console.log(`   请安装 Node.js ${RECOMMENDED_NODE_VERSION}+：https://nodejs.org/\n`);
     }
