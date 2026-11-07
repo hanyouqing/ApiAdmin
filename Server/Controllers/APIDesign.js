@@ -11,7 +11,9 @@ import { logOperation } from '../Utils/operationLogger.js';
  * 处理 OpenAPI 3.0+、GraphQL 支持、版本管理等功能
  */
 class APIDesignController extends BaseController {
-  static get ControllerName() { return 'APIDesignController'; }
+  static get ControllerName() {
+    return 'APIDesignController';
+  }
 
   /**
    * 将接口转换为 OpenAPI 3.0+ 规范
@@ -26,8 +28,7 @@ class APIDesignController extends BaseController {
         return;
       }
 
-      const interfaceData = await Interface.findById(interfaceId)
-        .populate('project_id');
+      const interfaceData = await Interface.findById(interfaceId).populate('project_id');
 
       if (!interfaceData) {
         ctx.status = 404;
@@ -37,10 +38,13 @@ class APIDesignController extends BaseController {
 
       const openapiSpec = this.generateOpenAPISpec(interfaceData, version);
 
-      ctx.body = APIDesignController.success({
-        openapi: openapiSpec,
-        version,
-      }, 'OpenAPI 规范生成成功');
+      ctx.body = APIDesignController.success(
+        {
+          openapi: openapiSpec,
+          version,
+        },
+        'OpenAPI 规范生成成功'
+      );
     } catch (error) {
       logger.error({ error }, 'Convert to OpenAPI error');
       ctx.status = 500;
@@ -75,9 +79,12 @@ class APIDesignController extends BaseController {
 
       const graphqlSchema = this.generateGraphQLSchema(interfaceData);
 
-      ctx.body = APIDesignController.success({
-        schema: graphqlSchema,
-      }, 'GraphQL Schema 生成成功');
+      ctx.body = APIDesignController.success(
+        {
+          schema: graphqlSchema,
+        },
+        'GraphQL Schema 生成成功'
+      );
     } catch (error) {
       logger.error({ error }, 'Convert to GraphQL error');
       ctx.status = 500;
@@ -110,8 +117,9 @@ class APIDesignController extends BaseController {
         return;
       }
 
-      const latestVersion = await InterfaceVersion.findOne({ interface_id: interfaceId })
-        .sort({ version_number: -1 });
+      const latestVersion = await InterfaceVersion.findOne({ interface_id: interfaceId }).sort({
+        version_number: -1,
+      });
 
       const versionNumber = latestVersion ? latestVersion.version_number + 1 : 1;
       const versionString = version || `1.0.${versionNumber}`;
@@ -151,16 +159,17 @@ class APIDesignController extends BaseController {
 
       await interfaceVersion.save();
 
-      logger.info({ userId: user._id, interfaceId, version: versionString }, 'Interface version created');
+      logger.info(
+        { userId: user._id, interfaceId, version: versionString },
+        'Interface version created'
+      );
 
       ctx.body = APIDesignController.success(interfaceVersion, '版本创建成功');
     } catch (error) {
       logger.error({ error }, 'Create version error');
       ctx.status = 500;
       ctx.body = APIDesignController.error(
-        process.env.NODE_ENV === 'production'
-          ? '创建版本失败'
-          : error.message || '创建版本失败'
+        process.env.NODE_ENV === 'production' ? '创建版本失败' : error.message || '创建版本失败'
       );
     }
   }
@@ -209,18 +218,12 @@ class APIDesignController extends BaseController {
 
       const v1 = await InterfaceVersion.findOne({
         interface_id: interfaceId,
-        $or: [
-          { version: version1 },
-          { version_number: parseInt(version1) || 0 },
-        ],
+        $or: [{ version: version1 }, { version_number: parseInt(version1) || 0 }],
       });
 
       const v2 = await InterfaceVersion.findOne({
         interface_id: interfaceId,
-        $or: [
-          { version: version2 },
-          { version_number: parseInt(version2) || 0 },
-        ],
+        $or: [{ version: version2 }, { version_number: parseInt(version2) || 0 }],
       });
 
       if (!v1 || !v2) {
@@ -240,9 +243,7 @@ class APIDesignController extends BaseController {
       logger.error({ error }, 'Compare versions error');
       ctx.status = 500;
       ctx.body = APIDesignController.error(
-        process.env.NODE_ENV === 'production'
-          ? '版本对比失败'
-          : error.message || '版本对比失败'
+        process.env.NODE_ENV === 'production' ? '版本对比失败' : error.message || '版本对比失败'
       );
     }
   }
@@ -270,10 +271,7 @@ class APIDesignController extends BaseController {
 
       const targetVersion = await InterfaceVersion.findOne({
         interface_id: interfaceId,
-        $or: [
-          { version },
-          { version_number: parseInt(version) || 0 },
-        ],
+        $or: [{ version }, { version_number: parseInt(version) || 0 }],
       });
 
       if (!targetVersion) {
@@ -324,16 +322,17 @@ class APIDesignController extends BaseController {
         uri: ctx.request.url || '',
       });
 
-      logger.info({ userId: user._id, interfaceId, version: targetVersion.version }, 'Interface rolled back');
+      logger.info(
+        { userId: user._id, interfaceId, version: targetVersion.version },
+        'Interface rolled back'
+      );
 
       ctx.body = APIDesignController.success(null, '回滚成功');
     } catch (error) {
       logger.error({ error }, 'Rollback version error');
       ctx.status = 500;
       ctx.body = APIDesignController.error(
-        process.env.NODE_ENV === 'production'
-          ? '回滚失败'
-          : error.message || '回滚失败'
+        process.env.NODE_ENV === 'production' ? '回滚失败' : error.message || '回滚失败'
       );
     }
   }
@@ -367,11 +366,14 @@ class APIDesignController extends BaseController {
             parameters: [],
             requestBody: null,
             responses: {
-              '200': {
+              200: {
                 description: 'Success',
                 content: {
                   'application/json': {
-                    schema: this.parseResponseBody(interfaceData.res_body, interfaceData.res_body_type),
+                    schema: this.parseResponseBody(
+                      interfaceData.res_body,
+                      interfaceData.res_body_type
+                    ),
                   },
                 },
               },
@@ -382,7 +384,7 @@ class APIDesignController extends BaseController {
     };
 
     if (interfaceData.req_query && interfaceData.req_query.length > 0) {
-      spec.paths[interfaceData.path][interfaceData.method.toLowerCase()].parameters = 
+      spec.paths[interfaceData.path][interfaceData.method.toLowerCase()].parameters =
         interfaceData.req_query.map(param => ({
           name: param.name,
           in: 'query',
@@ -514,7 +516,7 @@ type ${typeName} {
   }
 
   static toPascalCase(str) {
-    return str.replace(/(?:^|[-_])(\w)/g, (_, c) => c ? c.toUpperCase() : '');
+    return str.replace(/(?:^|[-_])(\w)/g, (_, c) => (c ? c.toUpperCase() : ''));
   }
 
   static toCamelCase(str) {
@@ -525,11 +527,13 @@ type ${typeName} {
     if (type === 'json' && body) {
       try {
         const parsed = JSON.parse(body);
-        return Object.keys(parsed).map(key => {
-          const value = parsed[key];
-          const graphqlType = this.mapToGraphQLType(value);
-          return `  ${key}: ${graphqlType}`;
-        }).join('\n');
+        return Object.keys(parsed)
+          .map(key => {
+            const value = parsed[key];
+            const graphqlType = this.mapToGraphQLType(value);
+            return `  ${key}: ${graphqlType}`;
+          })
+          .join('\n');
       } catch {
         return '  id: ID';
       }
@@ -541,11 +545,13 @@ type ${typeName} {
     if (type === 'json' && body) {
       try {
         const parsed = JSON.parse(body);
-        return Object.keys(parsed).map(key => {
-          const value = parsed[key];
-          const graphqlType = this.mapToGraphQLType(value);
-          return `${key}: ${graphqlType}`;
-        }).join(', ');
+        return Object.keys(parsed)
+          .map(key => {
+            const value = parsed[key];
+            const graphqlType = this.mapToGraphQLType(value);
+            return `${key}: ${graphqlType}`;
+          })
+          .join(', ');
       } catch {
         return 'input: String';
       }
@@ -564,6 +570,3 @@ type ${typeName} {
 }
 
 export default APIDesignController;
-
-
-

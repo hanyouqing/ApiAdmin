@@ -38,7 +38,7 @@ const swaggerDefinition = {
         summary: 'Health check',
         description: 'Check API health status',
         responses: {
-          '200': {
+          200: {
             description: 'OK',
             content: {
               'application/json': {
@@ -70,14 +70,17 @@ const swaggerDefinition = {
         summary: 'Get version information',
         description: 'Get application version information including build time, branch, and commit',
         responses: {
-          '200': {
+          200: {
             description: 'Version information',
             content: {
               'application/json': {
                 schema: {
                   type: 'object',
                   properties: {
-                    buildTime: { type: 'string', description: 'Build time (YYYY-MM-DD-HH:MM:SS+TZ)' },
+                    buildTime: {
+                      type: 'string',
+                      description: 'Build time (YYYY-MM-DD-HH:MM:SS+TZ)',
+                    },
                     buildBranch: { type: 'string', description: 'Git branch name' },
                     buildCommit: { type: 'string', description: 'Git commit ID' },
                     nodeVersion: { type: 'string', description: 'Node.js version' },
@@ -97,14 +100,17 @@ const swaggerDefinition = {
         summary: 'Get version information',
         description: 'Get application version information including build time, branch, and commit',
         responses: {
-          '200': {
+          200: {
             description: 'Version information',
             content: {
               'application/json': {
                 schema: {
                   type: 'object',
                   properties: {
-                    buildTime: { type: 'string', description: 'Build time (YYYY-MM-DD-HH:MM:SS+TZ)' },
+                    buildTime: {
+                      type: 'string',
+                      description: 'Build time (YYYY-MM-DD-HH:MM:SS+TZ)',
+                    },
                     buildBranch: { type: 'string', description: 'Git branch name' },
                     buildCommit: { type: 'string', description: 'Git commit ID' },
                     nodeVersion: { type: 'string', description: 'Node.js version' },
@@ -140,10 +146,10 @@ const swaggerDefinition = {
           },
         },
         responses: {
-          '200': {
+          200: {
             description: 'Registration successful',
           },
-          '400': {
+          400: {
             description: 'Bad request',
           },
         },
@@ -170,7 +176,7 @@ const swaggerDefinition = {
           },
         },
         responses: {
-          '200': {
+          200: {
             description: 'Login successful',
             content: {
               'application/json': {
@@ -191,7 +197,7 @@ const swaggerDefinition = {
               },
             },
           },
-          '401': {
+          401: {
             description: 'Unauthorized',
           },
         },
@@ -204,7 +210,7 @@ const swaggerDefinition = {
         description: 'Get current user information',
         security: [{ bearerAuth: [] }],
         responses: {
-          '200': {
+          200: {
             description: 'User information',
             content: {
               'application/json': {
@@ -219,7 +225,7 @@ const swaggerDefinition = {
               },
             },
           },
-          '401': {
+          401: {
             description: 'Unauthorized',
           },
         },
@@ -232,7 +238,7 @@ const swaggerDefinition = {
         description: 'Get list of all groups',
         security: [{ bearerAuth: [] }],
         responses: {
-          '200': {
+          200: {
             description: 'List of groups',
             content: {
               'application/json': {
@@ -255,7 +261,7 @@ const swaggerDefinition = {
               },
             },
           },
-          '401': {
+          401: {
             description: 'Unauthorized',
           },
         },
@@ -268,7 +274,7 @@ const swaggerDefinition = {
         description: 'Get list of all projects',
         security: [{ bearerAuth: [] }],
         responses: {
-          '200': {
+          200: {
             description: 'List of projects',
             content: {
               'application/json': {
@@ -291,7 +297,7 @@ const swaggerDefinition = {
               },
             },
           },
-          '401': {
+          401: {
             description: 'Unauthorized',
           },
         },
@@ -304,7 +310,7 @@ const swaggerDefinition = {
         description: 'Get list of all interfaces',
         security: [{ bearerAuth: [] }],
         responses: {
-          '200': {
+          200: {
             description: 'List of interfaces',
             content: {
               'application/json': {
@@ -322,7 +328,7 @@ const swaggerDefinition = {
               },
             },
           },
-          '401': {
+          401: {
             description: 'Unauthorized',
           },
         },
@@ -352,13 +358,13 @@ const swaggerDefinition = {
           },
         },
         responses: {
-          '200': {
+          200: {
             description: 'Environment added successfully',
           },
-          '400': {
+          400: {
             description: 'Bad request',
           },
-          '401': {
+          401: {
             description: 'Unauthorized',
           },
         },
@@ -389,13 +395,13 @@ const swaggerDefinition = {
           },
         },
         responses: {
-          '200': {
+          200: {
             description: 'Environment updated successfully',
           },
-          '400': {
+          400: {
             description: 'Bad request',
           },
-          '401': {
+          401: {
             description: 'Unauthorized',
           },
         },
@@ -424,13 +430,13 @@ const swaggerDefinition = {
           },
         ],
         responses: {
-          '200': {
+          200: {
             description: 'Environment deleted successfully',
           },
-          '400': {
+          400: {
             description: 'Bad request',
           },
-          '401': {
+          401: {
             description: 'Unauthorized',
           },
         },
@@ -443,8 +449,8 @@ const swaggerDefinition = {
         description: 'Logout current user',
         security: [{ bearerAuth: [] }],
         responses: {
-          '200': { description: 'Logout successful' },
-          '401': { description: 'Unauthorized' },
+          200: { description: 'Logout successful' },
+          401: { description: 'Unauthorized' },
         },
       },
     },
@@ -469,9 +475,9 @@ const swaggerDefinition = {
           },
         },
         responses: {
-          '200': { description: 'Update successful' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
+          200: { description: 'Update successful' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
         },
       },
     },
@@ -495,8 +501,8 @@ const swaggerDefinition = {
           },
         },
         responses: {
-          '200': { description: 'Reset email sent' },
-          '400': { description: 'Bad request' },
+          200: { description: 'Reset email sent' },
+          400: { description: 'Bad request' },
         },
       },
     },
@@ -521,8 +527,8 @@ const swaggerDefinition = {
           },
         },
         responses: {
-          '200': { description: 'Password reset successful' },
-          '400': { description: 'Bad request' },
+          200: { description: 'Password reset successful' },
+          400: { description: 'Bad request' },
         },
       },
     },
@@ -548,9 +554,9 @@ const swaggerDefinition = {
           },
         },
         responses: {
-          '200': { description: 'Password changed successfully' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
+          200: { description: 'Password changed successfully' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
         },
       },
     },
@@ -576,10 +582,10 @@ const swaggerDefinition = {
           },
         },
         responses: {
-          '200': { description: 'Group created successfully' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
-          '403': { description: 'Permission denied' },
+          200: { description: 'Group created successfully' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
+          403: { description: 'Permission denied' },
         },
       },
     },
@@ -606,11 +612,11 @@ const swaggerDefinition = {
           },
         },
         responses: {
-          '200': { description: 'Group updated successfully' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
-          '403': { description: 'Permission denied' },
-          '404': { description: 'Group not found' },
+          200: { description: 'Group updated successfully' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
+          403: { description: 'Permission denied' },
+          404: { description: 'Group not found' },
         },
       },
     },
@@ -630,11 +636,11 @@ const swaggerDefinition = {
           },
         ],
         responses: {
-          '200': { description: 'Group deleted successfully' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
-          '403': { description: 'Permission denied' },
-          '404': { description: 'Group not found' },
+          200: { description: 'Group deleted successfully' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
+          403: { description: 'Permission denied' },
+          404: { description: 'Group not found' },
         },
       },
     },
@@ -654,9 +660,9 @@ const swaggerDefinition = {
           },
         ],
         responses: {
-          '200': { description: 'Group details' },
-          '401': { description: 'Unauthorized' },
-          '404': { description: 'Group not found' },
+          200: { description: 'Group details' },
+          401: { description: 'Unauthorized' },
+          404: { description: 'Group not found' },
         },
       },
     },
@@ -682,11 +688,11 @@ const swaggerDefinition = {
           },
         },
         responses: {
-          '200': { description: 'Member added successfully' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
-          '403': { description: 'Permission denied' },
-          '404': { description: 'Group or user not found' },
+          200: { description: 'Member added successfully' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
+          403: { description: 'Permission denied' },
+          404: { description: 'Group or user not found' },
         },
       },
     },
@@ -711,11 +717,11 @@ const swaggerDefinition = {
           },
         ],
         responses: {
-          '200': { description: 'Member removed successfully' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
-          '403': { description: 'Permission denied' },
-          '404': { description: 'Group or member not found' },
+          200: { description: 'Member removed successfully' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
+          403: { description: 'Permission denied' },
+          404: { description: 'Group or member not found' },
         },
       },
     },
@@ -741,11 +747,11 @@ const swaggerDefinition = {
           },
         },
         responses: {
-          '200': { description: 'Leader set successfully' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
-          '403': { description: 'Permission denied' },
-          '404': { description: 'Group or member not found' },
+          200: { description: 'Leader set successfully' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
+          403: { description: 'Permission denied' },
+          404: { description: 'Group or member not found' },
         },
       },
     },
@@ -775,10 +781,10 @@ const swaggerDefinition = {
           },
         },
         responses: {
-          '200': { description: 'Project created successfully' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
-          '403': { description: 'Permission denied' },
+          200: { description: 'Project created successfully' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
+          403: { description: 'Permission denied' },
         },
       },
     },
@@ -810,11 +816,11 @@ const swaggerDefinition = {
           },
         },
         responses: {
-          '200': { description: 'Project updated successfully' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
-          '403': { description: 'Permission denied' },
-          '404': { description: 'Project not found' },
+          200: { description: 'Project updated successfully' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
+          403: { description: 'Permission denied' },
+          404: { description: 'Project not found' },
         },
       },
     },
@@ -834,11 +840,11 @@ const swaggerDefinition = {
           },
         ],
         responses: {
-          '200': { description: 'Project deleted successfully' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
-          '403': { description: 'Permission denied' },
-          '404': { description: 'Project not found' },
+          200: { description: 'Project deleted successfully' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
+          403: { description: 'Permission denied' },
+          404: { description: 'Project not found' },
         },
       },
     },
@@ -858,9 +864,9 @@ const swaggerDefinition = {
           },
         ],
         responses: {
-          '200': { description: 'Project details' },
-          '401': { description: 'Unauthorized' },
-          '404': { description: 'Project not found' },
+          200: { description: 'Project details' },
+          401: { description: 'Unauthorized' },
+          404: { description: 'Project not found' },
         },
       },
     },
@@ -886,11 +892,11 @@ const swaggerDefinition = {
           },
         },
         responses: {
-          '200': { description: 'Member added successfully' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
-          '403': { description: 'Permission denied' },
-          '404': { description: 'Project or user not found' },
+          200: { description: 'Member added successfully' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
+          403: { description: 'Permission denied' },
+          404: { description: 'Project or user not found' },
         },
       },
     },
@@ -915,11 +921,11 @@ const swaggerDefinition = {
           },
         ],
         responses: {
-          '200': { description: 'Member removed successfully' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
-          '403': { description: 'Permission denied' },
-          '404': { description: 'Project or member not found' },
+          200: { description: 'Member removed successfully' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
+          403: { description: 'Permission denied' },
+          404: { description: 'Project or member not found' },
         },
       },
     },
@@ -945,11 +951,11 @@ const swaggerDefinition = {
           },
         },
         responses: {
-          '200': { description: 'Project migrated successfully' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
-          '403': { description: 'Permission denied' },
-          '404': { description: 'Project or target group not found' },
+          200: { description: 'Project migrated successfully' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
+          403: { description: 'Permission denied' },
+          404: { description: 'Project or target group not found' },
         },
       },
     },
@@ -976,11 +982,11 @@ const swaggerDefinition = {
           },
         },
         responses: {
-          '200': { description: 'Project copied successfully' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
-          '403': { description: 'Permission denied' },
-          '404': { description: 'Project or target group not found' },
+          200: { description: 'Project copied successfully' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
+          403: { description: 'Permission denied' },
+          404: { description: 'Project or target group not found' },
         },
       },
     },
@@ -1000,9 +1006,9 @@ const swaggerDefinition = {
           },
         ],
         responses: {
-          '200': { description: 'Project activities' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
+          200: { description: 'Project activities' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
         },
       },
     },
@@ -1023,7 +1029,10 @@ const swaggerDefinition = {
                   project_id: { type: 'string' },
                   title: { type: 'string' },
                   path: { type: 'string' },
-                  method: { type: 'string', enum: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'] },
+                  method: {
+                    type: 'string',
+                    enum: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'],
+                  },
                   catid: { type: 'string' },
                   desc: { type: 'string' },
                   status: { type: 'string', enum: ['developing', 'developed', 'tested', 'online'] },
@@ -1036,10 +1045,10 @@ const swaggerDefinition = {
           },
         },
         responses: {
-          '200': { description: 'Interface created successfully' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
-          '403': { description: 'Permission denied' },
+          200: { description: 'Interface created successfully' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
+          403: { description: 'Permission denied' },
         },
       },
     },
@@ -1073,11 +1082,11 @@ const swaggerDefinition = {
           },
         },
         responses: {
-          '200': { description: 'Interface updated successfully' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
-          '403': { description: 'Permission denied' },
-          '404': { description: 'Interface not found' },
+          200: { description: 'Interface updated successfully' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
+          403: { description: 'Permission denied' },
+          404: { description: 'Interface not found' },
         },
       },
     },
@@ -1097,11 +1106,11 @@ const swaggerDefinition = {
           },
         ],
         responses: {
-          '200': { description: 'Interface deleted successfully' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
-          '403': { description: 'Permission denied' },
-          '404': { description: 'Interface not found' },
+          200: { description: 'Interface deleted successfully' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
+          403: { description: 'Permission denied' },
+          404: { description: 'Interface not found' },
         },
       },
     },
@@ -1121,9 +1130,9 @@ const swaggerDefinition = {
           },
         ],
         responses: {
-          '200': { description: 'Interface details' },
-          '401': { description: 'Unauthorized' },
-          '404': { description: 'Interface not found' },
+          200: { description: 'Interface details' },
+          401: { description: 'Unauthorized' },
+          404: { description: 'Interface not found' },
         },
       },
     },
@@ -1150,10 +1159,10 @@ const swaggerDefinition = {
           },
         },
         responses: {
-          '200': { description: 'Interface run result' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
-          '404': { description: 'Interface not found' },
+          200: { description: 'Interface run result' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
+          404: { description: 'Interface not found' },
         },
       },
     },
@@ -1172,9 +1181,9 @@ const swaggerDefinition = {
           },
         ],
         responses: {
-          '200': { description: 'List of categories' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
+          200: { description: 'List of categories' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
         },
       },
     },
@@ -1201,10 +1210,10 @@ const swaggerDefinition = {
           },
         },
         responses: {
-          '200': { description: 'Category created successfully' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
-          '403': { description: 'Permission denied' },
+          200: { description: 'Category created successfully' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
+          403: { description: 'Permission denied' },
         },
       },
     },
@@ -1231,11 +1240,11 @@ const swaggerDefinition = {
           },
         },
         responses: {
-          '200': { description: 'Category updated successfully' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
-          '403': { description: 'Permission denied' },
-          '404': { description: 'Category not found' },
+          200: { description: 'Category updated successfully' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
+          403: { description: 'Permission denied' },
+          404: { description: 'Category not found' },
         },
       },
     },
@@ -1254,11 +1263,11 @@ const swaggerDefinition = {
           },
         ],
         responses: {
-          '200': { description: 'Category deleted successfully' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
-          '403': { description: 'Permission denied' },
-          '404': { description: 'Category not found' },
+          200: { description: 'Category deleted successfully' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
+          403: { description: 'Permission denied' },
+          404: { description: 'Category not found' },
         },
       },
     },
@@ -1283,9 +1292,9 @@ const swaggerDefinition = {
           },
         },
         responses: {
-          '200': { description: 'File uploaded successfully' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
+          200: { description: 'File uploaded successfully' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
         },
       },
     },
@@ -1310,9 +1319,9 @@ const swaggerDefinition = {
           },
         },
         responses: {
-          '200': { description: 'Avatar uploaded successfully' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
+          200: { description: 'Avatar uploaded successfully' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
         },
       },
     },
@@ -1323,9 +1332,9 @@ const swaggerDefinition = {
         description: 'Get system statistics (admin only)',
         security: [{ bearerAuth: [] }],
         responses: {
-          '200': { description: 'System statistics' },
-          '401': { description: 'Unauthorized' },
-          '403': { description: 'Permission denied' },
+          200: { description: 'System statistics' },
+          401: { description: 'Unauthorized' },
+          403: { description: 'Permission denied' },
         },
       },
     },
@@ -1335,7 +1344,7 @@ const swaggerDefinition = {
         summary: 'Get metrics',
         description: 'Get Prometheus metrics',
         responses: {
-          '200': { description: 'Metrics in Prometheus format' },
+          200: { description: 'Metrics in Prometheus format' },
         },
       },
     },
@@ -1354,9 +1363,9 @@ const swaggerDefinition = {
           },
         ],
         responses: {
-          '200': { description: 'List of mock expectations' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
+          200: { description: 'List of mock expectations' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
         },
       },
     },
@@ -1388,9 +1397,9 @@ const swaggerDefinition = {
           },
         },
         responses: {
-          '200': { description: 'Mock expectation created successfully' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
+          200: { description: 'Mock expectation created successfully' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
         },
       },
     },
@@ -1422,10 +1431,10 @@ const swaggerDefinition = {
           },
         },
         responses: {
-          '200': { description: 'Mock expectation updated successfully' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
-          '404': { description: 'Mock expectation not found' },
+          200: { description: 'Mock expectation updated successfully' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
+          404: { description: 'Mock expectation not found' },
         },
       },
     },
@@ -1444,10 +1453,10 @@ const swaggerDefinition = {
           },
         ],
         responses: {
-          '200': { description: 'Mock expectation deleted successfully' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
-          '404': { description: 'Mock expectation not found' },
+          200: { description: 'Mock expectation deleted successfully' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
+          404: { description: 'Mock expectation not found' },
         },
       },
     },
@@ -1465,8 +1474,8 @@ const swaggerDefinition = {
           },
         ],
         responses: {
-          '200': { description: 'List of test collections' },
-          '401': { description: 'Unauthorized' },
+          200: { description: 'List of test collections' },
+          401: { description: 'Unauthorized' },
         },
       },
     },
@@ -1485,9 +1494,9 @@ const swaggerDefinition = {
           },
         ],
         responses: {
-          '200': { description: 'Test collection details' },
-          '401': { description: 'Unauthorized' },
-          '404': { description: 'Test collection not found' },
+          200: { description: 'Test collection details' },
+          401: { description: 'Unauthorized' },
+          404: { description: 'Test collection not found' },
         },
       },
       put: {
@@ -1518,11 +1527,11 @@ const swaggerDefinition = {
           },
         },
         responses: {
-          '200': { description: 'Test collection updated successfully' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
-          '403': { description: 'Permission denied' },
-          '404': { description: 'Test collection not found' },
+          200: { description: 'Test collection updated successfully' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
+          403: { description: 'Permission denied' },
+          404: { description: 'Test collection not found' },
         },
       },
       delete: {
@@ -1539,11 +1548,11 @@ const swaggerDefinition = {
           },
         ],
         responses: {
-          '200': { description: 'Test collection deleted successfully' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
-          '403': { description: 'Permission denied' },
-          '404': { description: 'Test collection not found' },
+          200: { description: 'Test collection deleted successfully' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
+          403: { description: 'Permission denied' },
+          404: { description: 'Test collection not found' },
         },
       },
     },
@@ -1570,9 +1579,9 @@ const swaggerDefinition = {
           },
         },
         responses: {
-          '200': { description: 'Test collection created successfully' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
+          200: { description: 'Test collection created successfully' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
         },
       },
     },
@@ -1604,9 +1613,9 @@ const swaggerDefinition = {
           },
         },
         responses: {
-          '200': { description: 'Test case created successfully' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
+          200: { description: 'Test case created successfully' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
         },
       },
     },
@@ -1643,11 +1652,11 @@ const swaggerDefinition = {
           },
         },
         responses: {
-          '200': { description: 'Test case updated successfully' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
-          '403': { description: 'Permission denied' },
-          '404': { description: 'Test case not found' },
+          200: { description: 'Test case updated successfully' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
+          403: { description: 'Permission denied' },
+          404: { description: 'Test case not found' },
         },
       },
       delete: {
@@ -1664,11 +1673,11 @@ const swaggerDefinition = {
           },
         ],
         responses: {
-          '200': { description: 'Test case deleted successfully' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
-          '403': { description: 'Permission denied' },
-          '404': { description: 'Test case not found' },
+          200: { description: 'Test case deleted successfully' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
+          403: { description: 'Permission denied' },
+          404: { description: 'Test case not found' },
         },
       },
     },
@@ -1693,10 +1702,10 @@ const swaggerDefinition = {
           },
         },
         responses: {
-          '200': { description: 'Test execution completed' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
-          '404': { description: 'Test collection not found' },
+          200: { description: 'Test execution completed' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
+          404: { description: 'Test collection not found' },
         },
       },
     },
@@ -1715,9 +1724,9 @@ const swaggerDefinition = {
           },
         ],
         responses: {
-          '200': { description: 'Test history' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
+          200: { description: 'Test history' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
         },
       },
     },
@@ -1735,28 +1744,30 @@ const swaggerDefinition = {
                 type: 'object',
                 required: ['project_id', 'format', 'data'],
                 properties: {
-                  project_id: { 
+                  project_id: {
                     type: 'string',
                     description: 'Project ID to import data into',
-                    example: '507f1f77bcf86cd799439011'
+                    example: '507f1f77bcf86cd799439011',
                   },
-                  format: { 
-                    type: 'string', 
+                  format: {
+                    type: 'string',
                     enum: ['postman', 'swagger', 'openapi', 'har', 'apiadmin', 'json'],
                     description: 'Import format type',
-                    example: 'swagger'
+                    example: 'swagger',
                   },
-                  mode: { 
-                    type: 'string', 
-                    enum: ['normal', 'good', 'mergin'], 
+                  mode: {
+                    type: 'string',
+                    enum: ['normal', 'good', 'mergin'],
                     default: 'normal',
-                    description: 'Import mode: normal (skip existing), good (merge smartly), mergin (merge all)',
-                    example: 'normal'
+                    description:
+                      'Import mode: normal (skip existing), good (merge smartly), mergin (merge all)',
+                    example: 'normal',
                   },
-                  data: { 
-                    type: 'object', 
-                    description: 'Import data (Swagger/OpenAPI spec, Postman collection, HAR file, or ApiAdmin JSON)',
-                    additionalProperties: true
+                  data: {
+                    type: 'object',
+                    description:
+                      'Import data (Swagger/OpenAPI spec, Postman collection, HAR file, or ApiAdmin JSON)',
+                    additionalProperties: true,
                   },
                 },
               },
@@ -1764,7 +1775,7 @@ const swaggerDefinition = {
           },
         },
         responses: {
-          '200': {
+          200: {
             description: 'Import successful',
             content: {
               'application/json': {
@@ -1776,20 +1787,21 @@ const swaggerDefinition = {
                     data: {
                       type: 'object',
                       properties: {
-                        imported: { 
-                          type: 'number', 
+                        imported: {
+                          type: 'number',
                           description: 'Number of successfully imported interfaces',
-                          example: 10
+                          example: 10,
                         },
-                        skipped: { 
-                          type: 'number', 
-                          description: 'Number of skipped interfaces (already exist in normal mode)',
-                          example: 2
+                        skipped: {
+                          type: 'number',
+                          description:
+                            'Number of skipped interfaces (already exist in normal mode)',
+                          example: 2,
                         },
                         updated: {
                           type: 'number',
                           description: 'Number of updated interfaces (in mergin/good mode)',
-                          example: 0
+                          example: 0,
                         },
                         errors: {
                           type: 'array',
@@ -1799,19 +1811,19 @@ const swaggerDefinition = {
                             properties: {
                               path: { type: 'string', example: '/api/users' },
                               method: { type: 'string', example: 'GET' },
-                              error: { type: 'string', example: 'Error message' }
-                            }
+                              error: { type: 'string', example: 'Error message' },
+                            },
                           },
-                          example: []
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
+                          example: [],
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
           },
-          '400': { 
+          400: {
             description: 'Bad request',
             content: {
               'application/json': {
@@ -1819,13 +1831,13 @@ const swaggerDefinition = {
                   type: 'object',
                   properties: {
                     success: { type: 'boolean', example: false },
-                    message: { type: 'string', example: '无效的项目ID' }
-                  }
-                }
-              }
-            }
+                    message: { type: 'string', example: '无效的项目ID' },
+                  },
+                },
+              },
+            },
           },
-          '401': { 
+          401: {
             description: 'Unauthorized',
             content: {
               'application/json': {
@@ -1833,13 +1845,13 @@ const swaggerDefinition = {
                   type: 'object',
                   properties: {
                     success: { type: 'boolean', example: false },
-                    message: { type: 'string', example: 'Unauthorized' }
-                  }
-                }
-              }
-            }
+                    message: { type: 'string', example: 'Unauthorized' },
+                  },
+                },
+              },
+            },
           },
-          '404': {
+          404: {
             description: 'Project not found',
             content: {
               'application/json': {
@@ -1847,13 +1859,13 @@ const swaggerDefinition = {
                   type: 'object',
                   properties: {
                     success: { type: 'boolean', example: false },
-                    message: { type: 'string', example: '项目不存在' }
-                  }
-                }
-              }
-            }
+                    message: { type: 'string', example: '项目不存在' },
+                  },
+                },
+              },
+            },
           },
-          '500': {
+          500: {
             description: 'Internal server error',
             content: {
               'application/json': {
@@ -1861,12 +1873,12 @@ const swaggerDefinition = {
                   type: 'object',
                   properties: {
                     success: { type: 'boolean', example: false },
-                    message: { type: 'string', example: '导入失败' }
-                  }
-                }
-              }
-            }
-          }
+                    message: { type: 'string', example: '导入失败' },
+                  },
+                },
+              },
+            },
+          },
         },
       },
     },
@@ -1886,7 +1898,11 @@ const swaggerDefinition = {
           {
             name: 'format',
             in: 'query',
-            schema: { type: 'string', enum: ['json', 'swagger', 'markdown', 'html'], default: 'json' },
+            schema: {
+              type: 'string',
+              enum: ['json', 'swagger', 'markdown', 'html'],
+              default: 'json',
+            },
           },
           {
             name: 'interface_ids',
@@ -1900,9 +1916,9 @@ const swaggerDefinition = {
           },
         ],
         responses: {
-          '200': { description: 'Export data' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
+          200: { description: 'Export data' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
         },
       },
     },
@@ -1913,7 +1929,7 @@ const swaggerDefinition = {
         description: 'Get list of all users (super admin only)',
         security: [{ bearerAuth: [] }],
         responses: {
-          '200': {
+          200: {
             description: 'List of users',
             content: {
               'application/json': {
@@ -1928,7 +1944,16 @@ const swaggerDefinition = {
                           _id: { type: 'string' },
                           username: { type: 'string' },
                           email: { type: 'string' },
-                          role: { type: 'string', enum: ['super_admin', 'group_leader', 'project_leader', 'developer', 'guest'] },
+                          role: {
+                            type: 'string',
+                            enum: [
+                              'super_admin',
+                              'group_leader',
+                              'project_leader',
+                              'developer',
+                              'guest',
+                            ],
+                          },
                         },
                       },
                     },
@@ -1937,8 +1962,8 @@ const swaggerDefinition = {
               },
             },
           },
-          '401': { description: 'Unauthorized' },
-          '403': { description: 'Permission denied' },
+          401: { description: 'Unauthorized' },
+          403: { description: 'Permission denied' },
         },
       },
     },
@@ -1959,17 +1984,21 @@ const swaggerDefinition = {
                   email: { type: 'string', format: 'email' },
                   password: { type: 'string', format: 'password' },
                   username: { type: 'string' },
-                  role: { type: 'string', enum: ['super_admin', 'group_leader', 'project_leader', 'developer', 'guest'], default: 'guest' },
+                  role: {
+                    type: 'string',
+                    enum: ['super_admin', 'group_leader', 'project_leader', 'developer', 'guest'],
+                    default: 'guest',
+                  },
                 },
               },
             },
           },
         },
         responses: {
-          '200': { description: 'User created successfully' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
-          '403': { description: 'Permission denied' },
+          200: { description: 'User created successfully' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
+          403: { description: 'Permission denied' },
         },
       },
     },
@@ -1990,18 +2019,21 @@ const swaggerDefinition = {
                   _id: { type: 'string' },
                   username: { type: 'string' },
                   email: { type: 'string', format: 'email' },
-                  role: { type: 'string', enum: ['super_admin', 'group_leader', 'project_leader', 'developer', 'guest'] },
+                  role: {
+                    type: 'string',
+                    enum: ['super_admin', 'group_leader', 'project_leader', 'developer', 'guest'],
+                  },
                 },
               },
             },
           },
         },
         responses: {
-          '200': { description: 'User updated successfully' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
-          '403': { description: 'Permission denied' },
-          '404': { description: 'User not found' },
+          200: { description: 'User updated successfully' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
+          403: { description: 'Permission denied' },
+          404: { description: 'User not found' },
         },
       },
     },
@@ -2021,11 +2053,11 @@ const swaggerDefinition = {
           },
         ],
         responses: {
-          '200': { description: 'User deleted successfully' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
-          '403': { description: 'Permission denied' },
-          '404': { description: 'User not found' },
+          200: { description: 'User deleted successfully' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
+          403: { description: 'Permission denied' },
+          404: { description: 'User not found' },
         },
       },
     },
@@ -2036,7 +2068,7 @@ const swaggerDefinition = {
         description: 'Get list of all projects (super admin only)',
         security: [{ bearerAuth: [] }],
         responses: {
-          '200': {
+          200: {
             description: 'List of projects',
             content: {
               'application/json': {
@@ -2054,8 +2086,8 @@ const swaggerDefinition = {
               },
             },
           },
-          '401': { description: 'Unauthorized' },
-          '403': { description: 'Permission denied' },
+          401: { description: 'Unauthorized' },
+          403: { description: 'Permission denied' },
         },
       },
     },
@@ -2083,10 +2115,10 @@ const swaggerDefinition = {
           },
         },
         responses: {
-          '200': { description: 'Project created successfully' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
-          '403': { description: 'Permission denied' },
+          200: { description: 'Project created successfully' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
+          403: { description: 'Permission denied' },
         },
       },
     },
@@ -2113,11 +2145,11 @@ const swaggerDefinition = {
           },
         },
         responses: {
-          '200': { description: 'Project updated successfully' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
-          '403': { description: 'Permission denied' },
-          '404': { description: 'Project not found' },
+          200: { description: 'Project updated successfully' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
+          403: { description: 'Permission denied' },
+          404: { description: 'Project not found' },
         },
       },
     },
@@ -2137,11 +2169,11 @@ const swaggerDefinition = {
           },
         ],
         responses: {
-          '200': { description: 'Project deleted successfully' },
-          '400': { description: 'Bad request' },
-          '401': { description: 'Unauthorized' },
-          '403': { description: 'Permission denied' },
-          '404': { description: 'Project not found' },
+          200: { description: 'Project deleted successfully' },
+          400: { description: 'Bad request' },
+          401: { description: 'Unauthorized' },
+          403: { description: 'Permission denied' },
+          404: { description: 'Project not found' },
         },
       },
     },
@@ -2152,7 +2184,7 @@ const swaggerDefinition = {
         description: 'Get list of all interfaces (super admin only)',
         security: [{ bearerAuth: [] }],
         responses: {
-          '200': {
+          200: {
             description: 'List of interfaces',
             content: {
               'application/json': {
@@ -2170,8 +2202,8 @@ const swaggerDefinition = {
               },
             },
           },
-          '401': { description: 'Unauthorized' },
-          '403': { description: 'Permission denied' },
+          401: { description: 'Unauthorized' },
+          403: { description: 'Permission denied' },
         },
       },
     },
@@ -2182,7 +2214,7 @@ const swaggerDefinition = {
         description: 'Get list of all environments across all projects (super admin only)',
         security: [{ bearerAuth: [] }],
         responses: {
-          '200': {
+          200: {
             description: 'List of environments',
             content: {
               'application/json': {
@@ -2200,8 +2232,8 @@ const swaggerDefinition = {
               },
             },
           },
-          '401': { description: 'Unauthorized' },
-          '403': { description: 'Permission denied' },
+          401: { description: 'Unauthorized' },
+          403: { description: 'Permission denied' },
         },
       },
     },
@@ -2261,7 +2293,7 @@ const swaggerDefinition = {
 // 合并未实现功能的路径定义
 swaggerDefinition.paths = {
   ...swaggerDefinition.paths,
-  ...unimplementedPaths
+  ...unimplementedPaths,
 };
 
 // 合并未实现功能的组件定义
@@ -2269,12 +2301,12 @@ swaggerDefinition.components = {
   ...swaggerDefinition.components,
   schemas: {
     ...swaggerDefinition.components.schemas,
-    ...unimplementedComponents.schemas
+    ...unimplementedComponents.schemas,
   },
   responses: {
     ...(swaggerDefinition.components.responses || {}),
-    ...unimplementedComponents.responses
-  }
+    ...unimplementedComponents.responses,
+  },
 };
 
 // 添加未实现功能的标签
@@ -2331,4 +2363,3 @@ swaggerDefinition.tags = [
 ];
 
 export default swaggerDefinition;
-

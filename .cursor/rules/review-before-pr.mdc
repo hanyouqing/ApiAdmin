@@ -1,0 +1,99 @@
+---
+description: On-demand review, version bump, PR, merge, and optional tag for ApiAdmin. Run only when the user asks to execute review-before-pr.
+alwaysApply: false
+---
+
+# Review before PR
+
+Run this sequence in the same task when the user asks. Finish after the merge. Push a tag only when the PR changes product behavior. Do not commit or tag while a gate is red.
+
+1. Review the current diff against this repo's rules (`.cursor/rules/`), structure, patterns, and style. Stack: Client (Vite/React/antd) + Server (Koa/Mongoose) + MongoDB + Redis. Prefer MIT/Apache deps; never reintroduce `vm2`.
+2. Confirm the diff implements the requested feature or bugfix, does not add a new problem, and the affected behavior works. Gates: `make check` (format-check + lint + unit tests). Prefer `make test` / `make lint` over ad-hoc scripts. Apply PATH from `~/.zshrc` before shell commands. Reuse a green gate already run in this task; re-run only if a later edit invalidates it.
+3. Leave out unrelated or non-compliant edits. Do not commit them just because they are dirty.
+4. Several features or bugfixes may share one branch and one PR. Commit each feature or bugfix on its own (Conventional Commits; Husky pre-commit + commit-msg). Do not put two features, or a feature and an unrelated fix, in the same commit. Do not use `git add -i` or `git rebase -i`. Escape hatch `SKIP_TESTS=1` / `--no-verify` only sparingly and never to hide a red gate.
+5. On latest `main`, pull and create that dev branch. When the PR changes product behavior, bump the shipped version once before the last commit. Keep these in lockstep: root `package.json`, `Client/package.json`, `Server/package.json`, `Helm/apiadmin/Chart.yaml` (`version`, `appVersion`), and the app image `tag` in `Helm/apiadmin/values.yaml`. Pass the same semver as `APP_VERSION` when building images. A single feature may include that bump in its only commit. Skip the version bump when the PR has no functional change (rules, formatting, comments, docs-only). Do not bump `Plugins/*/package.json` for an app release.
+6. Push the branch once, open one PR with `gh pr create`, then merge with `gh pr merge --merge` so each commit stays on `main`. Do not squash.
+7. Check out `main` and pull so the local branch matches the merged result.
+8. Tag that `main` commit `vX.Y.Z`, then push the tag once with `git push origin vX.Y.Z`, only when the PR changes product behavior. A `v*` or `release-*` tag on `main` publishes images via `.github/workflows/publish-images.yml` (GHCR `ghcr.io/hanyouqing/apiadmin` and Docker Hub `hanyouqing/apiadmin`) and the Helm chart to `gh-pages`. Push to `main` alone also pushes an immutable tag and `latest`. Do not tag a PR that only changes rules, formatting, comments, or other non-functional files. A dependency audit fix still gets a tag.
+9. After the sequence finishes, or stops because a step failed, start the speech loop (below). Success says `apiadmin vibing finished`. Failure says `apiadmin vibing Failed`.
+
+```bash
+git fetch origin
+git checkout main
+git pull origin main
+git checkout -b feat/short-topic
+git add <feature-or-fix-paths>
+git commit
+git add <next-feature-or-fix-paths>
+git commit
+# bump the version files above when product behavior changes, then
+git add <version-paths>
+git commit
+git push -u origin HEAD
+gh pr create
+gh pr merge --merge
+git checkout main
+git pull origin main
+# skip the tag when the PR has no functional change
+git tag vX.Y.Z
+git push origin vX.Y.Z
+```
+
+Do not force-push `main`. Do not skip hooks. Do not commit secrets (`.env`, credentials, `*.tfstate`, Docker Hub tokens). Do not tag the feature branch. Do not push the tag before the merge. Update `.cursor/rules/` with durable session lessons before the commit that ships them (see `commit-push-session-rules.mdc`).
+
+## Voice
+
+When this sequence ends, start one background speech loop and a macOS dialog with a single **Stop** button. Speech repeats until the user clicks **Stop** or closes the dialog. Do not wait on the dialog. Tell the user the Stop button is on screen.
+
+```bash
+python3 - "apiadmin vibing finished" "apiadmin" <<'PY'
+import os, signal, subprocess, sys
+phrase, title = sys.argv[1], sys.argv[2]
+loop = subprocess.Popen(
+    ["bash", "-c", 'while true; do say "$1"; done', "bash", phrase],
+    start_new_session=True,
+)
+script = f'display dialog "{phrase}" buttons {{"Stop"}} default button "Stop" with title "{title}"'
+try:
+    subprocess.run(["osascript", "-e", script], check=False)
+finally:
+    os.killpg(loop.pid, signal.SIGTERM)
+PY
+```
+
+Use `"apiadmin vibing Failed"` as the phrase when a gate stays red or the sequence stops before the merge.
+
+## Dependency audit
+
+If the production dependency audit (CI step, `make audit`, or `npm audit --omit=dev --audit-level=high` on root / Client / Server) reports a high or critical advisory, fix it in the same task before finishing:
+
+1. Fix it in the release change. Prefer a direct dependency bump or an existing npm `override`. Do not leave the audit red. Prefer maintained replacements (`@faker-js/faker`, `@koa/multer`, `@node-saml/node-saml`).
+2. Push that fix. If the PR is still open, push the branch. If it is already merged, put the fix on a branch from latest `main`, open a PR, merge it, check out `main`, and pull.
+3. If a `vX.Y.Z` tag for this release was already pushed, delete that remote tag (`git push origin :refs/tags/vX.Y.Z`) and the local tag (`git tag -d vX.Y.Z`). Do not delete any other tag. Do not force-push `main`.
+4. Tag the new `main` commit that contains the fix, then push the tag once with `git push origin vX.Y.Z`. Reuse the same tag name only when that version is not already published on the registries; otherwise bump the patch and tag the new version.
+
+```bash
+git push origin :refs/tags/vX.Y.Z
+git tag -d vX.Y.Z
+git tag vX.Y.Z
+git push origin vX.Y.Z
+```
+
+## Review cost
+
+On every review, spend tokens only on what this change still needs:
+
+- Read and diff only the files the change touches. Do not re-scan the whole repo or re-read files already understood.
+- Reuse results already produced in the task (`make check`, browser checks, docker context checks). Do not repeat a passing quality gate or a long command unless a later edit invalidates it.
+- Keep the review note short: state the decision and the few findings that change what gets committed. Do not paste large diffs or logs.
+- Leave unrelated dirty files out, so they are not re-reviewed or committed.
+- Do not launch extra agents or broad searches for a review that the current diff already answers.
+
+## Docker build context
+
+When a change touches an image build (`Dockerfile`, `.dockerignore`, `Scripts/build-docker.sh`, compose, publish workflow), check `.dockerignore` in the same review:
+
+- Exclude editor/agent dirs (`.cursor`, `.git`), CI (`.github`), docs (`Docs`, most `*.md`), compose files, tests, caches, local env files, `Helm/`, and `node_modules`. These do not belong in the build context.
+- Keep every file the `Dockerfile` copies and the build actually runs: root `package*.json`, `Client/`, `Server/`, `Scripts/`, `Utils/`, `Plugins/`, `tsconfig*.json`, `vite.config.ts`, and the `Dockerfile` itself. Keep `README.md` / `README_zh.md` if still allowlisted.
+- Scan the context for secrets: `.env*`, private keys, certificates, credential files, Terragrunt state. Public client ids are not secrets. Pass image-only values with build args (`APP_VERSION`, `BUILD_*`); do not copy untracked env files.
+- The runtime stage copies build output only (`Client/dist` → `Static`, `Server/dist`, production `Server` deps, `Plugins`). Source, docs, and Helm stay in the builder stage or out of the context.

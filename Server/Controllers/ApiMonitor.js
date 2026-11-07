@@ -52,7 +52,7 @@ function normalizeMonitorBody(body = {}) {
       on_success: !!notification.on_success,
       webhook_url: notification.webhook_url || '',
       email_addresses: Array.isArray(notification.email_addresses)
-        ? notification.email_addresses.map((e) => String(e).trim()).filter(Boolean)
+        ? notification.email_addresses.map(e => String(e).trim()).filter(Boolean)
         : typeof notification.email_addresses === 'string'
           ? notification.email_addresses.split(/[,;\s]+/).filter(Boolean)
           : [],
@@ -84,9 +84,7 @@ class ApiMonitorController extends BaseController {
         return;
       }
 
-      const monitors = await ApiMonitor.find({ project_id })
-        .sort({ updatedAt: -1 })
-        .lean();
+      const monitors = await ApiMonitor.find({ project_id }).sort({ updatedAt: -1 }).lean();
 
       ctx.body = ApiMonitorController.success(monitors);
     } catch (error) {

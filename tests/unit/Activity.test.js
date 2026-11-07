@@ -70,7 +70,7 @@ describe('Activity Model', () => {
     const activity = new Activity({
       description: 'Test',
     });
-    
+
     await expect(activity.save()).rejects.toThrow();
   });
 
@@ -80,7 +80,7 @@ describe('Activity Model', () => {
       user_id: testUser._id,
       action: 'invalid.action',
     });
-    
+
     await expect(activity.save()).rejects.toThrow();
   });
 
@@ -96,4 +96,3 @@ describe('Activity Model', () => {
     expect(typeof activity.metadata).toBe('object');
   });
 });
-

@@ -19,37 +19,37 @@ export function createPmSandbox({
 
   const pm = {
     environment: {
-      get: (key) => envStore[key],
+      get: key => envStore[key],
       set: (key, value) => {
         envStore[key] = value;
       },
-      unset: (key) => {
+      unset: key => {
         delete envStore[key];
       },
       toObject: () => ({ ...envStore }),
     },
     variables: {
-      get: (key) => varStore[key] ?? envStore[key] ?? globalStore[key] ?? iterationData[key],
+      get: key => varStore[key] ?? envStore[key] ?? globalStore[key] ?? iterationData[key],
       set: (key, value) => {
         varStore[key] = value;
       },
-      unset: (key) => {
+      unset: key => {
         delete varStore[key];
       },
       toObject: () => ({ ...varStore }),
     },
     globals: {
-      get: (key) => globalStore[key],
+      get: key => globalStore[key],
       set: (key, value) => {
         globalStore[key] = value;
       },
-      unset: (key) => {
+      unset: key => {
         delete globalStore[key];
       },
       toObject: () => ({ ...globalStore }),
     },
     iterationData: {
-      get: (key) => iterationData[key],
+      get: key => iterationData[key],
       toObject: () => ({ ...iterationData }),
     },
     request: {
@@ -62,7 +62,7 @@ export function createPmSandbox({
         request.headers = request.headers || {};
         request.headers[name] = value;
       },
-      removeHeader: (name) => {
+      removeHeader: name => {
         if (request.headers) delete request.headers[name];
       },
     },
@@ -96,14 +96,14 @@ export function createPmSandbox({
         pm.__tests.push({ name, passed: false, message: error.message });
       }
     },
-    expect: (actual) => ({
+    expect: actual => ({
       to: {
-        eql: (expected) => {
+        eql: expected => {
           if (actual !== expected) {
             throw new Error(`Expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
           }
         },
-        equal: (expected) => {
+        equal: expected => {
           if (actual != expected) {
             throw new Error(`Expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
           }
@@ -149,11 +149,11 @@ export function runScript(script, sandboxBundle, { timeout = 5000, name = 'ApiAd
       displayErrors: true,
       breakOnSigint: true,
     });
-    const failed = pm.__tests.filter((t) => !t.passed);
+    const failed = pm.__tests.filter(t => !t.passed);
     return {
       ok: failed.length === 0,
       tests: pm.__tests,
-      error: failed.length ? failed.map((t) => t.message || t.name).join('; ') : null,
+      error: failed.length ? failed.map(t => t.message || t.name).join('; ') : null,
     };
   } catch (error) {
     logger.error({ error: error.message, name }, 'Script execution failed');
@@ -174,7 +174,8 @@ export function applyEnvToString(value, env = {}, vars = {}, iteration = {}) {
 
 export function deepResolveTemplates(data, env, vars, iteration) {
   if (typeof data === 'string') return applyEnvToString(data, env, vars, iteration);
-  if (Array.isArray(data)) return data.map((item) => deepResolveTemplates(item, env, vars, iteration));
+  if (Array.isArray(data))
+    return data.map(item => deepResolveTemplates(item, env, vars, iteration));
   if (data && typeof data === 'object') {
     const out = {};
     for (const [k, v] of Object.entries(data)) {

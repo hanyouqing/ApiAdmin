@@ -24,7 +24,9 @@ interface AuthenticatedContext extends Koa.Context {
 }
 
 class AutoTestController extends BaseController {
-  static get ControllerName() { return 'AutoTestController'; }
+  static get ControllerName() {
+    return 'AutoTestController';
+  }
 
   static async getConfig(ctx: Koa.Context) {
     try {
@@ -62,7 +64,16 @@ class AutoTestController extends BaseController {
   static async updateConfig(ctx: AuthenticatedContext) {
     try {
       const user = ctx.state.user;
-      const { projectId, enabled, autoGenerate, autoExecute, dataGenerationStrategy, assertionTemplate, timeout, retryCount } = ctx.request.body as any;
+      const {
+        projectId,
+        enabled,
+        autoGenerate,
+        autoExecute,
+        dataGenerationStrategy,
+        assertionTemplate,
+        timeout,
+        retryCount,
+      } = ctx.request.body as any;
 
       if (!projectId || !validateObjectId(projectId)) {
         ctx.status = 400;
@@ -89,7 +100,7 @@ class AutoTestController extends BaseController {
       if (timeout) config.timeout = timeout;
       if (retryCount !== undefined) config.retryCount = retryCount;
       config.updatedBy = user._id;
-      
+
       await config.save();
       ctx.body = AutoTestController.success(config, '自动测试配置更新成功');
     } catch (error: any) {
@@ -102,7 +113,13 @@ class AutoTestController extends BaseController {
   static async generateTestCases(ctx: AuthenticatedContext) {
     try {
       const user = ctx.state.user;
-      const { interfaceIds, projectId, strategy = 'mock', collectionId, taskId } = ctx.request.body as any;
+      const {
+        interfaceIds,
+        projectId,
+        strategy = 'mock',
+        collectionId,
+        taskId,
+      } = ctx.request.body as any;
 
       if (!projectId || !validateObjectId(projectId)) {
         ctx.status = 400;
@@ -171,10 +188,13 @@ class AutoTestController extends BaseController {
       savedCollection.test_cases = [...(savedCollection.test_cases || []), ...savedTestCaseIds];
       await savedCollection.save();
 
-      ctx.body = AutoTestController.success({
-        generatedCount: savedTestCaseIds.length,
-        collectionId: savedCollection._id,
-      }, '测试用例生成并保存成功');
+      ctx.body = AutoTestController.success(
+        {
+          generatedCount: savedTestCaseIds.length,
+          collectionId: savedCollection._id,
+        },
+        '测试用例生成并保存成功'
+      );
     } catch (error: any) {
       ctx.status = 500;
       ctx.body = AutoTestController.error(error.message || '生成测试用例失败');

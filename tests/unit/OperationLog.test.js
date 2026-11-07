@@ -144,7 +144,9 @@ describe('OperationLogController', () => {
 
       expect(ctx.status).toBe(200);
       expect(ctx.body.success).toBe(true);
-      expect(ctx.body.data.list.every(log => log.projectId._id.toString() === testProject._id.toString())).toBe(true);
+      expect(
+        ctx.body.data.list.every(log => log.projectId._id.toString() === testProject._id.toString())
+      ).toBe(true);
     });
 
     it('should filter by userId', async () => {
@@ -181,7 +183,9 @@ describe('OperationLogController', () => {
 
       expect(ctx.status).toBe(200);
       expect(ctx.body.success).toBe(true);
-      expect(ctx.body.data.list.every(log => log.userId._id.toString() === testUser._id.toString())).toBe(true);
+      expect(
+        ctx.body.data.list.every(log => log.userId._id.toString() === testUser._id.toString())
+      ).toBe(true);
     });
 
     it('should filter by action', async () => {
@@ -263,7 +267,7 @@ describe('OperationLogController', () => {
       for (let i = 0; i < 15; i++) {
         await OperationLog.create({
           userId: testUser._id,
-        username: testUser.username,
+          username: testUser.username,
           projectId: testProject._id,
           type: 'interface',
           action: 'create',
@@ -358,7 +362,7 @@ describe('OperationLogController', () => {
       for (let i = 0; i < 10001; i++) {
         await OperationLog.create({
           userId: testUser._id,
-        username: testUser.username,
+          username: testUser.username,
           projectId: testProject._id,
           type: 'interface',
           action: 'create',
@@ -377,4 +381,3 @@ describe('OperationLogController', () => {
     });
   });
 });
-

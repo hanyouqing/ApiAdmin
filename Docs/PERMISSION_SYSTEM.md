@@ -3,6 +3,7 @@
 ## 概述
 
 ApiAdmin 实现了细粒度的权限管理系统，支持：
+
 - 全局角色权限（系统级别）
 - 项目成员权限（项目级别）
 - 分组成员权限（分组级别）
@@ -20,6 +21,7 @@ ApiAdmin 实现了细粒度的权限管理系统，支持：
 - **guest** - 访客：只能查看公开内容
 
 每个角色都有对应的系统级权限，包括：
+
 - `manage_users` - 管理用户
 - `manage_system` - 系统管理
 - `view_all_groups` - 查看所有分组
@@ -46,27 +48,32 @@ ApiAdmin 实现了细粒度的权限管理系统，支持：
 项目级权限包括：
 
 **项目级别：**
+
 - `view_project` - 查看项目
 - `edit_project` - 编辑项目
 - `delete_project` - 删除项目
 - `manage_members` - 管理成员
 
 **接口级别：**
+
 - `view_interface` - 查看接口
 - `add_interface` - 添加接口
 - `edit_interface` - 编辑接口
 - `delete_interface` - 删除接口
 
 **Mock 级别：**
+
 - `view_mock` - 查看 Mock
 - `manage_mock` - 管理 Mock
 
 **测试级别：**
+
 - `view_test` - 查看测试
 - `run_test` - 执行测试
 - `manage_test` - 管理测试
 
 **数据级别：**
+
 - `import_data` - 导入数据
 - `export_data` - 导出数据
 
@@ -79,6 +86,7 @@ ApiAdmin 实现了细粒度的权限管理系统，支持：
 - **member** - 成员：只能查看
 
 分组级权限包括：
+
 - `view_group` - 查看分组
 - `edit_group` - 编辑分组
 - `delete_group` - 删除分组
@@ -92,11 +100,13 @@ ApiAdmin 实现了细粒度的权限管理系统，支持：
 ### 项目成员权限管理
 
 #### 获取项目成员列表
+
 ```
 GET /api/projects/:project_id/members
 ```
 
 #### 添加项目成员
+
 ```
 POST /api/projects/:project_id/members
 Body: {
@@ -107,6 +117,7 @@ Body: {
 ```
 
 #### 批量添加项目成员
+
 ```
 POST /api/projects/:project_id/members/batch
 Body: {
@@ -124,6 +135,7 @@ Body: {
 ```
 
 #### 更新项目成员权限
+
 ```
 PUT /api/projects/:project_id/members/:user_id
 Body: {
@@ -136,11 +148,13 @@ Body: {
 ```
 
 #### 移除项目成员
+
 ```
 DELETE /api/projects/:project_id/members/:user_id
 ```
 
 #### 获取用户的项目权限
+
 ```
 GET /api/projects/:project_id/permission
 ```
@@ -148,11 +162,13 @@ GET /api/projects/:project_id/permission
 ### 分组成员权限管理
 
 #### 获取分组成员列表
+
 ```
 GET /api/groups/:group_id/members
 ```
 
 #### 添加分组成员
+
 ```
 POST /api/groups/:group_id/members
 Body: {
@@ -163,6 +179,7 @@ Body: {
 ```
 
 #### 更新分组成员权限
+
 ```
 PUT /api/groups/:group_id/members/:user_id
 Body: {
@@ -172,6 +189,7 @@ Body: {
 ```
 
 #### 移除分组成员
+
 ```
 DELETE /api/groups/:group_id/members/:user_id
 ```
@@ -179,16 +197,19 @@ DELETE /api/groups/:group_id/members/:user_id
 ### 角色权限管理
 
 #### 获取所有角色权限
+
 ```
 GET /api/roles/permissions
 ```
 
 #### 获取特定角色权限
+
 ```
 GET /api/roles/:role/permissions
 ```
 
 #### 更新角色权限（仅超级管理员）
+
 ```
 PUT /api/roles/:role/permissions
 Body: {
@@ -201,6 +222,7 @@ Body: {
 ```
 
 #### 初始化默认角色权限
+
 ```
 POST /api/roles/permissions/init
 ```
@@ -296,23 +318,26 @@ GET /api/projects/507f1f77bcf86cd799439011/permission
 import { checkProjectPermission } from '../Middleware/projectPermission.js';
 
 // 检查是否有访问项目的权限
-router.get('/api/projects/:project_id/interfaces', 
-  authMiddleware, 
-  checkProjectPermission(),  // 只要有成员身份即可
+router.get(
+  '/api/projects/:project_id/interfaces',
+  authMiddleware,
+  checkProjectPermission(), // 只要有成员身份即可
   InterfaceController.list
 );
 
 // 检查是否有编辑接口的权限
-router.post('/api/projects/:project_id/interfaces',
+router.post(
+  '/api/projects/:project_id/interfaces',
   authMiddleware,
-  checkProjectPermission('add_interface'),  // 需要 add_interface 权限
+  checkProjectPermission('add_interface'), // 需要 add_interface 权限
   InterfaceController.add
 );
 
 // 检查是否有管理成员的权限
-router.post('/api/projects/:project_id/members',
+router.post(
+  '/api/projects/:project_id/members',
   authMiddleware,
-  checkProjectPermission('manage_members'),  // 需要 manage_members 权限
+  checkProjectPermission('manage_members'), // 需要 manage_members 权限
   PermissionController.addProjectMember
 );
 ```
@@ -323,7 +348,8 @@ router.post('/api/projects/:project_id/members',
 import { checkGroupPermission } from '../Middleware/projectPermission.js';
 
 // 检查是否有管理分组成员的权限
-router.post('/api/groups/:group_id/members',
+router.post(
+  '/api/groups/:group_id/members',
   authMiddleware,
   checkGroupPermission('manage_members'),
   PermissionController.addGroupMember
@@ -340,6 +366,7 @@ router.post('/api/groups/:group_id/members',
 ## 向后兼容
 
 系统保持向后兼容：
+
 - 如果项目成员表中没有记录，会检查项目的 `member` 字段
 - 如果分组成员表中没有记录，会检查分组的 `member` 字段
 - 旧系统的成员可以正常访问，但无法使用细粒度权限控制
@@ -359,4 +386,3 @@ router.post('/api/groups/:group_id/members',
 3. 超级管理员不受项目/分组权限限制
 4. 权限检查会先检查成员权限，再检查全局角色
 5. 自定义权限会覆盖角色默认权限
-

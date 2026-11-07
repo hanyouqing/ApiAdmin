@@ -5,7 +5,9 @@ import Whitelist from '../Models/Whitelist.js';
 import WhitelistConfig from '../Models/WhitelistConfig.js';
 
 class WhitelistController extends BaseController {
-  static get ControllerName() { return 'WhitelistController'; }
+  static get ControllerName() {
+    return 'WhitelistController';
+  }
 
   static async getConfig(ctx) {
     try {
@@ -224,11 +226,14 @@ class WhitelistController extends BaseController {
 
       logger.info({ userId: user._id, successCount, failedCount }, 'Batch add whitelist entries');
 
-      ctx.body = WhitelistController.success({
-        successCount,
-        failedCount,
-        failedEntries,
-      }, '批量添加完成');
+      ctx.body = WhitelistController.success(
+        {
+          successCount,
+          failedCount,
+          failedEntries,
+        },
+        '批量添加完成'
+      );
     } catch (error) {
       logger.error({ error }, 'Batch add whitelist entries error');
       ctx.status = 500;
@@ -350,11 +355,17 @@ class WhitelistController extends BaseController {
       const validIds = ids.filter(id => validateObjectId(id));
       const result = await Whitelist.deleteMany({ _id: { $in: validIds } });
 
-      logger.info({ userId: user._id, deletedCount: result.deletedCount }, 'Batch delete whitelist entries');
+      logger.info(
+        { userId: user._id, deletedCount: result.deletedCount },
+        'Batch delete whitelist entries'
+      );
 
-      ctx.body = WhitelistController.success({
-        deletedCount: result.deletedCount,
-      }, '批量删除完成');
+      ctx.body = WhitelistController.success(
+        {
+          deletedCount: result.deletedCount,
+        },
+        '批量删除完成'
+      );
     } catch (error) {
       logger.error({ error }, 'Batch delete whitelist entries error');
       ctx.status = 500;
@@ -408,4 +419,3 @@ class WhitelistController extends BaseController {
 }
 
 export default WhitelistController;
-

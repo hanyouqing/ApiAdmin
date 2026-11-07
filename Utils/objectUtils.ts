@@ -9,7 +9,7 @@ export const deepClone = <T>(obj: T): T => {
   if (obj === null || typeof obj !== 'object') return obj;
   if (obj instanceof Date) return new Date(obj.getTime()) as T;
   if (obj instanceof Array) return obj.map(item => deepClone(item)) as T;
-  
+
   const cloned = {} as T;
   for (const key in obj) {
     if (obj.hasOwnProperty(key)) {
@@ -22,7 +22,10 @@ export const deepClone = <T>(obj: T): T => {
 /**
  * 深度合并对象
  */
-export const deepMerge = <T extends Record<string, any>>(target: T, ...sources: Partial<T>[]): T => {
+export const deepMerge = <T extends Record<string, any>>(
+  target: T,
+  ...sources: Partial<T>[]
+): T => {
   if (!sources.length) return target;
   const source = sources.shift();
 
@@ -55,15 +58,15 @@ const isObject = (item: any): item is Record<string, any> => {
  */
 export const get = <T = any>(obj: any, path: string, defaultValue?: T): T | undefined => {
   if (!obj || typeof obj !== 'object') return defaultValue;
-  
+
   const keys = path.split('.');
   let result: any = obj;
-  
+
   for (const key of keys) {
     if (result === null || result === undefined) return defaultValue;
     result = result[key];
   }
-  
+
   return result !== undefined ? result : defaultValue;
 };
 
@@ -72,18 +75,18 @@ export const get = <T = any>(obj: any, path: string, defaultValue?: T): T | unde
  */
 export const set = (obj: any, path: string, value: any): any => {
   if (!obj || typeof obj !== 'object') return obj;
-  
+
   const keys = path.split('.');
   const lastKey = keys.pop()!;
   let current = obj;
-  
+
   for (const key of keys) {
     if (!current[key] || typeof current[key] !== 'object') {
       current[key] = {};
     }
     current = current[key];
   }
-  
+
   current[lastKey] = value;
   return obj;
 };
@@ -93,7 +96,7 @@ export const set = (obj: any, path: string, value: any): any => {
  */
 export const omitEmpty = <T extends Record<string, any>>(obj: T): Partial<T> => {
   if (!obj || typeof obj !== 'object') return obj;
-  
+
   const result: any = {};
   for (const key in obj) {
     const value = obj[key];

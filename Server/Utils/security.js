@@ -4,11 +4,11 @@ export const generateSecureToken = (length = 32) => {
   return crypto.randomBytes(length).toString('hex');
 };
 
-export const hashToken = (token) => {
+export const hashToken = token => {
   return crypto.createHash('sha256').update(token).digest('hex');
 };
 
-export const sanitizeHtml = (str) => {
+export const sanitizeHtml = str => {
   if (typeof str !== 'string') return str;
   return str
     .replace(/&/g, '&amp;')
@@ -19,7 +19,7 @@ export const sanitizeHtml = (str) => {
     .replace(/\//g, '&#x2F;');
 };
 
-export const validateUrl = (url) => {
+export const validateUrl = url => {
   try {
     const urlObj = new URL(url);
     return ['http:', 'https:'].includes(urlObj.protocol);
@@ -42,17 +42,17 @@ const PRIVATE_HOST_PATTERNS = [
   /^\[::1\]$/,
 ];
 
-export const isPrivateOrLocalHost = (hostname) => {
+export const isPrivateOrLocalHost = hostname => {
   if (!hostname) return true;
   const host = hostname.replace(/^\[|\]$/g, '');
-  return PRIVATE_HOST_PATTERNS.some((pattern) => pattern.test(host));
+  return PRIVATE_HOST_PATTERNS.some(pattern => pattern.test(host));
 };
 
 /**
  * Block SSRF to internal/link-local addresses for outbound proxy requests.
  * Allows private hosts only when ALLOW_PRIVATE_OUTBOUND=true (e.g. internal staging).
  */
-export const assertSafeOutboundUrl = (rawUrl) => {
+export const assertSafeOutboundUrl = rawUrl => {
   let parsed;
   try {
     parsed = new URL(rawUrl);
@@ -72,7 +72,6 @@ export const assertSafeOutboundUrl = (rawUrl) => {
   return parsed.toString();
 };
 
-export const escapeRegex = (str) => {
+export const escapeRegex = str => {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
-

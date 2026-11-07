@@ -3,7 +3,10 @@ import { validateObjectId, sanitizeInput } from '../Utils/validation.js';
 import { logger } from '../Utils/logger.js';
 import Project from '../Models/Project.js';
 import TestEnvironment from '../Models/TestEnvironment.js';
-import ProjectVariableStore, { mapToEntries, entriesToMap } from '../Models/ProjectVariableStore.js';
+import ProjectVariableStore, {
+  mapToEntries,
+  entriesToMap,
+} from '../Models/ProjectVariableStore.js';
 import { getOrCreateVariableStore } from '../Utils/variableResolver.js';
 
 async function assertProjectAccess(projectId, user) {
@@ -67,7 +70,7 @@ class ProjectVariableController extends BaseController {
         project_id: projectId,
         globals: store.globals || [],
         globals_map: entriesToMap(store.globals || []),
-        environments: environments.map((env) => ({
+        environments: environments.map(env => ({
           _id: env._id,
           name: env.name,
           base_url: env.base_url,
@@ -109,7 +112,10 @@ class ProjectVariableController extends BaseController {
       store.globals = entries;
       await store.save();
 
-      logger.info({ userId: user._id, projectId, count: entries.length }, 'Project globals updated');
+      logger.info(
+        { userId: user._id, projectId, count: entries.length },
+        'Project globals updated'
+      );
 
       ctx.body = ProjectVariableController.success(
         { globals: store.globals, globals_map: entriesToMap(store.globals) },
@@ -178,16 +184,13 @@ class ProjectVariableController extends BaseController {
         const store = await getOrCreateVariableStore(projectId, user._id);
         const mergedMap = {
           ...entriesToMap(store.globals || []),
-          ...Object.assign({}, ...legacy.map((e) => e.variables || {})),
+          ...Object.assign({}, ...legacy.map(e => e.variables || {})),
         };
         store.globals = mapToEntries(mergedMap);
         await store.save();
       }
 
-      ctx.body = ProjectVariableController.success(
-        { created, updated },
-        '已同步到测试环境'
-      );
+      ctx.body = ProjectVariableController.success({ created, updated }, '已同步到测试环境');
     } catch (error) {
       if (error.code === 11000) {
         ctx.status = 400;

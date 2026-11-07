@@ -27,9 +27,9 @@ const parseVersionFile = () => {
     if (fs.existsSync(versionFilePath)) {
       const content = fs.readFileSync(versionFilePath, 'utf8');
       const lines = content.split('\n').filter(line => line.trim());
-      
+
       versionInfo = { ...defaultInfo };
-      
+
       for (const line of lines) {
         const [key, ...valueParts] = line.split('=');
         if (key && valueParts.length > 0) {
@@ -61,4 +61,3 @@ export const getVersionInfoFormatted = () => {
     appVersion: info.app_version || process.env.APP_VERSION || '0.0.1',
   };
 };
-

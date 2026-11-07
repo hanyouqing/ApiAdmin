@@ -71,7 +71,7 @@ const ThirdPartyAuth: React.FC = () => {
       const response = await api.get('/admin/auth/third-party/config');
       const data = response.data.data || {};
       setConfig(data);
-      
+
       // 设置表单默认值，确保所有字段都有值
       githubForm.setFieldsValue({
         enabled: data.github?.enabled || false,
@@ -79,28 +79,28 @@ const ThirdPartyAuth: React.FC = () => {
         clientSecret: data.github?.clientSecret || '',
         redirectUri: data.github?.redirectUri || '',
       });
-      
+
       gitlabForm.setFieldsValue({
         enabled: data.gitlab?.enabled || false,
         clientId: data.gitlab?.clientId || '',
         clientSecret: data.gitlab?.clientSecret || '',
         redirectUri: data.gitlab?.redirectUri || '',
       });
-      
+
       googleForm.setFieldsValue({
         enabled: data.google?.enabled || false,
         clientId: data.google?.clientId || '',
         clientSecret: data.google?.clientSecret || '',
         redirectUri: data.google?.redirectUri || '',
       });
-      
+
       wechatForm.setFieldsValue({
         enabled: data.wechat?.enabled || false,
         appId: data.wechat?.appId || '',
         appSecret: data.wechat?.appSecret || '',
         redirectUri: data.wechat?.redirectUri || '',
       });
-      
+
       phoneForm.setFieldsValue({
         enabled: data.phone?.enabled || false,
         provider: data.phone?.provider || 'aliyun',
@@ -109,12 +109,14 @@ const ThirdPartyAuth: React.FC = () => {
         signName: data.phone?.signName || '',
         templateCode: data.phone?.templateCode || '',
       });
-      
+
       emailForm.setFieldsValue({
         enabled: data.email?.enabled || false,
       });
     } catch (error: any) {
-      message.error(error.response?.data?.message || t('admin.thirdPartyAuth.fetchFailed') || '获取配置失败');
+      message.error(
+        error.response?.data?.message || t('admin.thirdPartyAuth.fetchFailed') || '获取配置失败'
+      );
     } finally {
       setLoading(false);
     }
@@ -145,7 +147,11 @@ const ThirdPartyAuth: React.FC = () => {
       <Form.Item name="redirectUri" label={t('admin.thirdPartyAuth.redirectUri')}>
         <Input placeholder="https://your-domain.com/api/auth/github/callback" />
       </Form.Item>
-      <Button type="primary" icon={<SaveOutlined />} onClick={() => handleSave('github', githubForm)}>
+      <Button
+        type="primary"
+        icon={<SaveOutlined />}
+        onClick={() => handleSave('github', githubForm)}
+      >
         {t('common.save')}
       </Button>
     </Form>
@@ -165,7 +171,11 @@ const ThirdPartyAuth: React.FC = () => {
       <Form.Item name="redirectUri" label={t('admin.thirdPartyAuth.redirectUri')}>
         <Input placeholder="https://your-domain.com/api/auth/gitlab/callback" />
       </Form.Item>
-      <Button type="primary" icon={<SaveOutlined />} onClick={() => handleSave('gitlab', gitlabForm)}>
+      <Button
+        type="primary"
+        icon={<SaveOutlined />}
+        onClick={() => handleSave('gitlab', gitlabForm)}
+      >
         {t('common.save')}
       </Button>
     </Form>
@@ -185,7 +195,11 @@ const ThirdPartyAuth: React.FC = () => {
       <Form.Item name="redirectUri" label={t('admin.thirdPartyAuth.redirectUri')}>
         <Input placeholder="https://your-domain.com/api/auth/google/callback" />
       </Form.Item>
-      <Button type="primary" icon={<SaveOutlined />} onClick={() => handleSave('google', googleForm)}>
+      <Button
+        type="primary"
+        icon={<SaveOutlined />}
+        onClick={() => handleSave('google', googleForm)}
+      >
         {t('common.save')}
       </Button>
     </Form>
@@ -205,7 +219,11 @@ const ThirdPartyAuth: React.FC = () => {
       <Form.Item name="redirectUri" label={t('admin.thirdPartyAuth.redirectUri')}>
         <Input placeholder="https://your-domain.com/api/auth/wechat/callback" />
       </Form.Item>
-      <Button type="primary" icon={<SaveOutlined />} onClick={() => handleSave('wechat', wechatForm)}>
+      <Button
+        type="primary"
+        icon={<SaveOutlined />}
+        onClick={() => handleSave('wechat', wechatForm)}
+      >
         {t('common.save')}
       </Button>
     </Form>
@@ -296,4 +314,3 @@ const ThirdPartyAuth: React.FC = () => {
 };
 
 export default ThirdPartyAuth;
-

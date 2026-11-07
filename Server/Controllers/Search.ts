@@ -7,7 +7,9 @@ import Group from '../Models/Group.js';
 import SearchHistory from '../Models/SearchHistory.js';
 
 class SearchController extends BaseController {
-  static get ControllerName() { return 'SearchController'; }
+  static get ControllerName() {
+    return 'SearchController';
+  }
 
   static async search(ctx: Koa.Context) {
     try {
@@ -191,7 +193,9 @@ class SearchController extends BaseController {
       const keyword = q.trim();
       const interfaces = await Interface.find({
         title: { $regex: keyword, $options: 'i' },
-      }).limit(parseInt(limit)).select('title');
+      })
+        .limit(parseInt(limit))
+        .select('title');
 
       const suggestions = interfaces.map(item => ({
         text: item.title,

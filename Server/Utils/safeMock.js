@@ -23,7 +23,7 @@ export const Random = {
   guid: () => faker.string.uuid(),
   uuid: () => faker.string.uuid(),
   id: () => faker.string.uuid(),
-  date: (format) => {
+  date: format => {
     const d = faker.date.recent();
     if (!format) return d.toISOString().slice(0, 10);
     return d.toISOString();
@@ -37,7 +37,11 @@ export const Random = {
 };
 
 function resolvePlaceholder(token) {
-  const key = String(token || '').replace(/^@/, '').split('(')[0].trim().toLowerCase();
+  const key = String(token || '')
+    .replace(/^@/, '')
+    .split('(')[0]
+    .trim()
+    .toLowerCase();
   const map = {
     integer: () => Random.integer(),
     natural: () => Random.natural(),
@@ -80,7 +84,7 @@ function parseRange(spec) {
 
 function mockNode(node) {
   if (Array.isArray(node)) {
-    return node.map((item) => mockNode(item));
+    return node.map(item => mockNode(item));
   }
   if (node && typeof node === 'object') {
     const out = {};
@@ -115,9 +119,10 @@ function mockNode(node) {
 export function mock(template) {
   if (template == null) return template;
   try {
-    const cloned = typeof structuredClone === 'function'
-      ? structuredClone(template)
-      : JSON.parse(JSON.stringify(template));
+    const cloned =
+      typeof structuredClone === 'function'
+        ? structuredClone(template)
+        : JSON.parse(JSON.stringify(template));
     return mockNode(cloned);
   } catch {
     return mockNode(template);

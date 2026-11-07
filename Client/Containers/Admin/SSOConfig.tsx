@@ -1,6 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Button, Table, Space, Modal, Form, Input, Select, Tag, Switch, App } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+} from '@ant-design/icons';
 import { useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../Utils/api';
@@ -81,7 +87,7 @@ const SSOConfig: React.FC = () => {
   const handleEdit = (record: SSOProvider) => {
     setEditingProvider(record);
     setSsoType(record.type);
-    
+
     // 将后端数据格式转换为表单格式
     const formValues: any = {
       name: record.name,
@@ -89,10 +95,10 @@ const SSOConfig: React.FC = () => {
       enabled: record.enabled,
       autoCreateUser: record.autoCreateUser,
       description: record.description || '',
-      roleMapping: record.roleMapping 
-        ? (typeof record.roleMapping === 'string' 
-            ? record.roleMapping 
-            : JSON.stringify(record.roleMapping, null, 2))
+      roleMapping: record.roleMapping
+        ? typeof record.roleMapping === 'string'
+          ? record.roleMapping
+          : JSON.stringify(record.roleMapping, null, 2)
         : '',
     };
 
@@ -146,9 +152,12 @@ const SSOConfig: React.FC = () => {
       let roleMapping = {};
       if (values.roleMapping) {
         try {
-          roleMapping = typeof values.roleMapping === 'string' 
-            ? (values.roleMapping.trim() ? JSON.parse(values.roleMapping) : {})
-            : values.roleMapping;
+          roleMapping =
+            typeof values.roleMapping === 'string'
+              ? values.roleMapping.trim()
+                ? JSON.parse(values.roleMapping)
+                : {}
+              : values.roleMapping;
         } catch (e) {
           message.error(t('admin.sso.invalidRoleMapping'));
           return;
@@ -213,16 +222,24 @@ const SSOConfig: React.FC = () => {
 
   const renderFormFields = () => {
     const type = ssoType || form.getFieldValue('type') || '';
-    
+
     const commonFields = (
       <>
-        <Form.Item name="name" label={t('admin.sso.name')} rules={[{ required: true, message: t('admin.sso.nameRequired') }]}>
+        <Form.Item
+          name="name"
+          label={t('admin.sso.name')}
+          rules={[{ required: true, message: t('admin.sso.nameRequired') }]}
+        >
           <Input placeholder={t('admin.sso.namePlaceholder')} />
         </Form.Item>
-        <Form.Item name="type" label={t('admin.sso.type')} rules={[{ required: true, message: t('admin.sso.providerRequired') }]}>
-          <Select 
+        <Form.Item
+          name="type"
+          label={t('admin.sso.type')}
+          rules={[{ required: true, message: t('admin.sso.providerRequired') }]}
+        >
+          <Select
             placeholder={t('admin.sso.providerRequired')}
-            onChange={(value) => setSsoType(value)}
+            onChange={value => setSsoType(value)}
           >
             <Option value="saml">{t('admin.sso.type.saml')}</Option>
             <Option value="oauth2">{t('admin.sso.type.oauth2')}</Option>
@@ -234,7 +251,11 @@ const SSOConfig: React.FC = () => {
         <Form.Item name="enabled" label={t('admin.sso.enabled')} valuePropName="checked">
           <Switch />
         </Form.Item>
-        <Form.Item name="autoCreateUser" label={t('admin.sso.autoCreateUser')} valuePropName="checked">
+        <Form.Item
+          name="autoCreateUser"
+          label={t('admin.sso.autoCreateUser')}
+          valuePropName="checked"
+        >
           <Switch />
         </Form.Item>
         <Form.Item name="description" label={t('admin.sso.description')}>
@@ -344,15 +365,18 @@ const SSOConfig: React.FC = () => {
       title: t('admin.sso.enabled'),
       dataIndex: 'enabled',
       key: 'enabled',
-      render: (enabled: boolean) => (
-        enabled ? <CheckCircleOutlined style={{ color: '#52c41a' }} /> : <CloseCircleOutlined style={{ color: '#ff4d4f' }} />
-      ),
+      render: (enabled: boolean) =>
+        enabled ? (
+          <CheckCircleOutlined style={{ color: '#52c41a' }} />
+        ) : (
+          <CloseCircleOutlined style={{ color: '#ff4d4f' }} />
+        ),
     },
     {
       title: t('common.createdAt'),
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (text: string) => text ? new Date(text).toLocaleString() : '-',
+      render: (text: string) => (text ? new Date(text).toLocaleString() : '-'),
     },
     {
       title: t('common.operation'),
@@ -363,7 +387,12 @@ const SSOConfig: React.FC = () => {
           <Button type="link" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
             {t('common.edit')}
           </Button>
-          <Button type="link" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record._id!)}>
+          <Button
+            type="link"
+            danger
+            icon={<DeleteOutlined />}
+            onClick={() => handleDelete(record._id!)}
+          >
             {t('common.delete')}
           </Button>
         </Space>
@@ -380,7 +409,12 @@ const SSOConfig: React.FC = () => {
       <Card
         title={t('admin.sso.title')}
         extra={
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate} style={{ color: '#ffffff' }}>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={handleCreate}
+            style={{ color: '#ffffff' }}
+          >
             {t('admin.sso.create')}
           </Button>
         }
@@ -411,4 +445,3 @@ const SSOConfig: React.FC = () => {
 };
 
 export default SSOConfig;
-

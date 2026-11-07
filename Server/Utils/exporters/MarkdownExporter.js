@@ -9,8 +9,8 @@ export class MarkdownExporter {
     markdown += `---\n\n`;
 
     interfaces
-      .filter((i) => !publicOnly || i.tag?.includes('public'))
-      .forEach((interfaceData) => {
+      .filter(i => !publicOnly || i.tag?.includes('public'))
+      .forEach(interfaceData => {
         markdown += `## ${interfaceData.method} ${interfaceData.path}\n\n`;
         markdown += `**${interfaceData.title}**\n\n`;
         if (interfaceData.desc) {
@@ -21,7 +21,7 @@ export class MarkdownExporter {
           markdown += `### Query Parameters\n\n`;
           markdown += `| Name | Type | Required | Description |\n`;
           markdown += `|------|------|----------|-------------|\n`;
-          interfaceData.req_query.forEach((q) => {
+          interfaceData.req_query.forEach(q => {
             markdown += `| ${q.name} | ${q.type} | ${q.required ? 'Yes' : 'No'} | ${q.desc || ''} |\n`;
           });
           markdown += `\n`;
@@ -43,6 +43,3 @@ export class MarkdownExporter {
     return markdown;
   }
 }
-
-
-

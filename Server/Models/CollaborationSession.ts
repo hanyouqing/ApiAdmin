@@ -76,6 +76,9 @@ const collaborationSessionSchema = new Schema<ICollaborationSession>(
 collaborationSessionSchema.index({ interface_id: 1, is_active: 1 });
 collaborationSessionSchema.index({ project_id: 1, is_active: 1 });
 
-const CollaborationSession = mongoose.model<ICollaborationSession, CollaborationSessionModel>('CollaborationSession', collaborationSessionSchema);
+const CollaborationSession = mongoose.model<ICollaborationSession, CollaborationSessionModel>(
+  'CollaborationSession',
+  collaborationSessionSchema
+);
 
 export default CollaborationSession;

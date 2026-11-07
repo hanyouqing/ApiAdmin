@@ -3,6 +3,7 @@
 ## 概述
 
 MongoDB 需要初始化才能正常使用，包括：
+
 1. 创建数据库
 2. 创建用户
 3. 设置用户权限
@@ -23,6 +24,7 @@ docker-compose up -d mongodb
 ```
 
 **Docker Compose 会自动：**
+
 - 创建 root 用户（`MONGO_INITDB_ROOT_USERNAME` / `MONGO_INITDB_ROOT_PASSWORD`）
 - 创建初始数据库（`MONGO_INITDB_DATABASE=apiadmin`）
 
@@ -56,6 +58,7 @@ MONGO_PASSWORD=your-password \
 ```
 
 脚本会自动：
+
 1. 测试 MongoDB 连接
 2. 创建 root 用户（如果不存在）
 3. 创建应用数据库
@@ -108,13 +111,13 @@ db.createUser({
 
 ```javascript
 // 查看所有用户
-db.getUsers()
+db.getUsers();
 
 // 查看当前数据库
-db.getName()
+db.getName();
 
 // 测试连接
-db.runCommand({ ping: 1 })
+db.runCommand({ ping: 1 });
 ```
 
 ## 配置应用连接
@@ -130,11 +133,13 @@ MONGODB_URL=mongodb://apiadmin:your-password@localhost:27017/apiadmin?authSource
 ```
 
 **连接字符串格式：**
+
 ```
 mongodb://[username]:[password]@[host]:[port]/[database]?authSource=[authDatabase]
 ```
 
 **参数说明：**
+
 - `username`: MongoDB 用户名
 - `password`: MongoDB 密码
 - `host`: MongoDB 主机地址（本地为 `localhost`）
@@ -153,6 +158,7 @@ MONGODB_URL=mongodb://localhost:27017/apiadmin
 ```
 
 **初始化：**
+
 - 数据库会在首次写入时自动创建
 - 不需要创建用户
 
@@ -175,6 +181,7 @@ docker-compose up -d mongodb
 ### 场景 3：生产环境（有认证）
 
 **推荐配置：**
+
 1. 使用专用的应用数据库用户（不是 root 用户）
 2. 只授予必要的权限（`readWrite`）
 3. 使用强密码
@@ -217,6 +224,7 @@ curl http://localhost:3000/api/health
 ```
 
 应该返回：
+
 ```json
 {
   "status": "ok",
@@ -234,6 +242,7 @@ curl http://localhost:3000/api/health
 ### 问题 1：认证失败
 
 **错误信息：**
+
 ```
 command find requires authentication
 code: 13
@@ -241,6 +250,7 @@ codeName: "Unauthorized"
 ```
 
 **解决方案：**
+
 1. 检查用户名和密码是否正确
 2. 检查 `authSource` 参数是否正确（通常是 `admin`）
 3. 确认用户已创建并有正确的权限
@@ -248,22 +258,26 @@ codeName: "Unauthorized"
 ### 问题 2：用户不存在
 
 **错误信息：**
+
 ```
 Authentication failed
 ```
 
 **解决方案：**
+
 1. 确认用户已创建：`db.getUsers()`
 2. 重新创建用户（如果不存在）
 
 ### 问题 3：权限不足
 
 **错误信息：**
+
 ```
 not authorized on apiadmin to execute command
 ```
 
 **解决方案：**
+
 1. 确认用户有 `readWrite` 权限
 2. 重新授予权限：
    ```javascript
@@ -276,6 +290,7 @@ not authorized on apiadmin to execute command
 **原因：** 环境变量只在首次启动时生效
 
 **解决方案：**
+
 ```bash
 # 删除容器和数据卷
 docker-compose down -v
@@ -297,4 +312,3 @@ docker-compose up -d mongodb
 - [MongoDB 认证问题修复指南](../MONGODB_AUTH_FIX.md)
 - [环境变量配置指南](../ENV_SETUP.md)
 - [Docker 部署指南](../DEPLOYMENT.md)
-

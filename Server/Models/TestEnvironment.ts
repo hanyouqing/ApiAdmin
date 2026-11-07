@@ -60,9 +60,15 @@ const testEnvironmentSchema = new Schema<ITestEnvironment>(
 );
 
 // 确保每个项目只有一个默认环境
-testEnvironmentSchema.index({ project_id: 1, is_default: 1 }, { unique: true, partialFilterExpression: { is_default: true } });
+testEnvironmentSchema.index(
+  { project_id: 1, is_default: 1 },
+  { unique: true, partialFilterExpression: { is_default: true } }
+);
 testEnvironmentSchema.index({ project_id: 1, name: 1 }, { unique: true });
 
-const TestEnvironment = mongoose.model<ITestEnvironment, TestEnvironmentModel>('TestEnvironment', testEnvironmentSchema);
+const TestEnvironment = mongoose.model<ITestEnvironment, TestEnvironmentModel>(
+  'TestEnvironment',
+  testEnvironmentSchema
+);
 
 export default TestEnvironment;

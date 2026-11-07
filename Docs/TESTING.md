@@ -51,15 +51,15 @@
 
 ### 2.2 分模块目标
 
-| 模块 | 目标覆盖率 | 优先级 | 状态 |
-|------|----------|--------|------|
-| **Controllers** | 95%+ | 🔴 高 | 进行中 |
-| **Models** | 90%+ | 🔴 高 | 进行中 |
-| **Utils** | 95%+ | 🔴 高 | 进行中 |
-| **Middleware** | 90%+ | 🟡 中 | 进行中 |
-| **Services** | 95%+ | 🔴 高 | 进行中 |
-| **Frontend Components** | 85%+ | 🟡 中 | 待开始 |
-| **Frontend Utils** | 90%+ | 🟡 中 | 待开始 |
+| 模块                    | 目标覆盖率 | 优先级 | 状态   |
+| ----------------------- | ---------- | ------ | ------ |
+| **Controllers**         | 95%+       | 🔴 高  | 进行中 |
+| **Models**              | 90%+       | 🔴 高  | 进行中 |
+| **Utils**               | 95%+       | 🔴 高  | 进行中 |
+| **Middleware**          | 90%+       | 🟡 中  | 进行中 |
+| **Services**            | 95%+       | 🔴 高  | 进行中 |
+| **Frontend Components** | 85%+       | 🟡 中  | 待开始 |
+| **Frontend Utils**      | 90%+       | 🟡 中  | 待开始 |
 
 ### 2.3 关键路径覆盖率
 
@@ -109,6 +109,7 @@
 **目标**: 测试单个函数、类、组件的功能
 
 **示例**:
+
 ```javascript
 // tests/unit/User.test.js
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -119,7 +120,7 @@ describe('User Model', () => {
     const user = new User({
       username: 'testuser',
       email: 'test@example.com',
-      password: 'password123'
+      password: 'password123',
     });
     expect(user.username).toBe('testuser');
   });
@@ -133,6 +134,7 @@ describe('User Model', () => {
 **目标**: 测试多个模块的交互
 
 **示例**:
+
 ```javascript
 // tests/integration/Auth.test.js
 import { describe, it, expect } from 'vitest';
@@ -142,22 +144,18 @@ import app from '../../Server/App.js';
 describe('Authentication Flow', () => {
   it('should register and login a user', async () => {
     // Register
-    const registerRes = await request(app)
-      .post('/api/user/register')
-      .send({
-        username: 'testuser',
-        email: 'test@example.com',
-        password: 'password123'
-      });
+    const registerRes = await request(app).post('/api/user/register').send({
+      username: 'testuser',
+      email: 'test@example.com',
+      password: 'password123',
+    });
     expect(registerRes.status).toBe(200);
 
     // Login
-    const loginRes = await request(app)
-      .post('/api/user/login')
-      .send({
-        email: 'test@example.com',
-        password: 'password123'
-      });
+    const loginRes = await request(app).post('/api/user/login').send({
+      email: 'test@example.com',
+      password: 'password123',
+    });
     expect(loginRes.status).toBe(200);
     expect(loginRes.body.data.token).toBeDefined();
   });
@@ -202,10 +200,10 @@ describe('Module Name', () => {
     it('should do something', () => {
       // Arrange
       const input = 'test';
-      
+
       // Act
       const result = functionToTest(input);
-      
+
       // Assert
       expect(result).toBe('expected');
     });
@@ -233,10 +231,10 @@ describe('UserController', () => {
           body: {
             username: 'testuser',
             email: 'test@example.com',
-            password: 'password123'
-          }
+            password: 'password123',
+          },
         },
-        body: {}
+        body: {},
       };
 
       await UserController.register(ctx);
@@ -270,7 +268,7 @@ describe('User Model', () => {
     const user = new User({
       username: 'testuser',
       email: 'test@example.com',
-      password: 'password123'
+      password: 'password123',
     });
     await user.save();
 
@@ -282,7 +280,7 @@ describe('User Model', () => {
     const user = new User({
       username: 'testuser',
       email: 'invalid-email',
-      password: 'password123'
+      password: 'password123',
     });
 
     await expect(user.save()).rejects.toThrow();
@@ -421,7 +419,7 @@ describe('UserController', () => {
 ```javascript
 // Mock 外部依赖
 vi.mock('../../../Server/Utils/email.js', () => ({
-  sendEmail: vi.fn().mockResolvedValue(true)
+  sendEmail: vi.fn().mockResolvedValue(true),
 }));
 
 // Mock 数据库操作
@@ -436,7 +434,7 @@ const createTestUser = (overrides = {}) => ({
   username: 'testuser',
   email: 'test@example.com',
   password: 'password123',
-  ...overrides
+  ...overrides,
 });
 
 // 使用 fixtures
@@ -493,5 +491,3 @@ it('should reject on error', async () => {
 
 **最后更新**: 2025-01-27  
 **维护者**: ApiAdmin 开发团队
-
-

@@ -1,4 +1,7 @@
-import ProjectVariableStore, { entriesToMap, mapToEntries } from '../Models/ProjectVariableStore.js';
+import ProjectVariableStore, {
+  entriesToMap,
+  mapToEntries,
+} from '../Models/ProjectVariableStore.js';
 import TestEnvironment from '../Models/TestEnvironment.js';
 import Project from '../Models/Project.js';
 
@@ -50,7 +53,10 @@ export function environmentToMap(environment = {}) {
   ]);
   const out = {};
   for (const [k, v] of Object.entries(environment)) {
-    if (!reserved.has(k) && (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean')) {
+    if (
+      !reserved.has(k) &&
+      (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean')
+    ) {
       out[k] = String(v);
     }
   }
@@ -89,11 +95,12 @@ export async function resolveEnvironmentContext(projectId, environmentHint = {})
   if (!baseUrl) {
     const project = await Project.findById(projectId).lean();
     const row =
-      project?.env?.find((e) => e.name === environmentHint?.name || e.name === 'default') ||
+      project?.env?.find(e => e.name === environmentHint?.name || e.name === 'default') ||
       project?.env?.[0];
     if (row) {
       envMap = { ...environmentToMap(row), ...envMap };
-      baseUrl = environmentHint.base_url || environmentHint.host || row.host || project.basepath || '';
+      baseUrl =
+        environmentHint.base_url || environmentHint.host || row.host || project.basepath || '';
       headers = { ...(row.headers || {}), ...(environmentHint.headers || {}), ...headers };
     } else {
       baseUrl = environmentHint.base_url || environmentHint.host || project?.basepath || '';

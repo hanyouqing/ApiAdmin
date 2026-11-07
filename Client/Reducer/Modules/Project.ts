@@ -35,22 +35,16 @@ const initialState: ProjectState = {
   error: null,
 };
 
-export const fetchProjects = createAsyncThunk(
-  'project/fetchList',
-  async (groupId?: string) => {
-    const params = groupId ? { group_id: groupId } : {};
-    const response = await api.get('/project/list', { params });
-    return response.data.data || response.data;
-  }
-);
+export const fetchProjects = createAsyncThunk('project/fetchList', async (groupId?: string) => {
+  const params = groupId ? { group_id: groupId } : {};
+  const response = await api.get('/project/list', { params });
+  return response.data.data || response.data;
+});
 
-export const createProject = createAsyncThunk(
-  'project/create',
-  async (data: Partial<Project>) => {
-    const response = await api.post('/project/add', data);
-    return response.data.data || response.data;
-  }
-);
+export const createProject = createAsyncThunk('project/create', async (data: Partial<Project>) => {
+  const response = await api.post('/project/add', data);
+  return response.data.data || response.data;
+});
 
 export const updateProject = createAsyncThunk(
   'project/update',
@@ -65,13 +59,10 @@ export const deleteProject = createAsyncThunk('project/delete', async (id: strin
   return id;
 });
 
-export const fetchProjectDetail = createAsyncThunk(
-  'project/fetchDetail',
-  async (id: string) => {
-    const response = await api.get('/project/get', { params: { _id: id } });
-    return response.data.data || response.data;
-  }
-);
+export const fetchProjectDetail = createAsyncThunk('project/fetchDetail', async (id: string) => {
+  const response = await api.get('/project/get', { params: { _id: id } });
+  return response.data.data || response.data;
+});
 
 const projectSlice = createSlice({
   name: 'project',
@@ -81,9 +72,9 @@ const projectSlice = createSlice({
       state.currentProject = action.payload;
     },
   },
-  extraReducers: (builder) => {
+  extraReducers: builder => {
     builder
-      .addCase(fetchProjects.pending, (state) => {
+      .addCase(fetchProjects.pending, state => {
         state.loading = true;
         state.error = null;
       })
@@ -104,7 +95,7 @@ const projectSlice = createSlice({
         state.projects.push(action.payload);
       })
       .addCase(updateProject.fulfilled, (state, action) => {
-        const index = state.projects.findIndex((p) => p._id === action.payload._id);
+        const index = state.projects.findIndex(p => p._id === action.payload._id);
         if (index !== -1) {
           state.projects[index] = action.payload;
         }
@@ -113,11 +104,10 @@ const projectSlice = createSlice({
         }
       })
       .addCase(deleteProject.fulfilled, (state, action) => {
-        state.projects = state.projects.filter((p) => p._id !== action.payload);
+        state.projects = state.projects.filter(p => p._id !== action.payload);
       });
   },
 });
 
 export const { setCurrentProject } = projectSlice.actions;
 export default projectSlice.reducer;
-

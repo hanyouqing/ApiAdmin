@@ -24,7 +24,7 @@ function validateEmailConfig(emailConfig) {
   }
 
   const provider = emailConfig.provider;
-  
+
   // 通用验证：检查提供商特定的必需字段
   const providerConfig = emailConfig[provider];
   if (!providerConfig || typeof providerConfig !== 'object') {
@@ -35,13 +35,17 @@ function validateEmailConfig(emailConfig) {
   switch (provider) {
     case 'smtp': {
       const hasHost = !!providerConfig.host;
-      const hasAuth = !!(providerConfig.auth && providerConfig.auth.user && providerConfig.auth.pass);
+      const hasAuth = !!(
+        providerConfig.auth &&
+        providerConfig.auth.user &&
+        providerConfig.auth.pass
+      );
       if (!hasHost || !hasAuth) {
         return { valid: false, reason: 'SMTP config missing host or auth credentials' };
       }
       return { valid: true };
     }
-    
+
     case 'sendgrid':
     case 'resend': {
       if (!providerConfig.apiKey) {
@@ -49,7 +53,7 @@ function validateEmailConfig(emailConfig) {
       }
       return { valid: true };
     }
-    
+
     case 'oci': {
       const hasRequired = !!(providerConfig.region && providerConfig.user && providerConfig.pass);
       if (!hasRequired) {
@@ -57,27 +61,37 @@ function validateEmailConfig(emailConfig) {
       }
       return { valid: true };
     }
-    
+
     case 'ses': {
-      const hasRequired = !!(providerConfig.accessKeyId && 
-                            providerConfig.secretAccessKey && 
-                            providerConfig.region);
+      const hasRequired = !!(
+        providerConfig.accessKeyId &&
+        providerConfig.secretAccessKey &&
+        providerConfig.region
+      );
       if (!hasRequired) {
-        return { valid: false, reason: 'AWS SES config missing accessKeyId, secretAccessKey, or region' };
+        return {
+          valid: false,
+          reason: 'AWS SES config missing accessKeyId, secretAccessKey, or region',
+        };
       }
       return { valid: true };
     }
-    
+
     case 'aliyun': {
-      const hasRequired = !!(providerConfig.accessKeyId && 
-                            providerConfig.accessKeySecret && 
-                            providerConfig.region);
+      const hasRequired = !!(
+        providerConfig.accessKeyId &&
+        providerConfig.accessKeySecret &&
+        providerConfig.region
+      );
       if (!hasRequired) {
-        return { valid: false, reason: 'Aliyun config missing accessKeyId, accessKeySecret, or region' };
+        return {
+          valid: false,
+          reason: 'Aliyun config missing accessKeyId, accessKeySecret, or region',
+        };
       }
       return { valid: true };
     }
-    
+
     default:
       return { valid: false, reason: `Unknown email provider: ${provider}` };
   }
@@ -86,10 +100,13 @@ function validateEmailConfig(emailConfig) {
 export async function sendTestNotificationEmail(task, result, emailAddresses) {
   // 动态导入以避免循环依赖（在函数开始处导入，确保整个函数都可以使用）
   const { AutoTestRunner } = await import('./autoTestRunner.js');
-  
+
   try {
     if (!task || !result) {
-      logger.warn({ taskId: task?._id, resultId: AutoTestRunner.getResultId(result) }, 'Task or result is null, skipping email notification');
+      logger.warn(
+        { taskId: task?._id, resultId: AutoTestRunner.getResultId(result) },
+        'Task or result is null, skipping email notification'
+      );
       return;
     }
 
@@ -104,27 +121,30 @@ export async function sendTestNotificationEmail(task, result, emailAddresses) {
     const validation = validateEmailConfig(emailConfig);
     if (!validation.valid) {
       const resultId = AutoTestRunner.getResultId(result);
-      logger.warn({ 
-        provider: emailConfig.provider, 
-        reason: validation.reason,
-        taskId: task._id,
-        resultId
-      }, 'Email service not properly configured, skipping email notification');
+      logger.warn(
+        {
+          provider: emailConfig.provider,
+          reason: validation.reason,
+          taskId: task._id,
+          resultId,
+        },
+        'Email service not properly configured, skipping email notification'
+      );
       return;
     }
 
     // 构建邮件主题
-    const statusText = result.status === 'passed' ? '成功' : result.status === 'failed' ? '失败' : '错误';
+    const statusText =
+      result.status === 'passed' ? '成功' : result.status === 'failed' ? '失败' : '错误';
     const subject = `[ApiAdmin] 测试流水线 ${task.name} 执行${statusText}`;
 
     // 构建邮件内容
     const summary = result.summary || {};
-    const passRate = summary.total > 0 
-      ? ((summary.passed / summary.total) * 100).toFixed(2) 
-      : '0.00';
-    
+    const passRate =
+      summary.total > 0 ? ((summary.passed / summary.total) * 100).toFixed(2) : '0.00';
+
     const duration = result.duration ? `${(result.duration / 1000).toFixed(2)}秒` : '未知';
-    const completedAt = result.completed_at 
+    const completedAt = result.completed_at
       ? new Date(result.completed_at).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })
       : '未知';
 
@@ -235,12 +255,12 @@ export async function sendTestNotificationEmail(task, result, emailAddresses) {
       } else if (result.toJSON && typeof result.toJSON === 'function') {
         resultData = result.toJSON();
       }
-      
+
       // 动态导入 AutoTestTaskController 以避免循环依赖
       const { default: AutoTestTaskController } = await import('../Controllers/AutoTestTask.js');
       const htmlReport = AutoTestTaskController.generateHTMLReport(resultData);
       const fileName = `test-report-${(task.name || 'test').replace(/[^a-zA-Z0-9]/g, '_')}-${resultData._id || resultData.id || 'unknown'}-${new Date().toISOString().split('T')[0]}.html`;
-      
+
       attachments = [
         {
           filename: fileName,
@@ -248,19 +268,28 @@ export async function sendTestNotificationEmail(task, result, emailAddresses) {
           contentType: 'text/html',
         },
       ];
-      
+
       const resultId = AutoTestRunner.getResultId(resultData);
-      logger.info({ taskId: task._id, resultId, fileName }, 'HTML test report generated for email attachment');
+      logger.info(
+        { taskId: task._id, resultId, fileName },
+        'HTML test report generated for email attachment'
+      );
     } catch (error) {
       const resultId = AutoTestRunner.getResultId(result);
-      logger.error({ error, taskId: task._id, resultId }, 'Failed to generate HTML report for email attachment');
+      logger.error(
+        { error, taskId: task._id, resultId },
+        'Failed to generate HTML report for email attachment'
+      );
       // 即使生成报告失败，也继续发送邮件（不带附件）
     }
 
     // 发送邮件到所有收件人
-    const emailPromises = emailAddresses.map(email => 
+    const emailPromises = emailAddresses.map(email =>
       sendEmail(email, subject, html, text, emailConfig, attachments).catch(error => {
-        logger.error({ error, email, taskId: task._id, resultId: result._id }, 'Failed to send email to specific recipient');
+        logger.error(
+          { error, email, taskId: task._id, resultId: result._id },
+          'Failed to send email to specific recipient'
+        );
         // 继续发送给其他收件人，不中断流程
       })
     );
@@ -268,32 +297,41 @@ export async function sendTestNotificationEmail(task, result, emailAddresses) {
     const results = await Promise.allSettled(emailPromises);
     const successCount = results.filter(r => r.status === 'fulfilled').length;
     const failureCount = results.filter(r => r.status === 'rejected').length;
-    
+
     const resultId = AutoTestRunner.getResultId(result);
-    logger.info({ 
-      taskId: task._id, 
-      resultId, 
-      total: emailAddresses.length,
-      success: successCount,
-      failed: failureCount
-    }, 'Test notification emails sent');
-    
-    if (failureCount > 0) {
-      logger.warn({ 
-        taskId: task._id, 
+    logger.info(
+      {
+        taskId: task._id,
         resultId,
-        failureCount 
-      }, 'Some email notifications failed to send');
+        total: emailAddresses.length,
+        success: successCount,
+        failed: failureCount,
+      },
+      'Test notification emails sent'
+    );
+
+    if (failureCount > 0) {
+      logger.warn(
+        {
+          taskId: task._id,
+          resultId,
+          failureCount,
+        },
+        'Some email notifications failed to send'
+      );
     }
   } catch (error) {
     // AutoTestRunner 已在函数开始处导入，可以直接使用
     const resultId = AutoTestRunner.getResultId(result);
-    logger.error({ 
-      error: error.message || error, 
-      stack: error.stack,
-      taskId: task?._id, 
-      resultId
-    }, 'Failed to send test notification email');
+    logger.error(
+      {
+        error: error.message || error,
+        stack: error.stack,
+        taskId: task?._id,
+        resultId,
+      },
+      'Failed to send test notification email'
+    );
     // 不抛出错误，避免影响测试流程
   }
 }
@@ -307,17 +345,19 @@ export async function sendTestNotificationEmail(task, result, emailAddresses) {
 export async function sendWebhookNotification(task, result, webhookUrl) {
   // 动态导入以避免循环依赖（在函数开始处导入，确保整个函数都可以使用）
   const { AutoTestRunner } = await import('./autoTestRunner.js');
-  
+
   try {
     if (!task || !result || !webhookUrl) {
-      logger.warn({ taskId: task?._id, resultId: AutoTestRunner.getResultId(result), webhookUrl }, 'Task, result, or webhookUrl is null, skipping webhook notification');
+      logger.warn(
+        { taskId: task?._id, resultId: AutoTestRunner.getResultId(result), webhookUrl },
+        'Task, result, or webhookUrl is null, skipping webhook notification'
+      );
       return;
     }
 
     const summary = result.summary || {};
-    const passRate = summary.total > 0 
-      ? ((summary.passed / summary.total) * 100).toFixed(2) 
-      : '0.00';
+    const passRate =
+      summary.total > 0 ? ((summary.passed / summary.total) * 100).toFixed(2) : '0.00';
 
     const resultId = AutoTestRunner.getResultId(result);
     const payload = {
@@ -350,11 +390,17 @@ export async function sendWebhookNotification(task, result, webhookUrl) {
       },
     });
 
-    logger.info({ taskId: task._id, resultId, webhookUrl, status: response.status }, 'Webhook notification sent');
+    logger.info(
+      { taskId: task._id, resultId, webhookUrl, status: response.status },
+      'Webhook notification sent'
+    );
   } catch (error) {
     // AutoTestRunner 已在函数开始处导入，可以直接使用
     const resultId = AutoTestRunner.getResultId(result);
-    logger.error({ error, taskId: task?._id, resultId, webhookUrl }, 'Failed to send webhook notification');
+    logger.error(
+      { error, taskId: task?._id, resultId, webhookUrl },
+      'Failed to send webhook notification'
+    );
     // 不抛出错误，避免影响测试流程
   }
 }

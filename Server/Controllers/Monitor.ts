@@ -11,7 +11,9 @@ import AutoTestResult from '../Models/AutoTestResult.js';
 import { logger } from '../Utils/logger.js';
 
 class MonitorController extends BaseController {
-  static get ControllerName() { return 'MonitorController'; }
+  static get ControllerName() {
+    return 'MonitorController';
+  }
 
   static async getStats(ctx: Koa.Context) {
     try {
@@ -68,7 +70,9 @@ class MonitorController extends BaseController {
       const metricsToken = process.env.METRICS_TOKEN;
       const authHeader = ctx.headers.authorization?.replace(/^Bearer\s+/i, '');
       const isSuperAdmin = ctx.state.user?.role === 'super_admin';
-      const tokenOk = metricsToken && (authHeader === metricsToken || ctx.get('X-Metrics-Token') === metricsToken);
+      const tokenOk =
+        metricsToken &&
+        (authHeader === metricsToken || ctx.get('X-Metrics-Token') === metricsToken);
 
       if (!isSuperAdmin && !tokenOk) {
         ctx.status = 403;
@@ -100,19 +104,19 @@ class MonitorController extends BaseController {
         .populate('environment_id', 'name base_url')
         .populate('createdBy', 'username email')
         .lean();
-      
+
       const taskIds = tasks.map(t => t._id);
-      
+
       const [latestResults, allStats] = await Promise.all([
         AutoTestResult.aggregate([
           { $match: { task_id: { $in: taskIds } } },
           { $sort: { started_at: -1 } },
-          { $group: { _id: '$task_id', latest: { $first: '$$ROOT' } } }
+          { $group: { _id: '$task_id', latest: { $first: '$$ROOT' } } },
         ]),
         AutoTestResult.aggregate([
           { $match: { task_id: { $in: taskIds } } },
-          { $group: { _id: { task_id: '$task_id', status: '$status' }, count: { $sum: 1 } } }
-        ])
+          { $group: { _id: { task_id: '$task_id', status: '$status' }, count: { $sum: 1 } } },
+        ]),
       ]);
 
       const resultMap = new Map();
@@ -122,7 +126,14 @@ class MonitorController extends BaseController {
       allStats.forEach(stat => {
         const taskId = stat._id.task_id.toString();
         if (!statsMap.has(taskId)) {
-          statsMap.set(taskId, { total: 0, passed: 0, failed: 0, error: 0, running: 0, cancelled: 0 });
+          statsMap.set(taskId, {
+            total: 0,
+            passed: 0,
+            failed: 0,
+            error: 0,
+            running: 0,
+            cancelled: 0,
+          });
         }
         const taskStats = statsMap.get(taskId);
         taskStats[stat._id.status] = stat.count;
@@ -130,7 +141,14 @@ class MonitorController extends BaseController {
       });
 
       const groupMap = new Map();
-      groups.forEach((group: any) => groupMap.set(group._id.toString(), { ...group, projects: [], projectCount: 0, totalTasks: 0 }));
+      groups.forEach((group: any) =>
+        groupMap.set(group._id.toString(), {
+          ...group,
+          projects: [],
+          projectCount: 0,
+          totalTasks: 0,
+        })
+      );
 
       const projectMap = new Map();
       projects.forEach((project: any) => {
@@ -148,7 +166,14 @@ class MonitorController extends BaseController {
           project.tasks.push({
             ...task,
             latestResult: resultMap.get(taskIdStr),
-            stats: statsMap.get(taskIdStr) || { total: 0, passed: 0, failed: 0, error: 0, running: 0, cancelled: 0 }
+            stats: statsMap.get(taskIdStr) || {
+              total: 0,
+              passed: 0,
+              failed: 0,
+              error: 0,
+              running: 0,
+              cancelled: 0,
+            },
           });
           project.taskCount = project.tasks.length;
         }
@@ -164,7 +189,9 @@ class MonitorController extends BaseController {
         }
       });
 
-      ctx.body = MonitorController.success(Array.from(groupMap.values()).filter(g => g.projectCount > 0));
+      ctx.body = MonitorController.success(
+        Array.from(groupMap.values()).filter(g => g.projectCount > 0)
+      );
     } catch (error: any) {
       ctx.status = 500;
       ctx.body = MonitorController.error(error.message || '获取监控数据失败');

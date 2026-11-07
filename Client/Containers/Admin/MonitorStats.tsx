@@ -1,25 +1,25 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  Card, 
-  Row, 
-  Col, 
-  Statistic, 
-  Spin, 
-  Tree, 
-  Tag, 
-  Space, 
-  Button, 
-  Tooltip, 
+import {
+  Card,
+  Row,
+  Col,
+  Statistic,
+  Spin,
+  Tree,
+  Tag,
+  Space,
+  Button,
+  Tooltip,
   Progress,
   Empty,
   Badge,
   Typography,
-  Collapse
+  Collapse,
 } from 'antd';
-import { 
-  UserOutlined, 
-  ProjectOutlined, 
-  ApiOutlined, 
+import {
+  UserOutlined,
+  ProjectOutlined,
+  ApiOutlined,
   ThunderboltOutlined,
   FolderOutlined,
   FolderOpenOutlined,
@@ -29,7 +29,7 @@ import {
   ExclamationCircleOutlined,
   ClockCircleOutlined,
   ReloadOutlined,
-  EnvironmentOutlined
+  EnvironmentOutlined,
 } from '@ant-design/icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
@@ -52,7 +52,16 @@ interface MonitorStats {
   mockRequests: number;
   system?: {
     cpu: number;
-    memory: number | { used: number; total: number; free?: number; heapUsed?: number; heapTotal?: number; external?: number };
+    memory:
+      | number
+      | {
+          used: number;
+          total: number;
+          free?: number;
+          heapUsed?: number;
+          heapTotal?: number;
+          external?: number;
+        };
     disk: number;
     uptime: number;
     memoryDetail?: {
@@ -260,10 +269,9 @@ const MonitorStats: React.FC = () => {
 
   const renderTaskCard = (task: Task) => {
     const { latestResult, stats: taskStats, environment } = task;
-    const successRate = taskStats.total > 0 
-      ? ((taskStats.passed / taskStats.total) * 100).toFixed(1) 
-      : '0';
-    
+    const successRate =
+      taskStats.total > 0 ? ((taskStats.passed / taskStats.total) * 100).toFixed(1) : '0';
+
     return (
       <Card
         key={task._id}
@@ -293,7 +301,7 @@ const MonitorStats: React.FC = () => {
               {task.description}
             </Text>
           )}
-          
+
           {environment && (
             <div>
               <EnvironmentOutlined /> {environment.name}
@@ -302,7 +310,7 @@ const MonitorStats: React.FC = () => {
               </Text>
             </div>
           )}
-          
+
           {task.base_url && (
             <div>
               <Text type="secondary" style={{ fontSize: 12 }}>
@@ -318,7 +326,7 @@ const MonitorStats: React.FC = () => {
                   {t(`admin.monitor.status.${latestResult.status}`, latestResult.status)}
                 </Tag>
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  {latestResult.started_at 
+                  {latestResult.started_at
                     ? dayjs(latestResult.started_at).fromNow()
                     : t('admin.monitor.unknown')}
                 </Text>
@@ -376,8 +384,8 @@ const MonitorStats: React.FC = () => {
 
   return (
     <div>
-      <Card 
-        title={t('admin.monitor.title')} 
+      <Card
+        title={t('admin.monitor.title')}
         loading={loading}
         extra={
           <Button
@@ -436,23 +444,26 @@ const MonitorStats: React.FC = () => {
               <Card title={t('admin.monitor.system')}>
                 <Row gutter={[16, 16]}>
                   <Col xs={12} sm={12} md={6}>
-                    <Statistic 
-                      title={t('admin.monitor.cpu')} 
-                      value={typeof stats.system.cpu === 'number' ? stats.system.cpu : 0} 
-                      suffix="%" 
+                    <Statistic
+                      title={t('admin.monitor.cpu')}
+                      value={typeof stats.system.cpu === 'number' ? stats.system.cpu : 0}
+                      suffix="%"
                     />
                   </Col>
                   <Col xs={12} sm={12} md={6}>
-                    <Statistic 
-                      title={t('admin.monitor.memory')} 
+                    <Statistic
+                      title={t('admin.monitor.memory')}
                       value={
-                        typeof stats.system.memory === 'number' 
-                          ? stats.system.memory 
-                          : (stats.system.memoryDetail 
-                              ? Math.round((stats.system.memoryDetail.used / stats.system.memoryDetail.total) * 100)
-                              : 0)
-                      } 
-                      suffix="%" 
+                        typeof stats.system.memory === 'number'
+                          ? stats.system.memory
+                          : stats.system.memoryDetail
+                            ? Math.round(
+                                (stats.system.memoryDetail.used / stats.system.memoryDetail.total) *
+                                  100
+                              )
+                            : 0
+                      }
+                      suffix="%"
                     />
                     {stats.system.memoryDetail && (
                       <div style={{ marginTop: 4, fontSize: 12, color: '#666' }}>
@@ -461,16 +472,16 @@ const MonitorStats: React.FC = () => {
                     )}
                   </Col>
                   <Col xs={12} sm={12} md={6}>
-                    <Statistic 
-                      title={t('admin.monitor.disk')} 
-                      value={typeof stats.system.disk === 'number' ? stats.system.disk : 0} 
-                      suffix="%" 
+                    <Statistic
+                      title={t('admin.monitor.disk')}
+                      value={typeof stats.system.disk === 'number' ? stats.system.disk : 0}
+                      suffix="%"
                     />
                   </Col>
                   <Col xs={12} sm={12} md={6}>
-                    <Statistic 
-                      title={t('admin.monitor.uptime')} 
-                      value={formatUptime(stats.system.uptime)} 
+                    <Statistic
+                      title={t('admin.monitor.uptime')}
+                      value={formatUptime(stats.system.uptime)}
                     />
                   </Col>
                 </Row>
@@ -484,13 +495,33 @@ const MonitorStats: React.FC = () => {
                       <Statistic title={t('admin.monitor.requests')} value={stats.requests.total} />
                     </Col>
                     <Col xs={12} sm={12} md={24}>
-                      <Statistic title={t('admin.monitor.successRate')} value={stats.requests.total > 0 ? ((stats.requests.success / stats.requests.total) * 100).toFixed(2) : 0} suffix="%" />
+                      <Statistic
+                        title={t('admin.monitor.successRate')}
+                        value={
+                          stats.requests.total > 0
+                            ? ((stats.requests.success / stats.requests.total) * 100).toFixed(2)
+                            : 0
+                        }
+                        suffix="%"
+                      />
                     </Col>
                     <Col xs={12} sm={12} md={24}>
-                      <Statistic title={t('admin.monitor.errorRate')} value={stats.requests.total > 0 ? ((stats.requests.error / stats.requests.total) * 100).toFixed(2) : 0} suffix="%" />
+                      <Statistic
+                        title={t('admin.monitor.errorRate')}
+                        value={
+                          stats.requests.total > 0
+                            ? ((stats.requests.error / stats.requests.total) * 100).toFixed(2)
+                            : 0
+                        }
+                        suffix="%"
+                      />
                     </Col>
                     <Col xs={12} sm={12} md={24}>
-                      <Statistic title={t('admin.monitor.avgResponseTime')} value={stats.requests.avgResponseTime} suffix="ms" />
+                      <Statistic
+                        title={t('admin.monitor.avgResponseTime')}
+                        value={stats.requests.avgResponseTime}
+                        suffix="ms"
+                      />
                     </Col>
                   </Row>
                 </Card>
@@ -500,15 +531,15 @@ const MonitorStats: React.FC = () => {
         )}
       </Card>
 
-      <Card 
-        title={t('admin.monitor.pipelineMonitor')} 
+      <Card
+        title={t('admin.monitor.pipelineMonitor')}
         loading={hierarchyLoading}
         style={{ marginTop: 16 }}
       >
         {hierarchy.length === 0 ? (
           <Empty description={t('admin.monitor.noData')} />
         ) : (
-          <Collapse 
+          <Collapse
             defaultActiveKey={hierarchy.map(g => g._id)}
             items={hierarchy.map(group => ({
               key: group._id,
@@ -516,35 +547,43 @@ const MonitorStats: React.FC = () => {
                 <Space>
                   <FolderOpenOutlined />
                   <Text strong>{group.group_name}</Text>
-                  <Badge count={group.projectCount} showZero style={{ backgroundColor: '#52c41a' }} />
+                  <Badge
+                    count={group.projectCount}
+                    showZero
+                    style={{ backgroundColor: '#52c41a' }}
+                  />
                   <Text type="secondary">
                     ({group.totalTasks} {t('admin.monitor.testPipelines')})
                   </Text>
                 </Space>
               ),
-              children: group.projects.length === 0 ? (
-                <Empty description={t('admin.monitor.noProjectsInGroup')} />
-              ) : (
-                <Collapse
-                  items={group.projects.map(project => ({
-                    key: project._id,
-                    label: (
-                      <Space>
-                        <ProjectOutlined />
-                        <Text strong>{project.project_name}</Text>
-                        <Badge count={project.taskCount} showZero style={{ backgroundColor: '#1890ff' }} />
-                      </Space>
-                    ),
-                    children: project.tasks.length === 0 ? (
-                      <Empty description={t('admin.monitor.noPipelinesInProject')} />
-                    ) : (
-                      <div>
-                        {project.tasks.map(task => renderTaskCard(task))}
-                      </div>
-                    ),
-                  }))}
-                />
-              ),
+              children:
+                group.projects.length === 0 ? (
+                  <Empty description={t('admin.monitor.noProjectsInGroup')} />
+                ) : (
+                  <Collapse
+                    items={group.projects.map(project => ({
+                      key: project._id,
+                      label: (
+                        <Space>
+                          <ProjectOutlined />
+                          <Text strong>{project.project_name}</Text>
+                          <Badge
+                            count={project.taskCount}
+                            showZero
+                            style={{ backgroundColor: '#1890ff' }}
+                          />
+                        </Space>
+                      ),
+                      children:
+                        project.tasks.length === 0 ? (
+                          <Empty description={t('admin.monitor.noPipelinesInProject')} />
+                        ) : (
+                          <div>{project.tasks.map(task => renderTaskCard(task))}</div>
+                        ),
+                    }))}
+                  />
+                ),
             }))}
           />
         )}

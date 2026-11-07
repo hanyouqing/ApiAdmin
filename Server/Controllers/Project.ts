@@ -19,12 +19,12 @@ interface AuthenticatedContext extends Koa.Context {
 }
 
 const createActivity = async (
-  projectId: mongoose.Types.ObjectId | string, 
-  userId: mongoose.Types.ObjectId | string, 
-  action: string, 
-  targetType: string, 
-  targetId: mongoose.Types.ObjectId | string | null, 
-  description: string, 
+  projectId: mongoose.Types.ObjectId | string,
+  userId: mongoose.Types.ObjectId | string,
+  action: string,
+  targetType: string,
+  targetId: mongoose.Types.ObjectId | string | null,
+  description: string,
   metadata: any = {}
 ) => {
   try {
@@ -56,7 +56,7 @@ class ProjectController extends BaseController {
       const { group_id } = ctx.query;
 
       let userId: mongoose.Types.ObjectId;
-      
+
       if (user._id instanceof mongoose.Types.ObjectId) {
         userId = user._id;
       } else {
@@ -75,10 +75,7 @@ class ProjectController extends BaseController {
         query = {};
       } else {
         query = {
-          $or: [
-            { uid: userId },
-            { member: userId },
-          ],
+          $or: [{ uid: userId }, { member: userId }],
         };
       }
 
@@ -91,7 +88,7 @@ class ProjectController extends BaseController {
         .populate('uid', 'username email avatar')
         .sort({ created_at: -1 })
         .lean();
-      
+
       // 确保每个项目都有 env 字段（即使为空数组）
       const processedProjects = projects.map((project: any) => ({
         ...project,
@@ -100,14 +97,17 @@ class ProjectController extends BaseController {
 
       ctx.body = ProjectController.success(processedProjects);
     } catch (error: any) {
-      logger.error({ 
-        error: error.message, 
-        userId: ctx.state.user?._id,
-      }, 'Project list error');
+      logger.error(
+        {
+          error: error.message,
+          userId: ctx.state.user?._id,
+        },
+        'Project list error'
+      );
       ctx.status = 500;
       ctx.body = ProjectController.error(
-        process.env.NODE_ENV === 'production' 
-          ? '获取项目列表失败' 
+        process.env.NODE_ENV === 'production'
+          ? '获取项目列表失败'
           : error.message || '获取项目列表失败'
       );
     }
@@ -157,9 +157,9 @@ class ProjectController extends BaseController {
         return;
       }
 
-      const existingProject = await Project.findOne({ 
-        project_name, 
-        group_id 
+      const existingProject = await Project.findOne({
+        project_name,
+        group_id,
       });
       if (existingProject) {
         ctx.status = 400;
@@ -192,11 +192,21 @@ class ProjectController extends BaseController {
         });
         await projectMember.save();
       } catch (memberError) {
-        logger.warn({ error: memberError, projectId: project._id }, 'Failed to create project member record');
+        logger.warn(
+          { error: memberError, projectId: project._id },
+          'Failed to create project member record'
+        );
       }
 
-      await createActivity(project._id, user._id, 'project.created', 'project', project._id, `创建了项目 ${project_name}`);
-      
+      await createActivity(
+        project._id,
+        user._id,
+        'project.created',
+        'project',
+        project._id,
+        `创建了项目 ${project_name}`
+      );
+
       await logOperation({
         type: 'project',
         action: 'create',
@@ -246,10 +256,10 @@ class ProjectController extends BaseController {
       }
 
       if (updateData.project_name && updateData.project_name !== project.project_name) {
-        const existingProject = await Project.findOne({ 
-          project_name: updateData.project_name, 
+        const existingProject = await Project.findOne({
+          project_name: updateData.project_name,
           group_id: project.group_id,
-          _id: { $ne: project._id }
+          _id: { $ne: project._id },
         });
         if (existingProject) {
           ctx.status = 400;
@@ -261,8 +271,15 @@ class ProjectController extends BaseController {
       Object.assign(project, updateData);
       await project.save();
 
-      await createActivity(project._id, user._id, 'project.updated', 'project', project._id, `更新了项目 ${project.project_name}`);
-      
+      await createActivity(
+        project._id,
+        user._id,
+        'project.updated',
+        'project',
+        project._id,
+        `更新了项目 ${project.project_name}`
+      );
+
       // @ts-ignore
       await logOperation({
         type: 'project',
@@ -306,10 +323,7 @@ class ProjectController extends BaseController {
         return;
       }
 
-      if (
-        project.uid.toString() !== user._id.toString() &&
-        user.role !== 'super_admin'
-      ) {
+      if (project.uid.toString() !== user._id.toString() && user.role !== 'super_admin') {
         ctx.status = 403;
         ctx.body = ProjectController.error('无权限删除此项目');
         return;
@@ -412,7 +426,15 @@ class ProjectController extends BaseController {
       await project.save();
 
       // @ts-ignore
-      await createActivity(project._id, user._id, 'environment.added', 'environment', null, `添加了环境 ${name}`, { envName: name });
+      await createActivity(
+        project._id,
+        user._id,
+        'environment.added',
+        'environment',
+        null,
+        `添加了环境 ${name}`,
+        { envName: name }
+      );
 
       // @ts-ignore
       await logOperation({
@@ -488,7 +510,15 @@ class ProjectController extends BaseController {
       if (variables !== undefined) env.variables = variables;
 
       await project.save();
-      await createActivity(project._id, user._id, 'environment.updated', 'environment', null, `更新了环境 ${env.name}`, { envName: env.name });
+      await createActivity(
+        project._id,
+        user._id,
+        'environment.updated',
+        'environment',
+        null,
+        `更新了环境 ${env.name}`,
+        { envName: env.name }
+      );
       ctx.body = ProjectController.success(project, '环境更新成功');
     } catch (error: any) {
       ctx.status = 500;
@@ -530,7 +560,15 @@ class ProjectController extends BaseController {
       }
 
       await project.save();
-      await createActivity(project._id, user._id, 'environment.deleted', 'environment', null, `删除了环境 ${env_name}`, { envName: env_name });
+      await createActivity(
+        project._id,
+        user._id,
+        'environment.deleted',
+        'environment',
+        null,
+        `删除了环境 ${env_name}`,
+        { envName: env_name }
+      );
       ctx.body = ProjectController.success(project, '环境删除成功');
     } catch (error: any) {
       ctx.status = 500;
@@ -578,7 +616,14 @@ class ProjectController extends BaseController {
 
       project.member.push(member._id as any);
       await project.save();
-      await createActivity(project._id, user._id, 'member.added', 'member', member._id, `添加了成员 ${member.username}`);
+      await createActivity(
+        project._id,
+        user._id,
+        'member.added',
+        'member',
+        member._id,
+        `添加了成员 ${member.username}`
+      );
       ctx.body = ProjectController.success(project, '成员添加成功');
     } catch (error: any) {
       ctx.status = 500;
@@ -613,7 +658,14 @@ class ProjectController extends BaseController {
 
       project.member = project.member.filter((m: any) => m.toString() !== member_id) as any;
       await project.save();
-      await createActivity(project._id, user._id, 'member.removed', 'member', member_id, `移除了项目成员`);
+      await createActivity(
+        project._id,
+        user._id,
+        'member.removed',
+        'member',
+        member_id,
+        `移除了项目成员`
+      );
       ctx.body = ProjectController.success(project, '成员移除成功');
     } catch (error: any) {
       ctx.status = 500;
@@ -684,7 +736,14 @@ class ProjectController extends BaseController {
 
       project.group_id = target_group_id;
       await project.save();
-      await createActivity(project._id, user._id, 'project.migrated', 'project', project._id, `迁移项目到分组 ${group.group_name}`);
+      await createActivity(
+        project._id,
+        user._id,
+        'project.migrated',
+        'project',
+        project._id,
+        `迁移项目到分组 ${group.group_name}`
+      );
       ctx.body = ProjectController.success(project, '项目迁移成功');
     } catch (error: any) {
       ctx.status = 500;
@@ -732,7 +791,14 @@ class ProjectController extends BaseController {
         await Interface.create(data);
       }
 
-      await createActivity(copied._id, user._id, 'project.copied', 'project', copied._id, `复制项目自 ${source.project_name}`);
+      await createActivity(
+        copied._id,
+        user._id,
+        'project.copied',
+        'project',
+        copied._id,
+        `复制项目自 ${source.project_name}`
+      );
       ctx.body = ProjectController.success(copied, '项目复制成功');
     } catch (error: any) {
       ctx.status = 500;

@@ -17,7 +17,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
     <AntLayout style={{ minHeight: '100vh' }}>
       <Sidebar collapsed={collapsed} />
-      <AntLayout style={{ marginLeft: collapsed ? 80 : 200, transition: 'margin-left 0.2s', height: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <AntLayout
+        style={{
+          marginLeft: collapsed ? 80 : 200,
+          transition: 'margin-left 0.2s',
+          height: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
         <Header>
           <Button
             type="text"
@@ -38,9 +46,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             flexDirection: 'column',
           }}
         >
-          <div style={{ padding: 24, flex: 1, overflow: 'auto' }}>
-            {children}
-          </div>
+          <div style={{ padding: 24, flex: 1, overflow: 'auto' }}>{children}</div>
         </Content>
         <Footer />
       </AntLayout>
@@ -49,4 +55,3 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 };
 
 export default Layout;
-

@@ -20,7 +20,7 @@ export const truncate = (str, length = 50, suffix = '...') => {
  * @param {string} str - 原字符串
  * @returns {string} 首字母大写的字符串
  */
-export const capitalize = (str) => {
+export const capitalize = str => {
   if (!str || typeof str !== 'string') return str;
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 };
@@ -30,7 +30,7 @@ export const capitalize = (str) => {
  * @param {string} str - 原字符串
  * @returns {string} 驼峰命名字符串
  */
-export const toCamelCase = (str) => {
+export const toCamelCase = str => {
   if (!str || typeof str !== 'string') return str;
   return str
     .replace(/(?:^\w|[A-Z]|\b\w)/g, (word, index) => {
@@ -44,7 +44,7 @@ export const toCamelCase = (str) => {
  * @param {string} str - 原字符串
  * @returns {string} 下划线命名字符串
  */
-export const toSnakeCase = (str) => {
+export const toSnakeCase = str => {
   if (!str || typeof str !== 'string') return str;
   return str
     .replace(/([A-Z])/g, '_$1')
@@ -71,8 +71,7 @@ export const randomString = (length = 8) => {
  * @param {string} html - HTML 字符串
  * @returns {string} 纯文本
  */
-export const stripHtml = (html) => {
+export const stripHtml = html => {
   if (!html || typeof html !== 'string') return html;
   return html.replace(/<[^>]*>/g, '');
 };
-

@@ -272,10 +272,10 @@ autoscaling:
 # values.yaml
 ingress:
   enabled: true
-  className: "nginx"
+  className: 'nginx'
   annotations:
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
-    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: 'letsencrypt-prod'
+    nginx.ingress.kubernetes.io/ssl-redirect: 'true'
   hosts:
     - host: apiadmin.example.com
       paths:
@@ -292,7 +292,7 @@ ingress:
 ```yaml
 ingress:
   enabled: true
-  className: "traefik"
+  className: 'traefik'
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
     traefik.ingress.kubernetes.io/router.tls.certresolver: letsencrypt
@@ -302,21 +302,21 @@ ingress:
 
 ### 4.1 必需环境变量
 
-| 变量名 | 说明 | 示例 |
-|--------|------|------|
+| 变量名        | 说明               | 示例                                 |
+| ------------- | ------------------ | ------------------------------------ |
 | `MONGODB_URL` | MongoDB 连接字符串 | `mongodb://localhost:27017/apiadmin` |
-| `REDIS_URL` | Redis 连接字符串 | `redis://localhost:6379` |
-| `JWT_SECRET` | JWT 密钥 | `your-secret-key` |
+| `REDIS_URL`   | Redis 连接字符串   | `redis://localhost:6379`             |
+| `JWT_SECRET`  | JWT 密钥           | `your-secret-key`                    |
 
 ### 4.2 可选环境变量
 
-| 变量名 | 说明 | 默认值 |
-|--------|------|--------|
-| `NODE_ENV` | 运行环境 | `production` |
-| `PORT` | 服务端口 | `3000` |
-| `JWT_EXPIRES_IN` | JWT 过期时间 | `7d` |
-| `UPLOAD_MAX_SIZE` | 上传文件最大大小（字节） | `10485760` |
-| `LOG_LEVEL` | 日志级别 | `info` |
+| 变量名            | 说明                     | 默认值       |
+| ----------------- | ------------------------ | ------------ |
+| `NODE_ENV`        | 运行环境                 | `production` |
+| `PORT`            | 服务端口                 | `3000`       |
+| `JWT_EXPIRES_IN`  | JWT 过期时间             | `7d`         |
+| `UPLOAD_MAX_SIZE` | 上传文件最大大小（字节） | `10485760`   |
+| `LOG_LEVEL`       | 日志级别                 | `info`       |
 
 ### 4.3 邮件服务配置
 
@@ -361,6 +361,7 @@ Kubernetes Deployment 中配置了：
 #### 问题 1: 容器无法启动
 
 **检查项**:
+
 - 查看容器日志: `docker logs apiadmin`
 - 检查环境变量是否正确
 - 检查端口是否被占用
@@ -369,6 +370,7 @@ Kubernetes Deployment 中配置了：
 #### 问题 2: 数据库连接失败
 
 **检查项**:
+
 - 验证 MongoDB/Redis 服务是否运行
 - 检查连接字符串格式
 - 检查网络连接
@@ -377,6 +379,7 @@ Kubernetes Deployment 中配置了：
 #### 问题 3: Pod 一直处于 Pending 状态
 
 **检查项**:
+
 ```bash
 # 查看 Pod 详情
 kubectl describe pod <pod-name> -n apiadmin
@@ -391,6 +394,7 @@ kubectl get pvc -n apiadmin
 #### 问题 4: Ingress 无法访问
 
 **检查项**:
+
 ```bash
 # 检查 Ingress 状态
 kubectl get ingress -n apiadmin
@@ -493,4 +497,3 @@ resources:
 
 **文档版本**: v0.0.1
 **最后更新**: 2025-01-27
-

@@ -10,7 +10,9 @@ export interface IWhitelistConfig {
 
 export interface IWhitelistConfigStatics {
   getConfig(): Promise<mongoose.HydratedDocument<IWhitelistConfig>>;
-  updateConfig(updates: Partial<IWhitelistConfig>): Promise<mongoose.HydratedDocument<IWhitelistConfig>>;
+  updateConfig(
+    updates: Partial<IWhitelistConfig>
+  ): Promise<mongoose.HydratedDocument<IWhitelistConfig>>;
 }
 
 export type WhitelistConfigModel = Model<IWhitelistConfig, {}, IWhitelistConfigStatics>;
@@ -54,6 +56,9 @@ whitelistConfigSchema.statics.updateConfig = async function (updates) {
   return config;
 };
 
-const WhitelistConfig = mongoose.model<IWhitelistConfig, WhitelistConfigModel>('WhitelistConfig', whitelistConfigSchema);
+const WhitelistConfig = mongoose.model<IWhitelistConfig, WhitelistConfigModel>(
+  'WhitelistConfig',
+  whitelistConfigSchema
+);
 
 export default WhitelistConfig;

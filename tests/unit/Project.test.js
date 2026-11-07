@@ -10,7 +10,7 @@ function createMockCtx(params = {}, query = {}, body = {}, user = null) {
   return {
     params,
     query,
-    request: { 
+    request: {
       body,
       url: '/api/test',
     },
@@ -39,7 +39,7 @@ describe('Project Model', () => {
       }
       throw error;
     }
-    
+
     await Project.deleteMany({});
     await Group.deleteMany({});
     await User.deleteMany({});
@@ -88,7 +88,7 @@ describe('Project Model', () => {
       group_id: testGroup._id,
       uid: testUser._id,
     });
-    
+
     await expect(project.save()).rejects.toThrow();
   });
 
@@ -122,7 +122,7 @@ describe('ProjectController', () => {
       }
       throw error;
     }
-    
+
     await Project.deleteMany({});
     await Group.deleteMany({});
     await User.deleteMany({});
@@ -348,4 +348,3 @@ describe('ProjectController', () => {
     });
   });
 });
-

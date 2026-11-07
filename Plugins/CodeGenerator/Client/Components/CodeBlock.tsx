@@ -18,12 +18,7 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, loading = false }
   }
 
   if (!code) {
-    return (
-      <Empty
-        description="暂无代码"
-        image={Empty.PRESENTED_IMAGE_SIMPLE}
-      />
-    );
+    return <Empty description="暂无代码" image={Empty.PRESENTED_IMAGE_SIMPLE} />;
   }
 
   return (
@@ -36,4 +31,3 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, loading = false }
 };
 
 export default CodeBlock;
-

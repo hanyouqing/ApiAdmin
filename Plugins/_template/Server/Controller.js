@@ -12,15 +12,14 @@ export default {
 
       ctx.body = {
         success: true,
-        data: result
+        data: result,
       };
     } catch (error) {
       ctx.status = 500;
       ctx.body = {
         success: false,
-        message: error.message
+        message: error.message,
       };
     }
-  }
+  },
 };
-

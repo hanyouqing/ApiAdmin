@@ -46,7 +46,7 @@ const MyComponent: React.FC = () => {
   const isValid = validateEmail('user@example.com');
   const cleaned = sanitizeInput(userInput);
   const formatted = formatDate(new Date());
-  
+
   return <div>...</div>;
 };
 ```
@@ -107,11 +107,13 @@ const MyComponent: React.FC = () => {
 ### 从 Server/Utils/validation.js 迁移
 
 **之前**：
+
 ```javascript
 import { validateEmail } from '../Utils/validation.js';
 ```
 
 **现在**（两种方式都可以）：
+
 ```javascript
 // 方式1：继续使用 Server/Utils/validation.js（已自动转发到公共 Utils）
 import { validateEmail } from '../Utils/validation.js';
@@ -125,6 +127,7 @@ import { validateEmail } from '../../Utils/validation.js';
 **之前**：需要在 Client 中重复实现验证逻辑
 
 **现在**：
+
 ```typescript
 import { validateEmail, validatePassword } from '../../Utils/validation';
 
@@ -153,6 +156,3 @@ import { validateEmail, validatePassword } from '../../Utils/validation';
 2. **保持函数纯净**：工具函数应该是纯函数，不依赖外部状态
 3. **提供类型定义**：所有函数都应该有 TypeScript 类型定义
 4. **文档完善**：每个函数都应该有清晰的 JSDoc 注释
-
-
-

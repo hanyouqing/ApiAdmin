@@ -17,8 +17,13 @@ export interface IAutoTestConfig {
 }
 
 export interface IAutoTestConfigStatics {
-  getConfig(projectId: Schema.Types.ObjectId | string): Promise<mongoose.HydratedDocument<IAutoTestConfig> | null>;
-  getOrCreateConfig(projectId: Schema.Types.ObjectId | string, defaultConfig?: Partial<IAutoTestConfig>): Promise<mongoose.HydratedDocument<IAutoTestConfig>>;
+  getConfig(
+    projectId: Schema.Types.ObjectId | string
+  ): Promise<mongoose.HydratedDocument<IAutoTestConfig> | null>;
+  getOrCreateConfig(
+    projectId: Schema.Types.ObjectId | string,
+    defaultConfig?: Partial<IAutoTestConfig>
+  ): Promise<mongoose.HydratedDocument<IAutoTestConfig>>;
 }
 
 export type AutoTestConfigModel = Model<IAutoTestConfig, {}, IAutoTestConfigStatics>;
@@ -72,14 +77,14 @@ const autoTestConfigSchema = new Schema<IAutoTestConfig, AutoTestConfigModel>(
   }
 );
 
-autoTestConfigSchema.statics.getConfig = async function(projectId) {
+autoTestConfigSchema.statics.getConfig = async function (projectId) {
   if (!projectId) {
     return null;
   }
   return await this.findOne({ project_id: projectId });
 };
 
-autoTestConfigSchema.statics.getOrCreateConfig = async function(projectId, defaultConfig = {}) {
+autoTestConfigSchema.statics.getOrCreateConfig = async function (projectId, defaultConfig = {}) {
   let config = await this.findOne({ project_id: projectId });
   if (!config) {
     config = new this({
@@ -91,6 +96,9 @@ autoTestConfigSchema.statics.getOrCreateConfig = async function(projectId, defau
   return config;
 };
 
-const AutoTestConfig = mongoose.model<IAutoTestConfig, AutoTestConfigModel>('AutoTestConfig', autoTestConfigSchema);
+const AutoTestConfig = mongoose.model<IAutoTestConfig, AutoTestConfigModel>(
+  'AutoTestConfig',
+  autoTestConfigSchema
+);
 
 export default AutoTestConfig;

@@ -1,6 +1,11 @@
 import mongoose, { Schema, Model } from 'mongoose';
 
-export type EmailTemplateType = 'verification' | 'welcome' | 'password-reset' | 'interface-change' | 'custom';
+export type EmailTemplateType =
+  | 'verification'
+  | 'welcome'
+  | 'password-reset'
+  | 'interface-change'
+  | 'custom';
 
 export interface IEmailTemplate {
   name: string;
@@ -57,6 +62,9 @@ const emailTemplateSchema = new Schema<IEmailTemplate>(
 emailTemplateSchema.index({ type: 1 });
 emailTemplateSchema.index({ name: 1 });
 
-const EmailTemplate = mongoose.model<IEmailTemplate, EmailTemplateModel>('EmailTemplate', emailTemplateSchema);
+const EmailTemplate = mongoose.model<IEmailTemplate, EmailTemplateModel>(
+  'EmailTemplate',
+  emailTemplateSchema
+);
 
 export default EmailTemplate;

@@ -60,7 +60,9 @@ async function checkWhitelist(platform: string, value: string) {
 }
 
 class ThirdPartyAuthController extends BaseController {
-  static get ControllerName() { return 'ThirdPartyAuthController'; }
+  static get ControllerName() {
+    return 'ThirdPartyAuthController';
+  }
 
   static async getEnabledProviders(ctx: Koa.Context) {
     try {
@@ -79,8 +81,11 @@ class ThirdPartyAuthController extends BaseController {
   static async githubAuth(ctx: Koa.Context) {
     try {
       const { redirectUrl } = ctx.query as any;
-      const githubConfig = await ThirdPartyAuthConfig.findOne({ provider: 'github', enabled: true });
-      
+      const githubConfig = await ThirdPartyAuthConfig.findOne({
+        provider: 'github',
+        enabled: true,
+      });
+
       if (!githubConfig) {
         ctx.status = 400;
         ctx.body = ThirdPartyAuthController.error('GitHub OAuth 未启用');
@@ -88,11 +93,14 @@ class ThirdPartyAuthController extends BaseController {
       }
 
       const clientId = githubConfig.config?.clientId;
-      const redirectUri = githubConfig.config?.redirectUri || `${config.APP_URL}/api/auth/github/callback`;
+      const redirectUri =
+        githubConfig.config?.redirectUri || `${config.APP_URL}/api/auth/github/callback`;
       const state = crypto.randomBytes(16).toString('hex');
-      
+
       await storeCode(`github:state:${state}`, redirectUrl || '/', 600);
-      ctx.redirect(`https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=user:email&state=${state}`);
+      ctx.redirect(
+        `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=user:email&state=${state}`
+      );
     } catch (error: any) {
       ctx.status = 500;
       ctx.body = ThirdPartyAuthController.error('GitHub 登录跳转失败');
@@ -128,7 +136,10 @@ class ThirdPartyAuthController extends BaseController {
         );
       } catch (mailError: any) {
         if (process.env.NODE_ENV !== 'production') {
-          logger.warn({ email: normalizedEmail, code }, 'Email send failed; code logged for development');
+          logger.warn(
+            { email: normalizedEmail, code },
+            'Email send failed; code logged for development'
+          );
         } else {
           logger.error({ error: mailError.message }, 'Failed to send login email code');
           ctx.status = 500;
@@ -158,7 +169,7 @@ class ThirdPartyAuthController extends BaseController {
 
       const normalizedEmail = email.toLowerCase();
       const storedCode = await getCode(`email:code:${normalizedEmail}`);
-      
+
       if (!storedCode || storedCode !== code) {
         ctx.status = 400;
         ctx.body = ThirdPartyAuthController.error('验证码错误或已过期');
@@ -183,10 +194,13 @@ class ThirdPartyAuthController extends BaseController {
         expiresIn: getJWTExpiresIn() as any,
       });
 
-      ctx.body = ThirdPartyAuthController.success({
-        token,
-        user: (user as any).toJSON(),
-      }, '登录成功');
+      ctx.body = ThirdPartyAuthController.success(
+        {
+          token,
+          user: (user as any).toJSON(),
+        },
+        '登录成功'
+      );
     } catch (error: any) {
       ctx.status = 500;
       ctx.body = ThirdPartyAuthController.error(error.message || '邮箱登录失败');
@@ -245,11 +259,14 @@ class ThirdPartyAuthController extends BaseController {
       }
       await cfg.save();
 
-      ctx.body = ThirdPartyAuthController.success({
-        provider,
-        enabled: cfg.enabled,
-        ...(cfg.config || {}),
-      }, '配置已保存');
+      ctx.body = ThirdPartyAuthController.success(
+        {
+          provider,
+          enabled: cfg.enabled,
+          ...(cfg.config || {}),
+        },
+        '配置已保存'
+      );
     } catch (error: any) {
       ctx.status = 500;
       ctx.body = ThirdPartyAuthController.error(error.message || '保存配置失败');

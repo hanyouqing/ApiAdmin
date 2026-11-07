@@ -27,12 +27,7 @@ const Logo: React.FC<LogoProps> = ({ size = 32, collapsed = false }) => {
           <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.3" />
         </filter>
       </defs>
-      <rect
-        width={size}
-        height={size}
-        rx={borderRadius}
-        fill="url(#logoGradient)"
-      />
+      <rect width={size} height={size} rx={borderRadius} fill="url(#logoGradient)" />
       <text
         x="50%"
         y="50%"
@@ -52,4 +47,3 @@ const Logo: React.FC<LogoProps> = ({ size = 32, collapsed = false }) => {
 };
 
 export default Logo;
-

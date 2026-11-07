@@ -176,6 +176,3 @@ export async function executeAfterTestHook(testCollection, testCase, result) {
     logger.error({ error }, 'After test hook error');
   }
 }
-
-
-

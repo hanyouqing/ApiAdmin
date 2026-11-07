@@ -95,7 +95,8 @@ export class PostmanImporter {
         req_headers: headers,
         req_body_type: body.type || 'json',
         req_body: body.data || '',
-        res_body: item.response && item.response[0] ? JSON.stringify(item.response[0].body, null, 2) : '{}',
+        res_body:
+          item.response && item.response[0] ? JSON.stringify(item.response[0].body, null, 2) : '{}',
         res_body_type: 'json',
         status: 'developing',
         desc: item.description || '',
@@ -122,7 +123,7 @@ export class PostmanImporter {
 
   parseQuery(query) {
     if (!Array.isArray(query)) return [];
-    return query.map((q) => ({
+    return query.map(q => ({
       name: q.key || '',
       type: 'string',
       required: q.disabled !== true,
@@ -133,7 +134,7 @@ export class PostmanImporter {
 
   parseHeaders(headers) {
     if (!Array.isArray(headers)) return [];
-    return headers.map((h) => ({
+    return headers.map(h => ({
       name: h.key || '',
       value: h.value || '',
       required: false,
@@ -155,6 +156,3 @@ export class PostmanImporter {
     }
   }
 }
-
-
-

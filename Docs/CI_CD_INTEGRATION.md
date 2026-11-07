@@ -36,6 +36,7 @@
 ### 4. 使用方式
 
 工作流会在以下情况自动触发：
+
 - 推送到 `main` 或 `develop` 分支
 - 创建 Pull Request
 - 每天凌晨 2 点（定时任务）
@@ -132,6 +133,7 @@ curl -X POST "$APIADMIN_URL/api/cicd/test/run" \
 ```
 
 JUnit XML 格式兼容：
+
 - Jenkins JUnit Plugin
 - GitLab CI Test Reports
 - GitHub Actions Test Results
@@ -167,6 +169,7 @@ GET /api/test/rules?projectId={projectId}&type={type}
 ```
 
 参数：
+
 - `projectId`（必需）: 项目 ID
 - `type`（可选）: 规则类型（`assertion`、`request`、`response`）
 
@@ -309,5 +312,3 @@ apiadmin import --file import.json --project project-id
 ---
 
 **最后更新**: 2025-01-27
-
-

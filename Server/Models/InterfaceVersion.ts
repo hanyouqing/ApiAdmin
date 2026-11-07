@@ -141,6 +141,9 @@ interfaceVersionSchema.index({ interface_id: 1, version_number: -1 });
 interfaceVersionSchema.index({ interface_id: 1, is_current: 1 });
 interfaceVersionSchema.index({ created_by: 1 });
 
-const InterfaceVersion = mongoose.model<IInterfaceVersion, InterfaceVersionModel>('InterfaceVersion', interfaceVersionSchema);
+const InterfaceVersion = mongoose.model<IInterfaceVersion, InterfaceVersionModel>(
+  'InterfaceVersion',
+  interfaceVersionSchema
+);
 
 export default InterfaceVersion;

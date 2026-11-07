@@ -53,7 +53,7 @@ SWAGGER_ALLOWED_IP_ADDRESSES=127.0.0.1,192.168.1.0/24
 - **类型**: `boolean` 或 `string`
 - **默认值**: `false`
 - **说明**: 控制 Swagger UI 是否启用
-- **可选值**: 
+- **可选值**:
   - `true` / `'true'` / `'1'`: 启用
   - `false` / `'false'` / `'0'`: 禁用
 
@@ -62,7 +62,7 @@ SWAGGER_ALLOWED_IP_ADDRESSES=127.0.0.1,192.168.1.0/24
 - **类型**: `string` (逗号分隔)
 - **默认值**: `null` (不限制)
 - **说明**: 限制访问 Swagger UI 的 IP 地址
-- **格式**: 
+- **格式**:
   - 单个 IP: `127.0.0.1`
   - CIDR 网段: `192.168.1.0/24`
   - 多个地址: `127.0.0.1,192.168.1.0/24,10.0.0.1`
@@ -460,7 +460,6 @@ npx @openapitools/openapi-generator-cli generate \
    在生产环境中，确保通过 HTTPS 访问 Swagger UI，避免敏感信息泄露
 
 4. **隐藏敏感信息**
-
    - 不要在 API 文档中暴露真实的密码、密钥等敏感信息
    - 使用示例值代替真实值
    - 对于敏感接口，考虑不在 Swagger 中暴露
@@ -570,6 +569,7 @@ Swagger UI 已配置了基本的内容安全策略，但建议在生产环境中
 ### 6.3 错误处理
 
 1. **统一的错误格式**
+
    ```javascript
    {
      success: false,
@@ -614,10 +614,12 @@ Swagger UI 已配置了基本的内容安全策略，但建议在生产环境中
 #### 问题 1: Swagger UI 无法访问（404）
 
 **可能原因：**
+
 - `SWAGGER_ENABLED` 未设置为 `true`
 - IP 不在白名单中
 
 **解决方法：**
+
 1. 检查环境变量配置
 2. 检查 IP 白名单设置
 3. 查看服务器日志
@@ -625,10 +627,12 @@ Swagger UI 已配置了基本的内容安全策略，但建议在生产环境中
 #### 问题 2: 静态资源加载失败（404）
 
 **可能原因：**
+
 - `swagger-ui-dist` 包未安装
 - 静态文件服务配置错误
 
 **解决方法：**
+
 ```bash
 # 重新安装依赖
 cd Server
@@ -638,20 +642,24 @@ npm install swagger-ui-dist
 #### 问题 3: MIME 类型错误
 
 **可能原因：**
+
 - 静态文件服务的 MIME 类型设置不正确
 
 **解决方法：**
+
 - 检查 `Server/App.js` 中的静态文件服务配置
 - 确保 CSS 和 JS 文件的 MIME 类型正确
 
 #### 问题 4: 认证失败
 
 **可能原因：**
+
 - Token 格式错误
 - Token 已过期
 - JWT_SECRET 配置不一致
 
 **解决方法：**
+
 1. 检查 Token 格式：应为 `Bearer <token>`
 2. 重新登录获取新 Token
 3. 检查 JWT_SECRET 配置
@@ -659,10 +667,12 @@ npm install swagger-ui-dist
 #### 问题 5: IP 白名单不生效
 
 **可能原因：**
+
 - IP 格式错误
 - 代理服务器导致 IP 检测不准确
 
 **解决方法：**
+
 1. 检查 IP 格式是否正确
 2. 检查 `X-Forwarded-For` 和 `X-Real-IP` 请求头
 3. 查看服务器日志中的实际 IP
@@ -718,15 +728,12 @@ curl -H "X-Forwarded-For: 192.168.1.100" http://localhost:3000/swagger.json
 
 ### C. 环境变量参考
 
-| 变量名 | 类型 | 默认值 | 说明 |
-|--------|------|--------|------|
-| `SWAGGER_ENABLED` | boolean/string | `false` | 是否启用 Swagger |
-| `SWAGGER_ALLOWED_IP_ADDRESSES` | string | `null` | IP 白名单（逗号分隔） |
+| 变量名                         | 类型           | 默认值  | 说明                  |
+| ------------------------------ | -------------- | ------- | --------------------- |
+| `SWAGGER_ENABLED`              | boolean/string | `false` | 是否启用 Swagger      |
+| `SWAGGER_ALLOWED_IP_ADDRESSES` | string         | `null`  | IP 白名单（逗号分隔） |
 
 ---
 
 **最后更新**: 2025-12-28  
 **维护者**: ApiAdmin 开发团队
-
-
-

@@ -9,7 +9,8 @@ import User from '../Models/User.js';
 export const checkProjectPermission = (requiredPermission = null) => {
   return async (ctx, next) => {
     const user = ctx.state.user;
-    const projectId = ctx.params.project_id || ctx.params.id || ctx.query.project_id || ctx.request.body.project_id;
+    const projectId =
+      ctx.params.project_id || ctx.params.id || ctx.query.project_id || ctx.request.body.project_id;
 
     if (!projectId) {
       ctx.status = 400;
@@ -101,9 +102,7 @@ export const checkProjectPermission = (requiredPermission = null) => {
     }
 
     // 检查是否是项目成员（向后兼容旧系统）
-    const isMember = project.member.some(
-      (memberId) => memberId.toString() === user._id.toString()
-    );
+    const isMember = project.member.some(memberId => memberId.toString() === user._id.toString());
 
     if (isMember && !requiredPermission) {
       // 旧系统的成员，如果没有指定具体权限，允许访问
@@ -131,7 +130,8 @@ export const checkProjectPermission = (requiredPermission = null) => {
 export const checkGroupPermission = (requiredPermission = null) => {
   return async (ctx, next) => {
     const user = ctx.state.user;
-    const groupId = ctx.params.group_id || ctx.params.id || ctx.query.group_id || ctx.request.body.group_id;
+    const groupId =
+      ctx.params.group_id || ctx.params.id || ctx.query.group_id || ctx.request.body.group_id;
 
     if (!groupId) {
       ctx.status = 400;
@@ -222,9 +222,7 @@ export const checkGroupPermission = (requiredPermission = null) => {
     }
 
     // 检查是否是分组成员（向后兼容）
-    const isMember = group.member.some(
-      (memberId) => memberId.toString() === user._id.toString()
-    );
+    const isMember = group.member.some(memberId => memberId.toString() === user._id.toString());
 
     if (isMember && !requiredPermission) {
       ctx.state.group = group;
@@ -242,4 +240,3 @@ export const checkGroupPermission = (requiredPermission = null) => {
     };
   };
 };
-

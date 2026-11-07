@@ -25,4 +25,3 @@
   "include": ["Client", "Server", "Utils"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
-

@@ -5,7 +5,7 @@ interface PluginProps {
   // 定义 props
 }
 
-const Plugin: React.FC<PluginProps> = (props) => {
+const Plugin: React.FC<PluginProps> = props => {
   const [loading, setLoading] = useState<boolean>(false);
 
   const handleAction = async () => {
@@ -22,11 +22,7 @@ const Plugin: React.FC<PluginProps> = (props) => {
 
   return (
     <Card title="插件名称">
-      <Button
-        type="primary"
-        loading={loading}
-        onClick={handleAction}
-      >
+      <Button type="primary" loading={loading} onClick={handleAction}>
         执行操作
       </Button>
     </Card>
@@ -34,4 +30,3 @@ const Plugin: React.FC<PluginProps> = (props) => {
 };
 
 export default Plugin;
-

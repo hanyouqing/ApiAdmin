@@ -48,6 +48,9 @@ const testCollectionSchema = new Schema<ITestCollection>(
 testCollectionSchema.index({ project_id: 1, created_at: -1 });
 testCollectionSchema.index({ uid: 1 });
 
-const TestCollection = mongoose.model<ITestCollection, TestCollectionModel>('TestCollection', testCollectionSchema);
+const TestCollection = mongoose.model<ITestCollection, TestCollectionModel>(
+  'TestCollection',
+  testCollectionSchema
+);
 
 export default TestCollection;

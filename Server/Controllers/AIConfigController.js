@@ -1,7 +1,13 @@
 import { BaseController } from './Base.js';
 import { logger } from '../Utils/logger.js';
 import AIConfig from '../Models/AIConfig.js';
-import { encryptSecret, maskSecret, isEncryptedSecret, isCloudAiAllowed, CLOUD_AI_PROVIDERS } from '../Utils/secretCrypto.js';
+import {
+  encryptSecret,
+  maskSecret,
+  isEncryptedSecret,
+  isCloudAiAllowed,
+  CLOUD_AI_PROVIDERS,
+} from '../Utils/secretCrypto.js';
 
 const VALID_PROVIDERS = ['openai', 'deepseek', 'doubao', 'gemini', 'kimi', 'aliyun', 'custom'];
 
@@ -13,7 +19,9 @@ const OLLAMA_DEFAULTS = {
 };
 
 class AIConfigController extends BaseController {
-  static get ControllerName() { return 'AIConfigController'; }
+  static get ControllerName() {
+    return 'AIConfigController';
+  }
 
   static async listConfigs(ctx) {
     try {
@@ -21,7 +29,7 @@ class AIConfigController extends BaseController {
 
       const safeConfigs = configs.map(config => {
         const obj = config.toObject();
-        const plainHint = isEncryptedSecret(obj.api_key) ? '********' : (obj.api_key || '');
+        const plainHint = isEncryptedSecret(obj.api_key) ? '********' : obj.api_key || '';
         return {
           ...obj,
           api_key: plainHint ? maskSecret(plainHint, 4) : '',
@@ -34,9 +42,7 @@ class AIConfigController extends BaseController {
       logger.error({ error }, 'List AI configs error');
       ctx.status = 500;
       ctx.body = AIConfigController.error(
-        process.env.NODE_ENV === 'production'
-          ? '获取AI配置失败'
-          : error.message || '获取AI配置失败'
+        process.env.NODE_ENV === 'production' ? '获取AI配置失败' : error.message || '获取AI配置失败'
       );
     }
   }
@@ -54,15 +60,15 @@ class AIConfigController extends BaseController {
       }
 
       const obj = config.toObject();
-      obj.api_key = obj.api_key ? maskSecret(isEncryptedSecret(obj.api_key) ? '********' : obj.api_key, 4) : '';
+      obj.api_key = obj.api_key
+        ? maskSecret(isEncryptedSecret(obj.api_key) ? '********' : obj.api_key, 4)
+        : '';
       ctx.body = AIConfigController.success(obj);
     } catch (error) {
       logger.error({ error }, 'Get AI config error');
       ctx.status = 500;
       ctx.body = AIConfigController.error(
-        process.env.NODE_ENV === 'production'
-          ? '获取AI配置失败'
-          : error.message || '获取AI配置失败'
+        process.env.NODE_ENV === 'production' ? '获取AI配置失败' : error.message || '获取AI配置失败'
       );
     }
   }
@@ -70,7 +76,18 @@ class AIConfigController extends BaseController {
   static async saveConfig(ctx) {
     try {
       const user = ctx.state.user;
-      const { provider, name, enabled, api_key, api_endpoint, model, max_tokens, temperature, timeout, config } = ctx.request.body;
+      const {
+        provider,
+        name,
+        enabled,
+        api_key,
+        api_endpoint,
+        model,
+        max_tokens,
+        temperature,
+        timeout,
+        config,
+      } = ctx.request.body;
 
       if (!provider) {
         ctx.status = 400;
@@ -93,15 +110,16 @@ class AIConfigController extends BaseController {
       let aiConfig = await AIConfig.findOne({ provider });
 
       const applyDefaults = provider === 'custom';
-      const resolvedEndpoint = api_endpoint !== undefined
-        ? api_endpoint
-        : (applyDefaults ? OLLAMA_DEFAULTS.api_endpoint : '');
-      const resolvedModel = model !== undefined
-        ? model
-        : (applyDefaults ? OLLAMA_DEFAULTS.model : '');
-      const resolvedName = name !== undefined
-        ? name
-        : (applyDefaults ? OLLAMA_DEFAULTS.name : provider);
+      const resolvedEndpoint =
+        api_endpoint !== undefined
+          ? api_endpoint
+          : applyDefaults
+            ? OLLAMA_DEFAULTS.api_endpoint
+            : '';
+      const resolvedModel =
+        model !== undefined ? model : applyDefaults ? OLLAMA_DEFAULTS.model : '';
+      const resolvedName =
+        name !== undefined ? name : applyDefaults ? OLLAMA_DEFAULTS.name : provider;
 
       let encryptedKey;
       if (api_key !== undefined && api_key !== '' && !String(api_key).includes('...')) {
@@ -143,9 +161,7 @@ class AIConfigController extends BaseController {
       logger.error({ error }, 'Save AI config error');
       ctx.status = 500;
       ctx.body = AIConfigController.error(
-        process.env.NODE_ENV === 'production'
-          ? '保存AI配置失败'
-          : error.message || '保存AI配置失败'
+        process.env.NODE_ENV === 'production' ? '保存AI配置失败' : error.message || '保存AI配置失败'
       );
     }
   }
@@ -161,9 +177,7 @@ class AIConfigController extends BaseController {
       logger.error({ error }, 'Delete AI config error');
       ctx.status = 500;
       ctx.body = AIConfigController.error(
-        process.env.NODE_ENV === 'production'
-          ? '删除AI配置失败'
-          : error.message || '删除AI配置失败'
+        process.env.NODE_ENV === 'production' ? '删除AI配置失败' : error.message || '删除AI配置失败'
       );
     }
   }
@@ -196,9 +210,7 @@ class AIConfigController extends BaseController {
       logger.error({ error }, 'Test AI config error');
       ctx.status = 500;
       ctx.body = AIConfigController.error(
-        process.env.NODE_ENV === 'production'
-          ? 'AI配置测试失败'
-          : error.message || 'AI配置测试失败'
+        process.env.NODE_ENV === 'production' ? 'AI配置测试失败' : error.message || 'AI配置测试失败'
       );
     }
   }

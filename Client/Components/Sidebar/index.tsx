@@ -15,6 +15,7 @@ import {
   ExperimentOutlined,
   CodeOutlined,
   RadarChartOutlined,
+  BugOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import Logo from '../Logo';
@@ -31,7 +32,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
   const { t } = useTranslation();
   const user = useSelector((state: RootState) => state.user.user);
   const testPipelineRunning = useSelector((state: RootState) => state.ui.testPipelineRunning);
-  
+
   // 根据当前路径确定打开的菜单项
   const getOpenKeys = () => {
     const keys: string[] = [];
@@ -39,8 +40,8 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
       keys.push('/admin');
     }
     if (
-      location.pathname.startsWith('/admin/code') || 
-      location.pathname === '/project' || 
+      location.pathname.startsWith('/admin/code') ||
+      location.pathname === '/project' ||
       location.pathname === '/project/list' ||
       location.pathname.startsWith('/project/') ||
       location.pathname === '/interface' ||
@@ -54,15 +55,17 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
       location.pathname === '/test-pipeline' ||
       location.pathname.startsWith('/test-pipeline/') ||
       location.pathname === '/monitors' ||
-      location.pathname.startsWith('/monitors/')
+      location.pathname.startsWith('/monitors/') ||
+      location.pathname === '/bugs' ||
+      location.pathname.startsWith('/bugs/')
     ) {
       keys.push('/project');
     }
     return keys;
   };
-  
+
   const [openKeys, setOpenKeys] = React.useState<string[]>(getOpenKeys());
-  
+
   // 当路径变化时更新打开的菜单项
   React.useEffect(() => {
     setOpenKeys(getOpenKeys());
@@ -84,7 +87,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
       }
     }
   }, [user]);
-  
+
   // 构建系统管理子菜单项
   const adminMenuItems = [
     {
@@ -131,7 +134,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
 
   // 检查用户是否有权限查看系统管理菜单
   const isSuperAdmin = user?.role === 'super_admin';
-  
+
   const menuItems: MenuProps['items'] = [
     {
       key: '/group',
@@ -174,9 +177,9 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
           label: (
             <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               {testPipelineRunning && (
-                <Spin 
-                  size="small" 
-                  style={{ 
+                <Spin
+                  size="small"
+                  style={{
                     display: 'inline-block',
                   }}
                 />
@@ -189,6 +192,11 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
           key: '/monitors',
           icon: <RadarChartOutlined />,
           label: t('sidebar.monitors'),
+        },
+        {
+          key: '/bugs',
+          icon: <BugOutlined />,
+          label: t('sidebar.bugs'),
         },
         {
           key: '/admin/code',
@@ -250,27 +258,29 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
           padding: collapsed ? '0' : '0 16px',
           transition: 'background-color 0.2s',
         }}
-        onMouseEnter={(e) => {
+        onMouseEnter={e => {
           e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
         }}
-        onMouseLeave={(e) => {
+        onMouseLeave={e => {
           e.currentTarget.style.backgroundColor = 'transparent';
         }}
       >
         <Logo size={collapsed ? 32 : 28} collapsed={collapsed} />
         {!collapsed && (
-          <span style={{ 
-            fontSize: '18px',
-            fontWeight: 600,
-            letterSpacing: '0.5px',
-          }}>
+          <span
+            style={{
+              fontSize: '18px',
+              fontWeight: 600,
+              letterSpacing: '0.5px',
+            }}
+          >
             ApiAdmin
           </span>
         )}
       </div>
-      <div 
-        style={{ 
-          flex: 1, 
+      <div
+        style={{
+          flex: 1,
           overflowY: 'auto',
           overflowX: 'hidden',
           minHeight: 0,
@@ -297,4 +307,3 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed = false }) => {
 };
 
 export default Sidebar;
-

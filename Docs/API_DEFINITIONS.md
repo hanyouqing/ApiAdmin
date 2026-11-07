@@ -11,6 +11,7 @@
 ### 1.1 SSO 配置管理
 
 #### 获取 SSO 提供者列表
+
 ```
 GET /api/sso/providers
 Authorization: Bearer {token}
@@ -31,6 +32,7 @@ Response 200:
 ```
 
 #### 获取 SSO 提供者详情
+
 ```
 GET /api/sso/providers/:id
 Authorization: Bearer {token}
@@ -57,6 +59,7 @@ Response 200:
 ```
 
 #### 创建 SSO 提供者
+
 ```
 POST /api/sso/providers
 Authorization: Bearer {token}
@@ -115,6 +118,7 @@ Response 200:
 ```
 
 #### 更新 SSO 提供者
+
 ```
 PUT /api/sso/providers/:id
 Authorization: Bearer {token}
@@ -131,6 +135,7 @@ Response 200:
 ```
 
 #### 删除 SSO 提供者
+
 ```
 DELETE /api/sso/providers/:id
 Authorization: Bearer {token}
@@ -143,6 +148,7 @@ Response 200:
 ```
 
 #### 启用/禁用 SSO 提供者
+
 ```
 PATCH /api/sso/providers/:id/enable
 Authorization: Bearer {token}
@@ -161,6 +167,7 @@ Response 200:
 ```
 
 #### 发起 SSO 认证
+
 ```
 GET /api/sso/auth/:providerId
 Query Parameters:
@@ -170,6 +177,7 @@ Response 302: Redirect to SSO provider
 ```
 
 #### SSO 认证回调
+
 ```
 GET /api/sso/auth/:providerId/callback
 Query Parameters:
@@ -188,6 +196,7 @@ Response 302: Redirect to redirectUrl or /login?success=true
 ### 2.1 GitHub 登录
 
 #### 发起 GitHub 登录
+
 ```
 GET /api/auth/github
 Query Parameters:
@@ -197,6 +206,7 @@ Response 302: Redirect to GitHub OAuth
 ```
 
 #### GitHub 登录回调
+
 ```
 GET /api/auth/github/callback
 Query Parameters:
@@ -222,6 +232,7 @@ Response 200:
 ### 2.2 GitLab 登录
 
 #### 发起 GitLab 登录
+
 ```
 GET /api/auth/gitlab
 Query Parameters:
@@ -231,6 +242,7 @@ Response 302: Redirect to GitLab OAuth
 ```
 
 #### GitLab 登录回调
+
 ```
 GET /api/auth/gitlab/callback
 Query Parameters:
@@ -243,6 +255,7 @@ Response 200: (同 GitHub)
 ### 2.3 Gmail 登录
 
 #### 发起 Gmail 登录
+
 ```
 GET /api/auth/gmail
 Query Parameters:
@@ -252,6 +265,7 @@ Response 302: Redirect to Google OAuth
 ```
 
 #### Gmail 登录回调
+
 ```
 GET /api/auth/gmail/callback
 Query Parameters:
@@ -264,6 +278,7 @@ Response 200: (同 GitHub)
 ### 2.4 微信登录
 
 #### 发起微信登录
+
 ```
 GET /api/auth/wechat
 Query Parameters:
@@ -273,6 +288,7 @@ Response 302: Redirect to WeChat OAuth
 ```
 
 #### 微信登录回调
+
 ```
 GET /api/auth/wechat/callback
 Query Parameters:
@@ -285,6 +301,7 @@ Response 200: (同 GitHub)
 ### 2.5 手机号登录
 
 #### 发送手机验证码
+
 ```
 POST /api/auth/phone/send-code
 Content-Type: application/json
@@ -302,6 +319,7 @@ Response 200:
 ```
 
 #### 手机号登录
+
 ```
 POST /api/auth/phone/login
 Content-Type: application/json
@@ -325,6 +343,7 @@ Response 200:
 ### 2.6 邮箱验证码登录
 
 #### 发送邮箱验证码
+
 ```
 POST /api/auth/email/send-code
 Content-Type: application/json
@@ -342,6 +361,7 @@ Response 200:
 ```
 
 #### 邮箱验证码登录
+
 ```
 POST /api/auth/email/login
 Content-Type: application/json
@@ -369,6 +389,7 @@ Response 200:
 ### 3.1 白名单配置
 
 #### 获取白名单配置
+
 ```
 GET /api/whitelist/config
 Authorization: Bearer {token}
@@ -384,6 +405,7 @@ Response 200:
 ```
 
 #### 更新白名单配置
+
 ```
 PUT /api/whitelist/config
 Authorization: Bearer {token}
@@ -405,6 +427,7 @@ Response 200:
 ### 3.2 白名单条目管理
 
 #### 获取白名单列表
+
 ```
 GET /api/whitelist/entries
 Authorization: Bearer {token}
@@ -443,6 +466,7 @@ Response 200:
 ```
 
 #### 添加白名单条目
+
 ```
 POST /api/whitelist/entries
 Authorization: Bearer {token}
@@ -467,6 +491,7 @@ Response 200:
 ```
 
 #### 批量添加白名单条目
+
 ```
 POST /api/whitelist/entries/batch
 Authorization: Bearer {token}
@@ -496,6 +521,7 @@ Response 200:
 ```
 
 #### 更新白名单条目
+
 ```
 PUT /api/whitelist/entries/:id
 Authorization: Bearer {token}
@@ -517,6 +543,7 @@ Response 200:
 ```
 
 #### 删除白名单条目
+
 ```
 DELETE /api/whitelist/entries/:id
 Authorization: Bearer {token}
@@ -529,6 +556,7 @@ Response 200:
 ```
 
 #### 批量删除白名单条目
+
 ```
 DELETE /api/whitelist/entries
 Authorization: Bearer {token}
@@ -550,6 +578,7 @@ Response 200:
 ```
 
 #### 检查值是否在白名单中
+
 ```
 POST /api/whitelist/entries/check
 Authorization: Bearer {token}
@@ -578,6 +607,7 @@ Response 200:
 ### 4.1 邮件服务配置
 
 #### 获取邮件服务配置
+
 ```
 GET /api/email/config
 Authorization: Bearer {token}
@@ -618,6 +648,7 @@ Response 200:
 ```
 
 #### 更新邮件服务配置
+
 ```
 PUT /api/email/config
 Authorization: Bearer {token}
@@ -644,6 +675,7 @@ Response 200:
 ```
 
 #### 测试邮件发送
+
 ```
 POST /api/email/test
 Authorization: Bearer {token}
@@ -666,6 +698,7 @@ Response 200:
 ### 4.2 邮件模板管理
 
 #### 获取邮件模板列表
+
 ```
 GET /api/email/templates
 Authorization: Bearer {token}
@@ -690,6 +723,7 @@ Response 200:
 ```
 
 #### 获取邮件模板详情
+
 ```
 GET /api/email/templates/:id
 Authorization: Bearer {token}
@@ -702,6 +736,7 @@ Response 200:
 ```
 
 #### 创建邮件模板
+
 ```
 POST /api/email/templates
 Authorization: Bearer {token}
@@ -726,6 +761,7 @@ Response 200:
 ```
 
 #### 更新邮件模板
+
 ```
 PUT /api/email/templates/:id
 Authorization: Bearer {token}
@@ -742,6 +778,7 @@ Response 200:
 ```
 
 #### 删除邮件模板
+
 ```
 DELETE /api/email/templates/:id
 Authorization: Bearer {token}
@@ -754,6 +791,7 @@ Response 200:
 ```
 
 #### 发送邮件（使用模板）
+
 ```
 POST /api/email/send
 Authorization: Bearer {token}
@@ -795,6 +833,7 @@ Response 200:
 ### 5.1 插件管理
 
 #### 获取插件列表
+
 ```
 GET /api/plugins
 Authorization: Bearer {token}
@@ -840,6 +879,7 @@ Response 200:
 ```
 
 #### 获取插件详情
+
 ```
 GET /api/plugins/:id
 Authorization: Bearer {token}
@@ -852,6 +892,7 @@ Response 200:
 ```
 
 #### 安装插件（本地）
+
 ```
 POST /api/plugins/install/local
 Authorization: Bearer {token}
@@ -871,6 +912,7 @@ Response 200:
 ```
 
 #### 安装插件（远程 - npm）
+
 ```
 POST /api/plugins/install/npm
 Authorization: Bearer {token}
@@ -891,6 +933,7 @@ Response 200:
 ```
 
 #### 安装插件（远程 - Git）
+
 ```
 POST /api/plugins/install/git
 Authorization: Bearer {token}
@@ -912,6 +955,7 @@ Response 200:
 ```
 
 #### 安装插件（文件上传）
+
 ```
 POST /api/plugins/install/upload
 Authorization: Bearer {token}
@@ -929,6 +973,7 @@ Response 200:
 ```
 
 #### 卸载插件
+
 ```
 DELETE /api/plugins/:id
 Authorization: Bearer {token}
@@ -941,6 +986,7 @@ Response 200:
 ```
 
 #### 启用/禁用插件
+
 ```
 PATCH /api/plugins/:id/enable
 Authorization: Bearer {token}
@@ -959,6 +1005,7 @@ Response 200:
 ```
 
 #### 更新插件
+
 ```
 POST /api/plugins/:id/update
 Authorization: Bearer {token}
@@ -978,6 +1025,7 @@ Response 200:
 ```
 
 #### 检查插件更新
+
 ```
 GET /api/plugins/:id/check-update
 Authorization: Bearer {token}
@@ -995,6 +1043,7 @@ Response 200:
 ```
 
 #### 批量检查更新
+
 ```
 POST /api/plugins/check-updates
 Authorization: Bearer {token}
@@ -1016,6 +1065,7 @@ Response 200:
 ### 5.2 插件配置
 
 #### 获取插件配置
+
 ```
 GET /api/plugins/:id/config
 Authorization: Bearer {token}
@@ -1031,6 +1081,7 @@ Response 200:
 ```
 
 #### 更新插件配置
+
 ```
 PUT /api/plugins/:id/config
 Authorization: Bearer {token}
@@ -1052,6 +1103,7 @@ Response 200:
 ### 5.3 插件 Hook 管理
 
 #### 获取插件 Hook 列表
+
 ```
 GET /api/plugins/:id/hooks
 Authorization: Bearer {token}
@@ -1073,6 +1125,7 @@ Response 200:
 ```
 
 #### 启用/禁用 Hook
+
 ```
 PATCH /api/plugins/:id/hooks/:hookName/enable
 Authorization: Bearer {token}
@@ -1097,6 +1150,7 @@ Response 200:
 ### 6.1 CLI Token 管理
 
 #### 生成 CLI Token
+
 ```
 POST /api/cicd/tokens
 Authorization: Bearer {token}
@@ -1125,6 +1179,7 @@ Response 200:
 ```
 
 #### 获取 CLI Token 列表
+
 ```
 GET /api/cicd/tokens
 Authorization: Bearer {token}
@@ -1146,6 +1201,7 @@ Response 200:
 ```
 
 #### 删除 CLI Token
+
 ```
 DELETE /api/cicd/tokens/:id
 Authorization: Bearer {token}
@@ -1160,6 +1216,7 @@ Response 200:
 ### 6.2 测试执行（CLI）
 
 #### 执行测试集合（CLI）
+
 ```
 POST /api/cicd/test/run
 Authorization: Bearer {cliToken}
@@ -1186,6 +1243,7 @@ Response 200:
 ```
 
 #### Swagger 同步（CLI）
+
 ```
 POST /api/cicd/sync/swagger
 Authorization: Bearer {cliToken}
@@ -1217,6 +1275,7 @@ Response 200:
 ### 7.1 自动测试配置
 
 #### 获取自动测试配置
+
 ```
 GET /api/auto-test/config
 Authorization: Bearer {token}
@@ -1239,6 +1298,7 @@ Response 200:
 ```
 
 #### 更新自动测试配置
+
 ```
 PUT /api/auto-test/config
 Authorization: Bearer {token}
@@ -1266,6 +1326,7 @@ Response 200:
 ### 7.2 自动测试用例生成
 
 #### 为导入的接口生成测试用例
+
 ```
 POST /api/auto-test/generate
 Authorization: Bearer {token}
@@ -1299,6 +1360,7 @@ Response 200:
 ```
 
 #### 执行导入接口的自动测试
+
 ```
 POST /api/auto-test/run
 Authorization: Bearer {token}
@@ -1354,6 +1416,7 @@ Response 200:
 ### 8.1 系统消息
 
 #### 获取消息列表
+
 ```
 GET /api/notifications
 Authorization: Bearer {token}
@@ -1386,6 +1449,7 @@ Response 200:
 ```
 
 #### 标记消息为已读
+
 ```
 PATCH /api/notifications/:id/read
 Authorization: Bearer {token}
@@ -1398,6 +1462,7 @@ Response 200:
 ```
 
 #### 标记所有消息为已读
+
 ```
 PATCH /api/notifications/read-all
 Authorization: Bearer {token}
@@ -1413,6 +1478,7 @@ Response 200:
 ```
 
 #### 删除消息
+
 ```
 DELETE /api/notifications/:id
 Authorization: Bearer {token}
@@ -1427,6 +1493,7 @@ Response 200:
 ### 8.2 通知设置
 
 #### 获取通知设置
+
 ```
 GET /api/notifications/settings
 Authorization: Bearer {token}
@@ -1456,6 +1523,7 @@ Response 200:
 ```
 
 #### 更新通知设置
+
 ```
 PUT /api/notifications/settings
 Authorization: Bearer {token}
@@ -1482,6 +1550,7 @@ Response 200:
 ### 9.1 全局搜索
 
 #### 全局搜索
+
 ```
 GET /api/search
 Authorization: Bearer {token}
@@ -1513,6 +1582,7 @@ Response 200:
 ```
 
 #### 搜索建议
+
 ```
 GET /api/search/suggestions
 Authorization: Bearer {token}
@@ -1534,6 +1604,7 @@ Response 200:
 ```
 
 #### 搜索历史
+
 ```
 GET /api/search/history
 Authorization: Bearer {token}
@@ -1554,6 +1625,7 @@ Response 200:
 ```
 
 #### 清除搜索历史
+
 ```
 DELETE /api/search/history
 Authorization: Bearer {token}
@@ -1572,6 +1644,7 @@ Response 200:
 ### 10.1 关注管理
 
 #### 关注项目
+
 ```
 POST /api/projects/:projectId/follow
 Authorization: Bearer {token}
@@ -1584,6 +1657,7 @@ Response 200:
 ```
 
 #### 取消关注项目
+
 ```
 DELETE /api/projects/:projectId/follow
 Authorization: Bearer {token}
@@ -1596,6 +1670,7 @@ Response 200:
 ```
 
 #### 获取关注的项目列表
+
 ```
 GET /api/projects/following
 Authorization: Bearer {token}
@@ -1622,6 +1697,7 @@ Response 200:
 ```
 
 #### 检查是否关注项目
+
 ```
 GET /api/projects/:projectId/following
 Authorization: Bearer {token}
@@ -1643,6 +1719,7 @@ Response 200:
 ### 11.1 日志查询
 
 #### 获取操作日志
+
 ```
 GET /api/logs
 Authorization: Bearer {token}
@@ -1681,6 +1758,7 @@ Response 200:
 ```
 
 #### 导出操作日志
+
 ```
 GET /api/logs/export
 Authorization: Bearer {token}
@@ -1705,6 +1783,7 @@ Content-Disposition: attachment; filename="logs.csv"
 ### 12.1 我的项目
 
 #### 获取我参与的项目
+
 ```
 GET /api/user/projects
 Authorization: Bearer {token}
@@ -1734,6 +1813,7 @@ Response 200:
 ### 12.2 操作统计
 
 #### 获取个人操作统计
+
 ```
 GET /api/user/stats
 Authorization: Bearer {token}
@@ -1771,6 +1851,7 @@ Response 200:
 ### 13.1 项目 Token 认证
 
 所有 OpenAPI 接口使用项目 Token 进行认证：
+
 ```
 Authorization: Bearer {projectToken}
 ```
@@ -1778,6 +1859,7 @@ Authorization: Bearer {projectToken}
 ### 13.2 接口管理
 
 #### 获取接口列表
+
 ```
 GET /api/openapi/interfaces
 Authorization: Bearer {projectToken}
@@ -1799,6 +1881,7 @@ Response 200:
 ```
 
 #### 获取接口详情
+
 ```
 GET /api/openapi/interfaces/:id
 Authorization: Bearer {projectToken}
@@ -1811,6 +1894,7 @@ Response 200:
 ```
 
 #### 创建接口
+
 ```
 POST /api/openapi/interfaces
 Authorization: Bearer {projectToken}
@@ -1826,6 +1910,7 @@ Response 200:
 ```
 
 #### 更新接口
+
 ```
 PUT /api/openapi/interfaces/:id
 Authorization: Bearer {projectToken}
@@ -1841,6 +1926,7 @@ Response 200:
 ```
 
 #### 删除接口
+
 ```
 DELETE /api/openapi/interfaces/:id
 Authorization: Bearer {projectToken}
@@ -1855,6 +1941,7 @@ Response 200:
 ### 13.3 项目 Token 管理
 
 #### 生成项目 Token
+
 ```
 POST /api/projects/:projectId/tokens
 Authorization: Bearer {token}
@@ -1880,6 +1967,7 @@ Response 200:
 ```
 
 #### 获取项目 Token 列表
+
 ```
 GET /api/projects/:projectId/tokens
 Authorization: Bearer {token}
@@ -1900,6 +1988,7 @@ Response 200:
 ```
 
 #### 删除项目 Token
+
 ```
 DELETE /api/projects/:projectId/tokens/:tokenId
 Authorization: Bearer {token}
@@ -1918,6 +2007,7 @@ Response 200:
 ### 14.1 文档发布
 
 #### 发布项目文档
+
 ```
 POST /api/projects/:projectId/docs/publish
 Authorization: Bearer {token}
@@ -1942,6 +2032,7 @@ Response 200:
 ```
 
 #### 获取文档发布历史
+
 ```
 GET /api/projects/:projectId/docs/versions
 Authorization: Bearer {token}
@@ -1966,6 +2057,7 @@ Response 200:
 ### 14.2 文档导出
 
 #### 导出文档为 PDF
+
 ```
 GET /api/projects/:projectId/docs/export/pdf
 Authorization: Bearer {token}
@@ -1981,6 +2073,7 @@ Content-Disposition: attachment; filename="documentation.pdf"
 ```
 
 #### 导出文档为 Word
+
 ```
 GET /api/projects/:projectId/docs/export/word
 Authorization: Bearer {token}
@@ -2002,6 +2095,7 @@ Content-Disposition: attachment; filename="documentation.docx"
 ### 15.1 项目健康度
 
 #### 获取项目健康度
+
 ```
 GET /api/projects/:projectId/health
 Authorization: Bearer {token}
@@ -2034,6 +2128,7 @@ Response 200:
 ### 15.2 接口质量分析
 
 #### 获取接口质量分析
+
 ```
 GET /api/interfaces/:id/quality
 Authorization: Bearer {token}
@@ -2066,6 +2161,7 @@ Response 200:
 ### 15.3 性能监控
 
 #### 获取 API 调用统计
+
 ```
 GET /api/monitor/stats/api-calls
 Authorization: Bearer {token}
@@ -2112,6 +2208,7 @@ Response 200:
 ```
 
 #### 获取响应时间分析
+
 ```
 GET /api/monitor/stats/response-time
 Authorization: Bearer {token}
@@ -2156,6 +2253,7 @@ Response 200:
 ```
 
 #### 获取错误率统计
+
 ```
 GET /api/monitor/stats/error-rate
 Authorization: Bearer {token}
@@ -2200,5 +2298,4 @@ Response 200:
 **创建日期**：2025-01-27  
 **最后更新**：2025-01-27
 
-*本文档定义了所有未实现功能的 API 端点。*
-
+_本文档定义了所有未实现功能的 API 端点。_

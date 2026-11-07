@@ -6,7 +6,9 @@ import { logger } from '../Utils/logger.js';
 import { logOperation } from '../Utils/operationLogger.js';
 
 class InterfaceCatController extends BaseController {
-  static get ControllerName() { return 'InterfaceCatController'; }
+  static get ControllerName() {
+    return 'InterfaceCatController';
+  }
   static async list(ctx) {
     try {
       const { project_id } = ctx.query;
@@ -32,8 +34,8 @@ class InterfaceCatController extends BaseController {
       logger.error({ error }, 'InterfaceCat list error');
       ctx.status = 500;
       ctx.body = InterfaceCatController.error(
-        process.env.NODE_ENV === 'production' 
-          ? '获取分类列表失败' 
+        process.env.NODE_ENV === 'production'
+          ? '获取分类列表失败'
           : error.message || '获取分类列表失败'
       );
     }
@@ -78,9 +80,7 @@ class InterfaceCatController extends BaseController {
         return;
       }
 
-      const isMember = project.member.some(
-        (memberId) => memberId.toString() === user._id.toString()
-      );
+      const isMember = project.member.some(memberId => memberId.toString() === user._id.toString());
       const isOwner = project.uid.toString() === user._id.toString();
       const isSuperAdmin = user.role === 'super_admin';
 
@@ -124,7 +124,7 @@ class InterfaceCatController extends BaseController {
       await cat.save();
 
       logger.info({ userId: user._id, catId: cat._id }, 'InterfaceCat created');
-      
+
       // 记录操作日志
       await logOperation({
         type: 'interface',
@@ -145,9 +145,7 @@ class InterfaceCatController extends BaseController {
       logger.error({ error }, 'InterfaceCat add error');
       ctx.status = 500;
       ctx.body = InterfaceCatController.error(
-        process.env.NODE_ENV === 'production' 
-          ? '创建失败' 
-          : error.message || '创建失败'
+        process.env.NODE_ENV === 'production' ? '创建失败' : error.message || '创建失败'
       );
     }
   }
@@ -176,7 +174,7 @@ class InterfaceCatController extends BaseController {
       }
 
       await cat.save();
-      
+
       // 记录操作日志
       await logOperation({
         type: 'interface',
@@ -228,9 +226,7 @@ class InterfaceCatController extends BaseController {
 
       const isOwner = cat.uid.toString() === user._id.toString();
       const isProjectOwner = project.uid.toString() === user._id.toString();
-      const isMember = project.member.some(
-        (memberId) => memberId.toString() === user._id.toString()
-      );
+      const isMember = project.member.some(memberId => memberId.toString() === user._id.toString());
       const isSuperAdmin = user.role === 'super_admin';
 
       if (!isOwner && !isProjectOwner && !isMember && !isSuperAdmin) {
@@ -243,7 +239,9 @@ class InterfaceCatController extends BaseController {
 
       if (interfaceCount > 0) {
         ctx.status = 400;
-        ctx.body = InterfaceCatController.error(`该分类下还有${interfaceCount}个接口，请先删除接口`);
+        ctx.body = InterfaceCatController.error(
+          `该分类下还有${interfaceCount}个接口，请先删除接口`
+        );
         return;
       }
 
@@ -252,7 +250,7 @@ class InterfaceCatController extends BaseController {
       await InterfaceCat.findByIdAndDelete(_id);
 
       logger.info({ userId: user._id, catId: _id }, 'InterfaceCat deleted');
-      
+
       // 记录操作日志
       await logOperation({
         type: 'interface',
@@ -272,13 +270,10 @@ class InterfaceCatController extends BaseController {
       logger.error({ error }, 'InterfaceCat delete error');
       ctx.status = 500;
       ctx.body = InterfaceCatController.error(
-        process.env.NODE_ENV === 'production' 
-          ? '删除失败' 
-          : error.message || '删除失败'
+        process.env.NODE_ENV === 'production' ? '删除失败' : error.message || '删除失败'
       );
     }
   }
 }
 
 export default InterfaceCatController;
-

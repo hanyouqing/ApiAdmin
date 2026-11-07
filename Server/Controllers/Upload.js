@@ -4,7 +4,9 @@ import { logger } from '../Utils/logger.js';
 import path from 'path';
 
 class UploadController extends BaseController {
-  static get ControllerName() { return 'UploadController'; }
+  static get ControllerName() {
+    return 'UploadController';
+  }
   static async uploadFile(ctx) {
     try {
       const user = ctx.state.user;
@@ -34,9 +36,7 @@ class UploadController extends BaseController {
       logger.error({ error }, 'File upload error');
       ctx.status = 500;
       ctx.body = UploadController.error(
-        process.env.NODE_ENV === 'production' 
-          ? '上传失败' 
-          : error.message || '上传失败'
+        process.env.NODE_ENV === 'production' ? '上传失败' : error.message || '上传失败'
       );
     }
   }
@@ -74,13 +74,10 @@ class UploadController extends BaseController {
       logger.error({ error }, 'Avatar upload error');
       ctx.status = 500;
       ctx.body = UploadController.error(
-        process.env.NODE_ENV === 'production' 
-          ? '上传失败' 
-          : error.message || '上传失败'
+        process.env.NODE_ENV === 'production' ? '上传失败' : error.message || '上传失败'
       );
     }
   }
 }
 
 export default UploadController;
-

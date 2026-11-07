@@ -25,12 +25,12 @@ interface AuthenticatedContext extends Koa.Context {
 }
 
 const createActivity = async (
-  projectId: mongoose.Types.ObjectId | string, 
-  userId: mongoose.Types.ObjectId | string, 
-  action: string, 
-  targetType: string, 
-  targetId: mongoose.Types.ObjectId | string | null, 
-  description: string, 
+  projectId: mongoose.Types.ObjectId | string,
+  userId: mongoose.Types.ObjectId | string,
+  action: string,
+  targetType: string,
+  targetId: mongoose.Types.ObjectId | string | null,
+  description: string,
   metadata: any = {}
 ) => {
   try {
@@ -75,10 +75,12 @@ class InterfaceController extends BaseController {
           const Project = (await import('../Models/Project.js')).default;
           const userProjects = await Project.find({
             $or: [{ uid: userId }, { member: userId }],
-          }).select('_id').lean();
-          
+          })
+            .select('_id')
+            .lean();
+
           const projectIds = userProjects.map((p: any) => p._id);
-          
+
           if (projectIds.length === 0) {
             ctx.body = InterfaceController.success([]);
             return;
@@ -91,21 +93,21 @@ class InterfaceController extends BaseController {
           ctx.body = InterfaceController.error('无效的项目ID');
           return;
         }
-        
+
         if (user.role !== 'super_admin') {
           const Project = (await import('../Models/Project.js')).default;
           const project = await Project.findOne({
             _id: project_id,
             $or: [{ uid: userId }, { member: userId }],
           });
-          
+
           if (!project) {
             ctx.status = 403;
             ctx.body = InterfaceController.error('无权限访问该项目');
             return;
           }
         }
-        
+
         query.project_id = new mongoose.Types.ObjectId(project_id as string);
       }
 
@@ -192,9 +194,16 @@ class InterfaceController extends BaseController {
       await interfaceData.save();
 
       // @ts-ignore
-      await createActivity(interfaceData.project_id, user._id, 'interface.created', 'interface', interfaceData._id, `创建了接口 ${title}`);
+      await createActivity(
+        interfaceData.project_id,
+        user._id,
+        'interface.created',
+        'interface',
+        interfaceData._id,
+        `创建了接口 ${title}`
+      );
       await executeInterfaceCreateHook(interfaceData, user);
-      
+
       await logOperation({
         type: 'interface',
         action: 'create',
@@ -262,9 +271,16 @@ class InterfaceController extends BaseController {
       await interfaceData.save();
 
       // @ts-ignore
-      await createActivity(interfaceData.project_id, user._id, 'interface.updated', 'interface', interfaceData._id, `更新了接口 ${interfaceData.title}`);
+      await createActivity(
+        interfaceData.project_id,
+        user._id,
+        'interface.updated',
+        'interface',
+        interfaceData._id,
+        `更新了接口 ${interfaceData.title}`
+      );
       await executeInterfaceUpdateHook(interfaceData, user, oldData);
-      
+
       await logOperation({
         type: 'interface',
         action: 'update',
@@ -322,8 +338,15 @@ class InterfaceController extends BaseController {
       await Interface.findByIdAndDelete(_id);
 
       // @ts-ignore
-      await createActivity(projectId, user._id, 'interface.deleted', 'interface', _id, `删除了接口 ${interfaceTitle}`);
-      
+      await createActivity(
+        projectId,
+        user._id,
+        'interface.deleted',
+        'interface',
+        _id,
+        `删除了接口 ${interfaceTitle}`
+      );
+
       // @ts-ignore
       await logOperation({
         type: 'interface',
@@ -459,7 +482,7 @@ class InterfaceController extends BaseController {
 
       let path = interfaceData.path;
       const pathParams = params.path || {};
-      Object.keys(pathParams).forEach((key) => {
+      Object.keys(pathParams).forEach(key => {
         path = path.replace(`{${key}}`, pathParams[key]);
       });
 
@@ -500,38 +523,55 @@ class InterfaceController extends BaseController {
         const duration = Date.now() - startTime;
 
         // @ts-ignore
-        await createActivity(interfaceData.project_id, user._id, 'interface.run', 'interface', _id, `运行了接口 ${interfaceData.title}`);
-        await executeInterfaceRunHook(interfaceData, { url, method: interfaceData.method, query, body, headers }, {
-          status: response.status,
-          statusText: response.statusText,
-          headers: response.headers,
-          data: response.data,
-          duration,
-        });
-
-        ctx.body = InterfaceController.success({
-          request: { url, method: interfaceData.method, query, body, headers },
-          response: {
+        await createActivity(
+          interfaceData.project_id,
+          user._id,
+          'interface.run',
+          'interface',
+          _id,
+          `运行了接口 ${interfaceData.title}`
+        );
+        await executeInterfaceRunHook(
+          interfaceData,
+          { url, method: interfaceData.method, query, body, headers },
+          {
             status: response.status,
             statusText: response.statusText,
             headers: response.headers,
             data: response.data,
             duration,
+          }
+        );
+
+        ctx.body = InterfaceController.success(
+          {
+            request: { url, method: interfaceData.method, query, body, headers },
+            response: {
+              status: response.status,
+              statusText: response.statusText,
+              headers: response.headers,
+              data: response.data,
+              duration,
+            },
           },
-        }, '运行成功');
+          '运行成功'
+        );
       } catch (error: any) {
         const duration = Date.now() - startTime;
-        ctx.body = InterfaceController.success({
-          request: { url, method: interfaceData.method, query, body, headers },
-          response: {
-            status: error.response?.status || 0,
-            statusText: error.response?.statusText || 'Error',
-            headers: error.response?.headers || {},
-            data: error.response?.data || { error: error.message },
-            duration,
+        ctx.body = InterfaceController.success(
+          {
+            request: { url, method: interfaceData.method, query, body, headers },
+            response: {
+              status: error.response?.status || 0,
+              statusText: error.response?.statusText || 'Error',
+              headers: error.response?.headers || {},
+              data: error.response?.data || { error: error.message },
+              duration,
+            },
+            error: { message: error.message, code: error.code },
           },
-          error: { message: error.message, code: error.code },
-        }, '运行完成（有错误）');
+          '运行完成（有错误）'
+        );
       }
     } catch (error: any) {
       ctx.status = 500;

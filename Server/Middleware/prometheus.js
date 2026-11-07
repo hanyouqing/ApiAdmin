@@ -45,38 +45,23 @@ export const prometheusMiddleware = async (ctx, next) => {
     const duration = (Date.now() - start) / 1000;
     const status = ctx.status;
 
-    httpRequestDuration.observe(
-      { method: ctx.method, route, status },
-      duration
-    );
+    httpRequestDuration.observe({ method: ctx.method, route, status }, duration);
     httpRequestTotal.inc({ method: ctx.method, route, status });
 
     if (ctx.request.length) {
-      httpRequestSize.observe(
-        { method: ctx.method, route },
-        ctx.request.length
-      );
+      httpRequestSize.observe({ method: ctx.method, route }, ctx.request.length);
     }
 
     if (ctx.response.length) {
-      httpResponseSize.observe(
-        { method: ctx.method, route },
-        ctx.response.length
-      );
+      httpResponseSize.observe({ method: ctx.method, route }, ctx.response.length);
     }
   } catch (error) {
     const duration = (Date.now() - start) / 1000;
     const status = ctx.status || 500;
 
-    httpRequestDuration.observe(
-      { method: ctx.method, route, status },
-      duration
-    );
+    httpRequestDuration.observe({ method: ctx.method, route, status }, duration);
     httpRequestTotal.inc({ method: ctx.method, route, status });
 
     throw error;
   }
 };
-
-
-

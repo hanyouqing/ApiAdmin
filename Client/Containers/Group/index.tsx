@@ -1,6 +1,25 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Button, Table, Space, Modal, Form, Input, message, List, Avatar, Tag, Tabs } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined, TeamOutlined } from '@ant-design/icons';
+import {
+  Card,
+  Button,
+  Table,
+  Space,
+  Modal,
+  Form,
+  Input,
+  message,
+  List,
+  Avatar,
+  Tag,
+  Tabs,
+} from 'antd';
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  UserOutlined,
+  TeamOutlined,
+} from '@ant-design/icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -171,18 +190,10 @@ const Group: React.FC = () => {
       width: 250,
       render: (_: any, record: Group) => (
         <Space>
-          <Button
-            type="link"
-            icon={<TeamOutlined />}
-            onClick={() => handleManageMembers(record)}
-          >
+          <Button type="link" icon={<TeamOutlined />} onClick={() => handleManageMembers(record)}>
             {t('group.manageMembers')}
           </Button>
-          <Button
-            type="link"
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-          >
+          <Button type="link" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
             {t('common.edit')}
           </Button>
           <Button
@@ -203,7 +214,12 @@ const Group: React.FC = () => {
       <Card
         title={t('group.title')}
         extra={
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate} style={{ color: '#ffffff' }}>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={handleCreate}
+            style={{ color: '#ffffff' }}
+          >
             {t('group.newGroup')}
           </Button>
         }
@@ -328,4 +344,3 @@ const Group: React.FC = () => {
 };
 
 export default Group;
-

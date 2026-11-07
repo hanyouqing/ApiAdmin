@@ -46,7 +46,15 @@ const OperationLog: React.FC = () => {
     if (user?.role === 'super_admin') {
       fetchLogs();
     }
-  }, [user, searchText, selectedUser, selectedAction, selectedType, pagination.page, pagination.pageSize]);
+  }, [
+    user,
+    searchText,
+    selectedUser,
+    selectedAction,
+    selectedType,
+    pagination.page,
+    pagination.pageSize,
+  ]);
 
   const fetchLogs = async () => {
     setLoading(true);
@@ -58,7 +66,7 @@ const OperationLog: React.FC = () => {
       if (selectedType) params.type = selectedType;
       if (selectedUser) params.userId = selectedUser;
       if (selectedAction) params.action = selectedAction;
-      
+
       const response = await api.get('/logs', { params });
       const data = response.data.data || {};
       setLogs(data.list || []);
@@ -79,10 +87,10 @@ const OperationLog: React.FC = () => {
       if (selectedType) params.type = selectedType;
       if (selectedUser) params.userId = selectedUser;
       if (selectedAction) params.action = selectedAction;
-      
-      const response = await api.get('/logs/export', { 
+
+      const response = await api.get('/logs/export', {
         params,
-        responseType: 'blob' 
+        responseType: 'blob',
       });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
@@ -128,13 +136,15 @@ const OperationLog: React.FC = () => {
       dataIndex: 'uri',
       key: 'uri',
       render: (uri: string) => (
-        <span style={{ 
-          fontFamily: 'monospace', 
-          fontSize: '12px',
-          wordBreak: 'break-all',
-          maxWidth: '300px',
-          display: 'inline-block'
-        }}>
+        <span
+          style={{
+            fontFamily: 'monospace',
+            fontSize: '12px',
+            wordBreak: 'break-all',
+            maxWidth: '300px',
+            display: 'inline-block',
+          }}
+        >
           {uri || '-'}
         </span>
       ),
@@ -148,7 +158,7 @@ const OperationLog: React.FC = () => {
       title: t('admin.operationLog.time'),
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (text: string) => text ? new Date(text).toLocaleString() : '-',
+      render: (text: string) => (text ? new Date(text).toLocaleString() : '-'),
     },
   ];
 
@@ -194,17 +204,17 @@ const OperationLog: React.FC = () => {
           <Option value="logout">{t('admin.operationLog.action.logout')}</Option>
         </Select>
       </Space>
-      <Table 
-        columns={columns} 
-        dataSource={logs} 
-        rowKey="_id" 
+      <Table
+        columns={columns}
+        dataSource={logs}
+        rowKey="_id"
         loading={loading}
         pagination={{
           current: pagination.page,
           pageSize: pagination.pageSize,
           total: pagination.total,
           showSizeChanger: true,
-          showTotal: (total) => `共 ${total} 条`,
+          showTotal: total => `共 ${total} 条`,
           onChange: (page, pageSize) => {
             setPagination({ ...pagination, page, pageSize });
           },
@@ -215,4 +225,3 @@ const OperationLog: React.FC = () => {
 };
 
 export default OperationLog;
-

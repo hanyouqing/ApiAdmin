@@ -15,16 +15,16 @@
 
 ## 支持的语言
 
-| 语言 | 标识 | 文件扩展名 |
-|------|------|-----------|
-| cURL | `curl` | `.sh` |
-| JavaScript | `javascript` | `.js` |
-| Python | `python` | `.py` |
-| Java | `java` | `.java` |
-| Go | `go` | `.go` |
-| PHP | `php` | `.php` |
-| Ruby | `ruby` | `.rb` |
-| Swift | `swift` | `.swift` |
+| 语言       | 标识         | 文件扩展名 |
+| ---------- | ------------ | ---------- |
+| cURL       | `curl`       | `.sh`      |
+| JavaScript | `javascript` | `.js`      |
+| Python     | `python`     | `.py`      |
+| Java       | `java`       | `.java`    |
+| Go         | `go`         | `.go`      |
+| PHP        | `php`        | `.php`     |
+| Ruby       | `ruby`       | `.rb`      |
+| Swift      | `swift`      | `.swift`   |
 
 ## 使用方法
 
@@ -85,12 +85,12 @@ POST /api/plugin/code-generator/generate
 const url = 'https://api.example.com/api/user/123?page=1';
 
 const headers = {
-  'Authorization': 'Bearer token'
+  Authorization: 'Bearer token',
 };
 
 fetch(url, {
   method: 'GET',
-  headers: headers
+  headers: headers,
 })
   .then(response => response.json())
   .then(data => console.log(data))
@@ -169,4 +169,3 @@ MIT
 ## 贡献
 
 欢迎提交 Issue 和 Pull Request！
-

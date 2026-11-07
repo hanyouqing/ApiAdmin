@@ -141,11 +141,7 @@ export class AnalyticsService {
   }
 
   // 错误率统计
-  async getErrorRate(
-    interfaceId: string,
-    startDate: Date,
-    endDate: Date
-  ): Promise<ErrorRateStats> {
+  async getErrorRate(interfaceId: string, startDate: Date, endDate: Date): Promise<ErrorRateStats> {
     const logs = await APICallLog.find({
       interfaceId,
       timestamp: { $gte: startDate, $lte: endDate },
@@ -304,7 +300,7 @@ program
   .option('-e, --env <env>', 'Environment name', 'default')
   .option('-o, --output <format>', 'Output format (json, junit, allure)', 'json')
   .option('-f, --file <file>', 'Output file path')
-  .action(async (options) => {
+  .action(async options => {
     await runTests(options);
   });
 
@@ -316,7 +312,7 @@ program
   .requiredOption('-p, --project <id>', 'Project ID')
   .option('-t, --token <token>', 'Project token')
   .option('--mode <mode>', 'Sync mode (normal, merge, overwrite)', 'normal')
-  .action(async (options) => {
+  .action(async options => {
     await syncSwagger(options);
   });
 
@@ -327,7 +323,7 @@ program
   .requiredOption('-p, --project <id>', 'Project ID')
   .option('-f, --format <format>', 'Export format (json, swagger, markdown)', 'json')
   .option('-o, --output <file>', 'Output file path')
-  .action(async (options) => {
+  .action(async options => {
     await exportData(options);
   });
 
@@ -338,7 +334,7 @@ program
   .requiredOption('-f, --file <file>', 'Import file path')
   .requiredOption('-p, --project <id>', 'Project ID')
   .option('-m, --mode <mode>', 'Import mode (normal, merge, overwrite)', 'normal')
-  .action(async (options) => {
+  .action(async options => {
     await importData(options);
   });
 
@@ -386,7 +382,7 @@ export async function runTests(options: {
     spinner.succeed('Tests completed');
 
     const report = response.data;
-    
+
     // 输出结果
     console.log(`\nTest Results:`);
     console.log(`  Total: ${report.total}`);
@@ -397,7 +393,7 @@ export async function runTests(options: {
     // 生成报告文件
     if (options.output && options.file) {
       let reportContent: string;
-      
+
       switch (options.output) {
         case 'junit':
           reportContent = generateJUnitReport(report);
@@ -431,27 +427,27 @@ name: API Tests
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main ]
+    branches: [main]
   schedule:
     - cron: '0 0 * * *' # 每天运行
 
 jobs:
   api-tests:
     runs-on: ubuntu-latest
-    
+
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
-      
+
       - name: Install ApiAdmin CLI
         run: npm install -g @apiadmin/cli
-      
+
       - name: Run API Tests
         env:
           APIADMIN_URL: ${{ secrets.APIADMIN_URL }}
@@ -462,13 +458,13 @@ jobs:
             --env production \
             --output junit \
             --file test-results.xml
-      
+
       - name: Publish Test Results
         uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
         with:
           files: test-results.xml
-      
+
       - name: Upload Allure Report
         uses: actions/upload-artifact@v3
         if: always()
@@ -483,13 +479,13 @@ jobs:
 // Jenkinsfile
 pipeline {
     agent any
-    
+
     environment {
         APIADMIN_URL = credentials('apiadmin-url')
         APIADMIN_TOKEN = credentials('apiadmin-token')
         TEST_COLLECTION_ID = 'your-collection-id'
     }
-    
+
     stages {
         stage('API Tests') {
             steps {
@@ -503,7 +499,7 @@ pipeline {
                 '''
             }
         }
-        
+
         stage('Publish Results') {
             steps {
                 junit 'test-results.xml'
@@ -515,7 +511,7 @@ pipeline {
             }
         }
     }
-    
+
     post {
         always {
             archiveArtifacts artifacts: 'test-results.xml', fingerprint: true
@@ -548,10 +544,10 @@ api-tests:
     - npm install -g @apiadmin/cli
   script:
     - apiadmin test
-        --collection $TEST_COLLECTION_ID
-        --env $ENVIRONMENT
-        --output junit
-        --file test-results.xml
+      --collection $TEST_COLLECTION_ID
+      --env $ENVIRONMENT
+      --output junit
+      --file test-results.xml
   artifacts:
     reports:
       junit: test-results.xml
@@ -659,7 +655,7 @@ export const TryItOut: React.FC<TryItOutProps> = ({ interface: api, environment 
     try {
       // 构建 URL
       let url = `${environment?.baseUrl || ''}${api.path}`;
-      
+
       // 替换路径参数
       if (values.pathParams) {
         Object.keys(values.pathParams).forEach(key => {
@@ -786,7 +782,7 @@ export class DocumentGenerator {
     theme?: DocumentTheme
   ): Promise<string> {
     const config = theme?.config || this.getDefaultTheme();
-    
+
     const template = `
       <!DOCTYPE html>
       <html>
@@ -827,20 +823,17 @@ import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 
 export class DocumentExportService {
   // 导出 PDF
-  async exportToPDF(
-    project: Project,
-    interfaces: Interface[]
-  ): Promise<Buffer> {
+  async exportToPDF(project: Project, interfaces: Interface[]): Promise<Buffer> {
     const html = await this.generateHTML(project, interfaces);
-    
+
     const browser = await puppeteer.launch({
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
     });
-    
+
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: 'networkidle0' });
-    
+
     const pdf = await page.pdf({
       format: 'A4',
       printBackground: true,
@@ -851,16 +844,13 @@ export class DocumentExportService {
         left: '15mm',
       },
     });
-    
+
     await browser.close();
     return pdf;
   }
 
   // 导出 Word
-  async exportToWord(
-    project: Project,
-    interfaces: Interface[]
-  ): Promise<Buffer> {
+  async exportToWord(project: Project, interfaces: Interface[]): Promise<Buffer> {
     const children: Paragraph[] = [
       new Paragraph({
         text: project.name,
@@ -901,9 +891,11 @@ export class DocumentExportService {
     });
 
     const doc = new Document({
-      sections: [{
-        children,
-      }],
+      sections: [
+        {
+          children,
+        },
+      ],
     });
 
     return await Packer.toBuffer(doc);
@@ -954,18 +946,21 @@ PUT    /api/document/theme/:projectId           # 更新主题配置
 ### 5.1 功能清单
 
 ✅ **性能监控与分析**
+
 - API 调用统计
 - 响应时间分析（P50/P95/P99）
 - 错误率统计
 - 使用趋势分析
 
 ✅ **CI/CD 深度集成**
+
 - CLI 命令行工具
 - GitHub Actions 集成
 - Jenkins 插件
 - GitLab CI 集成
 
 ✅ **高级文档功能**
+
 - 多版本文档对比
 - 交互式文档（Try it out）
 - 文档主题定制
@@ -983,4 +978,3 @@ PUT    /api/document/theme/:projectId           # 更新主题配置
 **文档版本**：v0.0.1
 **创建日期**：2025-01-27  
 **最后更新**：2025-01-27
-

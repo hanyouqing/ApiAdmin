@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Form, Input, Button, Card, App, Divider, Modal } from 'antd';
-import { UserOutlined, LockOutlined, GithubOutlined, MailOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
+import {
+  UserOutlined,
+  LockOutlined,
+  GithubOutlined,
+  MailOutlined,
+  SafetyCertificateOutlined,
+} from '@ant-design/icons';
 import { useDispatch } from 'react-redux';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -236,7 +242,13 @@ const Login: React.FC = () => {
           </Form.Item>
 
           <Form.Item>
-            <Button type="primary" htmlType="submit" block loading={loading} style={{ color: '#ffffff' }}>
+            <Button
+              type="primary"
+              htmlType="submit"
+              block
+              loading={loading}
+              style={{ color: '#ffffff' }}
+            >
               {t('auth.login')}
             </Button>
           </Form.Item>
@@ -255,7 +267,7 @@ const Login: React.FC = () => {
             <>
               <Divider>{t('auth.or')}</Divider>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {ssoProviders.map((provider) => (
+                {ssoProviders.map(provider => (
                   <Button
                     key={provider.id}
                     icon={<SafetyCertificateOutlined />}
@@ -265,7 +277,7 @@ const Login: React.FC = () => {
                     {t('auth.loginWith')} {provider.name}
                   </Button>
                 ))}
-                {thirdPartyProviders.map((provider) => (
+                {thirdPartyProviders.map(provider => (
                   <Button
                     key={provider.provider}
                     icon={
@@ -297,7 +309,11 @@ const Login: React.FC = () => {
         }}
         footer={null}
       >
-        <Form form={emailForm} layout="vertical" onFinish={codeSent ? handleEmailLogin : handleSendEmailCode}>
+        <Form
+          form={emailForm}
+          layout="vertical"
+          onFinish={codeSent ? handleEmailLogin : handleSendEmailCode}
+        >
           <Form.Item
             name="email"
             label={t('auth.email')}

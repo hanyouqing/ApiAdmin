@@ -60,9 +60,9 @@ const groupSlice = createSlice({
       state.currentGroup = action.payload;
     },
   },
-  extraReducers: (builder) => {
+  extraReducers: builder => {
     builder
-      .addCase(fetchGroups.pending, (state) => {
+      .addCase(fetchGroups.pending, state => {
         state.loading = true;
       })
       .addCase(fetchGroups.fulfilled, (state, action) => {
@@ -78,17 +78,16 @@ const groupSlice = createSlice({
         state.groups.push(action.payload);
       })
       .addCase(updateGroup.fulfilled, (state, action) => {
-        const index = state.groups.findIndex((g) => g._id === action.payload._id);
+        const index = state.groups.findIndex(g => g._id === action.payload._id);
         if (index !== -1) {
           state.groups[index] = action.payload;
         }
       })
       .addCase(deleteGroup.fulfilled, (state, action) => {
-        state.groups = state.groups.filter((g) => g._id !== action.payload);
+        state.groups = state.groups.filter(g => g._id !== action.payload);
       });
   },
 });
 
 export const { setCurrentGroup } = groupSlice.actions;
 export default groupSlice.reducer;
-

@@ -15,7 +15,7 @@ export const logger = pino({
         },
       },
   formatters: {
-    level: (label) => {
+    level: label => {
       return { level: label.toUpperCase() };
     },
   },
@@ -56,6 +56,3 @@ export const logError = (error, context = {}) => {
     'Error occurred'
   );
 };
-
-
-

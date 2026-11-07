@@ -33,7 +33,7 @@ export const login = createAsyncThunk(
     try {
       const response = await api.post('/user/login', credentials);
       const data = response.data.data || response.data;
-      
+
       // 确保 token 存在并正确存储
       if (data?.token) {
         localStorage.setItem('token', data.token);
@@ -42,7 +42,7 @@ export const login = createAsyncThunk(
         console.error('Login response missing token:', response.data);
         return rejectWithValue('登录响应缺少 token');
       }
-      
+
       return data;
     } catch (error: any) {
       // 登录失败时清除可能存在的旧 token
@@ -70,15 +70,15 @@ export const getUserInfo = createAsyncThunk('user/getInfo', async (_, { rejectWi
     if (!token) {
       return rejectWithValue('未找到认证令牌');
     }
-    
+
     const response = await api.get('/user/info');
     const data = response.data.data || response.data;
-    
+
     // 确保返回的数据包含用户信息
     if (!data) {
       return rejectWithValue('获取用户信息失败：响应数据为空');
     }
-    
+
     return data;
   } catch (error: any) {
     // 如果是 401 错误，清除 token
@@ -106,7 +106,7 @@ export const logout = createAsyncThunk('user/logout', async (_, { rejectWithValu
     await api.post('/user/logout');
     localStorage.removeItem('token');
   } catch (error: any) {
-  localStorage.removeItem('token');
+    localStorage.removeItem('token');
     return rejectWithValue(error.message || '退出失败');
   }
 });
@@ -115,13 +115,13 @@ const userSlice = createSlice({
   name: 'user',
   initialState,
   reducers: {
-    clearError: (state) => {
+    clearError: state => {
       state.error = null;
     },
   },
-  extraReducers: (builder) => {
+  extraReducers: builder => {
     builder
-      .addCase(login.pending, (state) => {
+      .addCase(login.pending, state => {
         state.loading = true;
         state.error = null;
       })
@@ -144,18 +144,18 @@ const userSlice = createSlice({
         state.loading = false;
         state.error = action.error.message || '登录失败';
       })
-      .addCase(register.pending, (state) => {
+      .addCase(register.pending, state => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(register.fulfilled, (state) => {
+      .addCase(register.fulfilled, state => {
         state.loading = false;
       })
       .addCase(register.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || '注册失败';
       })
-      .addCase(getUserInfo.pending, (state) => {
+      .addCase(getUserInfo.pending, state => {
         state.loading = true;
         state.error = null;
       })
@@ -190,7 +190,7 @@ const userSlice = createSlice({
           state.user = { ...state.user, ...action.payload };
         }
       })
-      .addCase(logout.fulfilled, (state) => {
+      .addCase(logout.fulfilled, state => {
         state.user = null;
         state.isAuthenticated = false;
         state.token = null;
@@ -200,4 +200,3 @@ const userSlice = createSlice({
 
 export const { clearError } = userSlice.actions;
 export default userSlice.reducer;
-

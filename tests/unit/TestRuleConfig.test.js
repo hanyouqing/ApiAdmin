@@ -94,7 +94,12 @@ describe('TestRuleConfigController', () => {
         },
       ]);
 
-      const ctx = createMockCtx({}, { projectId: testProject._id.toString(), type: 'assertion' }, {}, testUser);
+      const ctx = createMockCtx(
+        {},
+        { projectId: testProject._id.toString(), type: 'assertion' },
+        {},
+        testUser
+      );
       await TestRuleConfigController.listRules(ctx);
 
       expect(ctx.status).toBe(200);
@@ -360,5 +365,3 @@ describe('TestRuleConfigController', () => {
     });
   });
 });
-
-

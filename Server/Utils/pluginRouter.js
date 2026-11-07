@@ -58,12 +58,12 @@ async function createPluginRouteHandler(route) {
 
       if (route.validation && Object.keys(route.validation).length > 0) {
         const validation = route.validation;
-        
+
         if (validation.body) {
           const Ajv = (await import('ajv')).default;
           const ajv = new Ajv();
           const validate = ajv.compile(validation.body);
-          
+
           if (!validate(ctx.request.body)) {
             ctx.status = 400;
             ctx.body = {
@@ -79,7 +79,7 @@ async function createPluginRouteHandler(route) {
           const Ajv = (await import('ajv')).default;
           const ajv = new Ajv();
           const validate = ajv.compile(validation.query);
-          
+
           if (!validate(ctx.query)) {
             ctx.status = 400;
             ctx.body = {
@@ -98,9 +98,7 @@ async function createPluginRouteHandler(route) {
       ctx.status = 500;
       ctx.body = {
         success: false,
-        message: process.env.NODE_ENV === 'production' 
-          ? 'Internal server error' 
-          : error.message,
+        message: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message,
       };
     }
   };
@@ -115,9 +113,9 @@ export async function registerPluginRoutes(mainRouter) {
   for (const route of routes) {
     try {
       const handler = await createPluginRouteHandler(route);
-      
+
       const middlewares = [];
-      
+
       if (route.middleware && Array.isArray(route.middleware)) {
         for (const mwName of route.middleware) {
           if (mwName === 'auth') {
@@ -148,16 +146,16 @@ export async function registerPluginRoutes(mainRouter) {
           logger.warn({ method: route.method, path: route.path }, 'Unsupported HTTP method');
       }
 
-      logger.info({ 
-        pluginName: route.pluginName, 
-        method: route.method, 
-        path: route.path 
-      }, 'Plugin route registered');
+      logger.info(
+        {
+          pluginName: route.pluginName,
+          method: route.method,
+          path: route.path,
+        },
+        'Plugin route registered'
+      );
     } catch (error) {
       logger.error({ error, route: route.path }, 'Failed to register plugin route');
     }
   }
 }
-
-
-

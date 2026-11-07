@@ -10,12 +10,12 @@
 
 ### 1.1 支持的邮件服务商
 
-| 服务商 | 类型 | 适用场景 | 优先级 |
-|:---|:---|:---|:---:|
-| **SMTP** | 通用协议 | 自建邮件服务器、Gmail、Outlook | 🔴 高 |
-| **SendGrid** | 第三方服务 | 高可用、批量发送 | 🟡 中 |
-| **AWS SES** | 云服务 | AWS 生态、低成本 | 🟡 中 |
-| **阿里云邮件推送** | 国内服务 | 国内用户、合规要求 | 🟡 中 |
+| 服务商             | 类型       | 适用场景                       | 优先级 |
+| :----------------- | :--------- | :----------------------------- | :----: |
+| **SMTP**           | 通用协议   | 自建邮件服务器、Gmail、Outlook | 🔴 高  |
+| **SendGrid**       | 第三方服务 | 高可用、批量发送               | 🟡 中  |
+| **AWS SES**        | 云服务     | AWS 生态、低成本               | 🟡 中  |
+| **阿里云邮件推送** | 国内服务   | 国内用户、合规要求             | 🟡 中  |
 
 ### 1.2 技术实现
 
@@ -286,31 +286,19 @@ export async function metricsMiddleware(ctx: Context, next: Next) {
     const status = ctx.status.toString();
 
     // 记录指标
-    httpRequestDuration.observe(
-      { method: ctx.method, route, status },
-      duration
-    );
+    httpRequestDuration.observe({ method: ctx.method, route, status }, duration);
     httpRequestTotal.inc({ method: ctx.method, route, status });
 
     if (ctx.request.length) {
-      httpRequestSize.observe(
-        { method: ctx.method, route },
-        ctx.request.length
-      );
+      httpRequestSize.observe({ method: ctx.method, route }, ctx.request.length);
     }
 
     if (ctx.response.length) {
-      httpResponseSize.observe(
-        { method: ctx.method, route },
-        ctx.response.length
-      );
+      httpResponseSize.observe({ method: ctx.method, route }, ctx.response.length);
     }
   } catch (error) {
     const duration = (Date.now() - start) / 1000;
-    httpRequestDuration.observe(
-      { method: ctx.method, route, status: '500' },
-      duration
-    );
+    httpRequestDuration.observe({ method: ctx.method, route, status: '500' }, duration);
     httpRequestTotal.inc({ method: ctx.method, route, status: '500' });
     throw error;
   }
@@ -351,7 +339,7 @@ router.get('/metrics', metricsEndpoint);
 router.get('/prometheus', metricsEndpoint); // 别名
 
 // 健康检查端点
-router.get('/health', async (ctx) => {
+router.get('/health', async ctx => {
   ctx.body = {
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -360,7 +348,7 @@ router.get('/health', async (ctx) => {
 });
 
 // 系统统计信息
-router.get('/stats', async (ctx) => {
+router.get('/stats', async ctx => {
   const stats = await getSystemStats();
   ctx.body = stats;
 });
@@ -447,69 +435,72 @@ export function configureWeChatStrategy(config: {
   appSecret: string;
   callbackURL: string;
 }) {
-  passport.use('wechat', new WeChatStrategy(
-    {
-      appID: config.appID,
-      appSecret: config.appSecret,
-      callbackURL: config.callbackURL,
-      scope: 'snsapi_login',
-      state: true,
-    },
-    async (accessToken, refreshToken, profile, done) => {
-      try {
-        const openid = profile.openid;
+  passport.use(
+    'wechat',
+    new WeChatStrategy(
+      {
+        appID: config.appID,
+        appSecret: config.appSecret,
+        callbackURL: config.callbackURL,
+        scope: 'snsapi_login',
+        state: true,
+      },
+      async (accessToken, refreshToken, profile, done) => {
+        try {
+          const openid = profile.openid;
 
-        // 检查白名单
-        const whitelistEnabled = await getConfig('whitelist.enabled');
-        if (whitelistEnabled) {
-          const inWhitelist = await isInWhitelist('wechat', openid);
-          if (!inWhitelist) {
-            return done(new Error('WeChat ID not in whitelist'), null);
+          // 检查白名单
+          const whitelistEnabled = await getConfig('whitelist.enabled');
+          if (whitelistEnabled) {
+            const inWhitelist = await isInWhitelist('wechat', openid);
+            if (!inWhitelist) {
+              return done(new Error('WeChat ID not in whitelist'), null);
+            }
           }
-        }
 
-        // 查找或创建用户
-        let user = await User.findOne({
-          ssoProvider: 'wechat',
-          ssoId: openid,
-        });
-
-        if (!user) {
-          user = await User.create({
-            username: profile.nickname || `wechat_${openid.slice(-6)}`,
-            email: `${openid}@wechat.local`,
-            avatar: profile.headimgurl,
+          // 查找或创建用户
+          let user = await User.findOne({
             ssoProvider: 'wechat',
             ssoId: openid,
-            ssoAttributes: {
+          });
+
+          if (!user) {
+            user = await User.create({
+              username: profile.nickname || `wechat_${openid.slice(-6)}`,
+              email: `${openid}@wechat.local`,
+              avatar: profile.headimgurl,
+              ssoProvider: 'wechat',
+              ssoId: openid,
+              ssoAttributes: {
+                nickname: profile.nickname,
+                sex: profile.sex,
+                province: profile.province,
+                city: profile.city,
+                country: profile.country,
+                headimgurl: profile.headimgurl,
+              },
+              role: UserRole.GUEST,
+            });
+          } else {
+            // 更新用户信息
+            user.ssoAttributes = {
               nickname: profile.nickname,
               sex: profile.sex,
               province: profile.province,
               city: profile.city,
               country: profile.country,
               headimgurl: profile.headimgurl,
-            },
-            role: UserRole.GUEST,
-          });
-        } else {
-          // 更新用户信息
-          user.ssoAttributes = {
-            nickname: profile.nickname,
-            sex: profile.sex,
-            province: profile.province,
-            city: profile.city,
-            country: profile.country,
-            headimgurl: profile.headimgurl,
-          };
-          await user.save();
-        }
+            };
+            await user.save();
+          }
 
-        return done(null, user);
-      } catch (error) {
-        return done(error, null);
+          return done(null, user);
+        } catch (error) {
+          return done(error, null);
+        }
       }
-    }
-  ));
+    )
+  );
 }
 
 // 路由处理
@@ -524,24 +515,20 @@ export class AuthController {
 
   // 微信登录回调
   async handleWeChatCallback(ctx: Context) {
-    return passport.authenticate(
-      'wechat',
-      { session: false },
-      async (err, user) => {
-        if (err || !user) {
-          return ctx.redirect('/login?error=wechat_failed');
-        }
-
-        const token = generateJWT(user);
-        ctx.cookies.set('token', token, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          maxAge: 7 * 24 * 60 * 60 * 1000,
-        });
-
-        ctx.redirect('/');
+    return passport.authenticate('wechat', { session: false }, async (err, user) => {
+      if (err || !user) {
+        return ctx.redirect('/login?error=wechat_failed');
       }
-    )(ctx, () => {});
+
+      const token = generateJWT(user);
+      ctx.cookies.set('token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+
+      ctx.redirect('/');
+    })(ctx, () => {});
   }
 }
 ```
@@ -551,6 +538,7 @@ export class AuthController {
 #### 3.2.1 短信服务配置
 
 支持的服务商：
+
 - **Twilio**: 国际短信服务
 - **阿里云短信服务**: 国内短信服务
 - **腾讯云短信**: 国内短信服务
@@ -601,10 +589,7 @@ export class SMSService {
 
   private async sendViaTwilio(phone: string, code: string): Promise<void> {
     const twilio = require('twilio');
-    const client = twilio(
-      process.env.TWILIO_ACCOUNT_SID!,
-      process.env.TWILIO_AUTH_TOKEN!
-    );
+    const client = twilio(process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!);
 
     await client.messages.create({
       body: `Your ApiAdmin verification code is: ${code}`,
@@ -715,68 +700,73 @@ export function configureGitHubStrategy(config: {
   clientSecret: string;
   callbackURL: string;
 }) {
-  passport.use('oauth2-github', new OAuth2Strategy(
-    {
-      authorizationURL: 'https://github.com/login/oauth/authorize',
-      tokenURL: 'https://github.com/login/oauth/access_token',
-      clientID: config.clientID,
-      clientSecret: config.clientSecret,
-      callbackURL: config.callbackURL,
-      scope: ['user:email'],
-    },
-    async (accessToken, refreshToken, profile, done) => {
-      try {
-        // 获取用户信息
-        const userInfo = await axios.get('https://api.github.com/user', {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        });
-
-        // 获取用户邮箱（可能需要额外请求）
-        let email = userInfo.data.email;
-        if (!email) {
-          const emails = await axios.get('https://api.github.com/user/emails', {
+  passport.use(
+    'oauth2-github',
+    new OAuth2Strategy(
+      {
+        authorizationURL: 'https://github.com/login/oauth/authorize',
+        tokenURL: 'https://github.com/login/oauth/access_token',
+        clientID: config.clientID,
+        clientSecret: config.clientSecret,
+        callbackURL: config.callbackURL,
+        scope: ['user:email'],
+      },
+      async (accessToken, refreshToken, profile, done) => {
+        try {
+          // 获取用户信息
+          const userInfo = await axios.get('https://api.github.com/user', {
             headers: { Authorization: `Bearer ${accessToken}` },
           });
-          email = emails.data.find((e: any) => e.primary)?.email || 
-                  emails.data[0]?.email || 
-                  `${userInfo.data.login}@github.local`;
-        }
 
-        // 检查白名单
-        const whitelistEnabled = await getConfig('whitelist.enabled');
-        if (whitelistEnabled) {
-          const inWhitelist = await isInWhitelist('github', userInfo.data.login) || 
-                             await isInWhitelist('email', email);
-          if (!inWhitelist) {
-            return done(new Error('GitHub user not in whitelist'), null);
+          // 获取用户邮箱（可能需要额外请求）
+          let email = userInfo.data.email;
+          if (!email) {
+            const emails = await axios.get('https://api.github.com/user/emails', {
+              headers: { Authorization: `Bearer ${accessToken}` },
+            });
+            email =
+              emails.data.find((e: any) => e.primary)?.email ||
+              emails.data[0]?.email ||
+              `${userInfo.data.login}@github.local`;
           }
-        }
 
-        // 查找或创建用户
-        let user = await User.findOne({
-          email,
-          ssoProvider: 'oauth2-github',
-          ssoId: userInfo.data.id.toString(),
-        });
+          // 检查白名单
+          const whitelistEnabled = await getConfig('whitelist.enabled');
+          if (whitelistEnabled) {
+            const inWhitelist =
+              (await isInWhitelist('github', userInfo.data.login)) ||
+              (await isInWhitelist('email', email));
+            if (!inWhitelist) {
+              return done(new Error('GitHub user not in whitelist'), null);
+            }
+          }
 
-        if (!user) {
-          user = await User.create({
+          // 查找或创建用户
+          let user = await User.findOne({
             email,
-            username: userInfo.data.login,
-            avatar: userInfo.data.avatar_url,
             ssoProvider: 'oauth2-github',
             ssoId: userInfo.data.id.toString(),
-            ssoAttributes: userInfo.data,
-            role: UserRole.GUEST,
           });
-        }
 
-        return done(null, user);
-      } catch (error) {
-        return done(error, null);
+          if (!user) {
+            user = await User.create({
+              email,
+              username: userInfo.data.login,
+              avatar: userInfo.data.avatar_url,
+              ssoProvider: 'oauth2-github',
+              ssoId: userInfo.data.id.toString(),
+              ssoAttributes: userInfo.data,
+              role: UserRole.GUEST,
+            });
+          }
+
+          return done(null, user);
+        } catch (error) {
+          return done(error, null);
+        }
       }
-    }
-  ));
+    )
+  );
 }
 ```
 
@@ -805,60 +795,63 @@ export function configureGitLabStrategy(config: {
   clientSecret: string;
   callbackURL: string;
 }) {
-  passport.use('oauth2-gitlab', new OAuth2Strategy(
-    {
-      authorizationURL: 'https://gitlab.com/oauth/authorize',
-      tokenURL: 'https://gitlab.com/oauth/token',
-      clientID: config.clientID,
-      clientSecret: config.clientSecret,
-      callbackURL: config.callbackURL,
-      scope: ['read_user', 'api'],
-    },
-    async (accessToken, refreshToken, profile, done) => {
-      try {
-        // 获取用户信息
-        const userInfo = await axios.get('https://gitlab.com/api/v4/user', {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        });
+  passport.use(
+    'oauth2-gitlab',
+    new OAuth2Strategy(
+      {
+        authorizationURL: 'https://gitlab.com/oauth/authorize',
+        tokenURL: 'https://gitlab.com/oauth/token',
+        clientID: config.clientID,
+        clientSecret: config.clientSecret,
+        callbackURL: config.callbackURL,
+        scope: ['read_user', 'api'],
+      },
+      async (accessToken, refreshToken, profile, done) => {
+        try {
+          // 获取用户信息
+          const userInfo = await axios.get('https://gitlab.com/api/v4/user', {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          });
 
-        const email = userInfo.data.email;
-        const username = userInfo.data.username;
+          const email = userInfo.data.email;
+          const username = userInfo.data.username;
 
-        // 检查白名单
-        const whitelistEnabled = await getConfig('whitelist.enabled');
-        if (whitelistEnabled) {
-          const inWhitelist = await isInWhitelist('gitlab', username) || 
-                             await isInWhitelist('email', email);
-          if (!inWhitelist) {
-            return done(new Error('GitLab user not in whitelist'), null);
+          // 检查白名单
+          const whitelistEnabled = await getConfig('whitelist.enabled');
+          if (whitelistEnabled) {
+            const inWhitelist =
+              (await isInWhitelist('gitlab', username)) || (await isInWhitelist('email', email));
+            if (!inWhitelist) {
+              return done(new Error('GitLab user not in whitelist'), null);
+            }
           }
-        }
 
-        // 查找或创建用户
-        let user = await User.findOne({
-          email,
-          ssoProvider: 'oauth2-gitlab',
-          ssoId: userInfo.data.id.toString(),
-        });
-
-        if (!user) {
-          user = await User.create({
+          // 查找或创建用户
+          let user = await User.findOne({
             email,
-            username,
-            avatar: userInfo.data.avatar_url,
             ssoProvider: 'oauth2-gitlab',
             ssoId: userInfo.data.id.toString(),
-            ssoAttributes: userInfo.data,
-            role: UserRole.GUEST,
           });
-        }
 
-        return done(null, user);
-      } catch (error) {
-        return done(error, null);
+          if (!user) {
+            user = await User.create({
+              email,
+              username,
+              avatar: userInfo.data.avatar_url,
+              ssoProvider: 'oauth2-gitlab',
+              ssoId: userInfo.data.id.toString(),
+              ssoAttributes: userInfo.data,
+              role: UserRole.GUEST,
+            });
+          }
+
+          return done(null, user);
+        } catch (error) {
+          return done(error, null);
+        }
       }
-    }
-  ));
+    )
+  );
 }
 ```
 
@@ -874,55 +867,58 @@ export function configureGoogleStrategy(config: {
   clientSecret: string;
   callbackURL: string;
 }) {
-  passport.use('google', new GoogleStrategy(
-    {
-      clientID: config.clientID,
-      clientSecret: config.clientSecret,
-      callbackURL: config.callbackURL,
-      scope: ['profile', 'email'],
-    },
-    async (accessToken, refreshToken, profile, done) => {
-      try {
-        const email = profile.emails[0].value;
+  passport.use(
+    'google',
+    new GoogleStrategy(
+      {
+        clientID: config.clientID,
+        clientSecret: config.clientSecret,
+        callbackURL: config.callbackURL,
+        scope: ['profile', 'email'],
+      },
+      async (accessToken, refreshToken, profile, done) => {
+        try {
+          const email = profile.emails[0].value;
 
-        // 仅允许 Gmail 邮箱
-        if (!email.endsWith('@gmail.com')) {
-          return done(new Error('Only Gmail accounts are allowed'), null);
-        }
-
-        // 检查白名单
-        const whitelistEnabled = await getConfig('whitelist.enabled');
-        if (whitelistEnabled) {
-          const inWhitelist = await isInWhitelist('email', email);
-          if (!inWhitelist) {
-            return done(new Error('Email not in whitelist'), null);
+          // 仅允许 Gmail 邮箱
+          if (!email.endsWith('@gmail.com')) {
+            return done(new Error('Only Gmail accounts are allowed'), null);
           }
-        }
 
-        // 查找或创建用户
-        let user = await User.findOne({
-          email,
-          ssoProvider: 'google',
-        });
+          // 检查白名单
+          const whitelistEnabled = await getConfig('whitelist.enabled');
+          if (whitelistEnabled) {
+            const inWhitelist = await isInWhitelist('email', email);
+            if (!inWhitelist) {
+              return done(new Error('Email not in whitelist'), null);
+            }
+          }
 
-        if (!user) {
-          user = await User.create({
+          // 查找或创建用户
+          let user = await User.findOne({
             email,
-            username: profile.displayName || email.split('@')[0],
-            avatar: profile.photos[0]?.value,
             ssoProvider: 'google',
-            ssoId: profile.id,
-            ssoAttributes: profile._json,
-            role: UserRole.GUEST,
           });
-        }
 
-        return done(null, user);
-      } catch (error) {
-        return done(error, null);
+          if (!user) {
+            user = await User.create({
+              email,
+              username: profile.displayName || email.split('@')[0],
+              avatar: profile.photos[0]?.value,
+              ssoProvider: 'google',
+              ssoId: profile.id,
+              ssoAttributes: profile._json,
+              role: UserRole.GUEST,
+            });
+          }
+
+          return done(null, user);
+        } catch (error) {
+          return done(error, null);
+        }
       }
-    }
-  ));
+    )
+  );
 }
 ```
 
@@ -1092,10 +1088,7 @@ export async function removeFromWhitelist(
   type: 'wechat' | 'phone' | 'email' | 'github' | 'gitlab',
   value: string
 ): Promise<void> {
-  await Whitelist.findOneAndUpdate(
-    { type, value },
-    { enabled: false, updatedAt: new Date() }
-  );
+  await Whitelist.findOneAndUpdate({ type, value }, { enabled: false, updatedAt: new Date() });
 }
 ```
 
@@ -1231,7 +1224,7 @@ WHITELIST_ENABLED=false
 ✅ **邮件服务**: SMTP、SendGrid、AWS SES、阿里云邮件推送  
 ✅ **监控系统**: Prometheus 指标收集、/metrics 端点  
 ✅ **第三方登录**: 微信、Gmail、手机号、邮箱验证码  
-✅ **白名单管理**: 支持微信ID、手机号、邮箱白名单  
+✅ **白名单管理**: 支持微信ID、手机号、邮箱白名单
 
 ### 6.2 实施建议
 
@@ -1245,4 +1238,3 @@ WHITELIST_ENABLED=false
 **文档版本**：v0.0.1
 **创建日期**：2025-01-27  
 **最后更新**：2025-01-27
-

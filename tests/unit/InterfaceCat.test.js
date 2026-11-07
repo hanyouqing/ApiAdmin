@@ -65,7 +65,7 @@ describe('InterfaceCat Model', () => {
     const cat = new InterfaceCat({
       desc: 'Test Description',
     });
-    
+
     await expect(cat.save()).rejects.toThrow();
   });
 

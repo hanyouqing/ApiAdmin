@@ -110,9 +110,7 @@ describe('SwaggerExporter', () => {
           method: 'GET',
           title: 'Test Interface',
           tag: [],
-          req_query: [
-            { name: 'id', type: 'string', required: true, desc: 'ID' },
-          ],
+          req_query: [{ name: 'id', type: 'string', required: true, desc: 'ID' }],
           req_headers: [],
           res_body: '{}',
         },
@@ -135,7 +133,9 @@ describe('SwaggerExporter', () => {
 
   describe('parseSchema', () => {
     it('should parse valid JSON schema', () => {
-      const schema = exporter.parseSchema('{"type": "object", "properties": {"name": {"type": "string"}}}');
+      const schema = exporter.parseSchema(
+        '{"type": "object", "properties": {"name": {"type": "string"}}}'
+      );
       expect(schema).toBeDefined();
       expect(schema.type).toBe('object');
     });
@@ -176,4 +176,3 @@ describe('SwaggerExporter', () => {
     });
   });
 });
-

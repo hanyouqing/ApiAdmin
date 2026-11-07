@@ -31,9 +31,9 @@ describe('HARImporter', () => {
     it('should throw error for invalid HAR format', async () => {
       const invalidData = {};
 
-      await expect(importer.import(invalidData, { projectId: '123', userId: '456' })).rejects.toThrow(
-        'Invalid HAR format'
-      );
+      await expect(
+        importer.import(invalidData, { projectId: '123', userId: '456' })
+      ).rejects.toThrow('Invalid HAR format');
     });
 
     it('should import valid HAR data', async () => {

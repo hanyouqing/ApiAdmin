@@ -2,11 +2,11 @@ import { logger } from '../Utils/logger.js';
 
 export const requestLogger = async (ctx, next) => {
   const start = Date.now();
-  
+
   await next();
-  
+
   const duration = Date.now() - start;
-  
+
   const logData = {
     method: ctx.method,
     url: ctx.url,
@@ -26,4 +26,3 @@ export const requestLogger = async (ctx, next) => {
     logger.info(logData, 'API request');
   }
 };
-

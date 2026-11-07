@@ -22,7 +22,7 @@ function getRedis() {
       enableReadyCheck: true,
       lazyConnect: false,
     });
-    redisClient.on('error', (err) => {
+    redisClient.on('error', err => {
       logger.warn({ err: err.message }, 'Redis kvStore error');
     });
     return redisClient;
@@ -47,7 +47,9 @@ export async function kvSet(key, value, ttlSeconds = 300) {
   }
 
   if (process.env.NODE_ENV === 'production' && process.env.ALLOW_MEMORY_KV !== 'true') {
-    throw new Error('Distributed KV store unavailable; configure REDIS_URL for multi-instance production');
+    throw new Error(
+      'Distributed KV store unavailable; configure REDIS_URL for multi-instance production'
+    );
   }
 
   if (memoryStore.has(key)) {

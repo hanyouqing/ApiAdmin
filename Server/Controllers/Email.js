@@ -7,7 +7,9 @@ import { sendEmail } from '../Utils/emailService.js';
 import config from '../Utils/config.js';
 
 class EmailController extends BaseController {
-  static get ControllerName() { return 'EmailController'; }
+  static get ControllerName() {
+    return 'EmailController';
+  }
 
   static async getConfig(ctx) {
     try {
@@ -31,7 +33,7 @@ class EmailController extends BaseController {
             user: config.OCI_EMAIL_USER || '',
             pass: config.OCI_EMAIL_PASS || '',
             from: config.OCI_EMAIL_FROM || '',
-            host: config.OCI_EMAIL_REGION 
+            host: config.OCI_EMAIL_REGION
               ? `smtp.email.${config.OCI_EMAIL_REGION}.oci.oraclecloud.com`
               : '',
           },
@@ -53,13 +55,17 @@ class EmailController extends BaseController {
           },
           from: dbConfig.from || {
             name: config.SMTP_FROM_NAME || 'ApiAdmin',
-            email: dbConfig.provider === 'oci'
-              ? (config.OCI_EMAIL_FROM || config.OCI_EMAIL_USER || '')
-              : (config.SMTP_FROM || config.SMTP_USER || ''),
+            email:
+              dbConfig.provider === 'oci'
+                ? config.OCI_EMAIL_FROM || config.OCI_EMAIL_USER || ''
+                : config.SMTP_FROM || config.SMTP_USER || '',
           },
         };
       } catch (dbError) {
-        logger.warn({ error: dbError }, 'Failed to get email config from database, using environment variables');
+        logger.warn(
+          { error: dbError },
+          'Failed to get email config from database, using environment variables'
+        );
         // Fall back to environment variables
         emailConfig = {
           provider: config.EMAIL_PROVIDER || 'smtp',
@@ -77,7 +83,7 @@ class EmailController extends BaseController {
             user: config.OCI_EMAIL_USER || '',
             pass: config.OCI_EMAIL_PASS || '',
             from: config.OCI_EMAIL_FROM || '',
-            host: config.OCI_EMAIL_REGION 
+            host: config.OCI_EMAIL_REGION
               ? `smtp.email.${config.OCI_EMAIL_REGION}.oci.oraclecloud.com`
               : '',
           },
@@ -99,9 +105,10 @@ class EmailController extends BaseController {
           },
           from: {
             name: config.SMTP_FROM_NAME || 'ApiAdmin',
-            email: config.EMAIL_PROVIDER === 'oci'
-              ? (config.OCI_EMAIL_FROM || config.OCI_EMAIL_USER || '')
-              : (config.SMTP_FROM || config.SMTP_USER || ''),
+            email:
+              config.EMAIL_PROVIDER === 'oci'
+                ? config.OCI_EMAIL_FROM || config.OCI_EMAIL_USER || ''
+                : config.SMTP_FROM || config.SMTP_USER || '',
           },
         };
       }
@@ -128,10 +135,15 @@ class EmailController extends BaseController {
       }
 
       const configData = ctx.request.body;
-      
+
       // Validate required fields based on provider
       if (configData.provider === 'smtp') {
-        if (!configData.smtp || !configData.smtp.host || !configData.smtp.auth?.user || !configData.smtp.auth?.pass) {
+        if (
+          !configData.smtp ||
+          !configData.smtp.host ||
+          !configData.smtp.auth?.user ||
+          !configData.smtp.auth?.pass
+        ) {
           ctx.status = 400;
           ctx.body = EmailController.error('SMTP配置不完整：需要host、user和password');
           return;
@@ -149,7 +161,11 @@ class EmailController extends BaseController {
           return;
         }
       } else if (configData.provider === 'aliyun') {
-        if (!configData.aliyun || !configData.aliyun.accessKeyId || !configData.aliyun.accessKeySecret) {
+        if (
+          !configData.aliyun ||
+          !configData.aliyun.accessKeyId ||
+          !configData.aliyun.accessKeySecret
+        ) {
           ctx.status = 400;
           ctx.body = EmailController.error('阿里云配置不完整：需要accessKeyId和accessKeySecret');
           return;
@@ -228,13 +244,17 @@ class EmailController extends BaseController {
           },
           from: dbConfig.from || {
             name: config.SMTP_FROM_NAME || 'ApiAdmin',
-            email: (dbConfig.provider || config.EMAIL_PROVIDER) === 'oci'
-              ? (config.OCI_EMAIL_FROM || config.OCI_EMAIL_USER || '')
-              : (config.SMTP_FROM || config.SMTP_USER || ''),
+            email:
+              (dbConfig.provider || config.EMAIL_PROVIDER) === 'oci'
+                ? config.OCI_EMAIL_FROM || config.OCI_EMAIL_USER || ''
+                : config.SMTP_FROM || config.SMTP_USER || '',
           },
         };
       } catch (dbError) {
-        logger.warn({ error: dbError }, 'Failed to get email config from database, using environment variables');
+        logger.warn(
+          { error: dbError },
+          'Failed to get email config from database, using environment variables'
+        );
         // Fall back to environment variables
         emailConfig = {
           provider: config.EMAIL_PROVIDER || 'smtp',
@@ -271,9 +291,10 @@ class EmailController extends BaseController {
           },
           from: {
             name: config.SMTP_FROM_NAME || 'ApiAdmin',
-            email: config.EMAIL_PROVIDER === 'oci'
-              ? (config.OCI_EMAIL_FROM || config.OCI_EMAIL_USER || '')
-              : (config.SMTP_FROM || config.SMTP_USER || ''),
+            email:
+              config.EMAIL_PROVIDER === 'oci'
+                ? config.OCI_EMAIL_FROM || config.OCI_EMAIL_USER || ''
+                : config.SMTP_FROM || config.SMTP_USER || '',
           },
         };
       }
@@ -322,8 +343,7 @@ class EmailController extends BaseController {
         return;
       }
 
-      const template = await EmailTemplate.findById(id)
-        .populate('createdBy', 'username');
+      const template = await EmailTemplate.findById(id).populate('createdBy', 'username');
 
       if (!template) {
         ctx.status = 404;
@@ -360,7 +380,9 @@ class EmailController extends BaseController {
         return;
       }
 
-      if (!['verification', 'welcome', 'password-reset', 'interface-change', 'custom'].includes(type)) {
+      if (
+        !['verification', 'welcome', 'password-reset', 'interface-change', 'custom'].includes(type)
+      ) {
         ctx.status = 400;
         ctx.body = EmailController.error('无效的模板类型');
         return;
@@ -550,22 +572,22 @@ class EmailController extends BaseController {
 
       logger.info({ sentCount, failedCount, templateId }, 'Emails sent');
 
-      ctx.body = EmailController.success({
-        sentCount,
-        failedCount,
-        messageIds,
-      }, '邮件发送完成');
+      ctx.body = EmailController.success(
+        {
+          sentCount,
+          failedCount,
+          messageIds,
+        },
+        '邮件发送完成'
+      );
     } catch (error) {
       logger.error({ error }, 'Send email error');
       ctx.status = 500;
       ctx.body = EmailController.error(
-        process.env.NODE_ENV === 'production'
-          ? '发送邮件失败'
-          : error.message || '发送邮件失败'
+        process.env.NODE_ENV === 'production' ? '发送邮件失败' : error.message || '发送邮件失败'
       );
     }
   }
 }
 
 export default EmailController;
-

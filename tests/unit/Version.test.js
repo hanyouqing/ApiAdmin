@@ -11,7 +11,7 @@ vi.mock('fs', () => ({
 
 describe('Version Utils', () => {
   let getVersionInfo, getVersionInfoFormatted;
-  
+
   beforeEach(async () => {
     vi.clearAllMocks();
     // Reset module cache to clear versionInfo
@@ -25,9 +25,9 @@ describe('Version Utils', () => {
   describe('getVersionInfo', () => {
     it('should return default info when version file does not exist', () => {
       fs.existsSync.mockReturnValue(false);
-      
+
       const info = getVersionInfo();
-      
+
       expect(info).toBeDefined();
       expect(info.app_version).toBe('0.0.1');
       expect(info.node_version).toBe(process.version);
@@ -35,10 +35,12 @@ describe('Version Utils', () => {
 
     it('should parse version file when it exists', () => {
       fs.existsSync.mockReturnValue(true);
-      fs.readFileSync.mockReturnValue('app_version=2.0.0\nbuild_time=2024-01-01\nbuild_commit=abc123');
-      
+      fs.readFileSync.mockReturnValue(
+        'app_version=2.0.0\nbuild_time=2024-01-01\nbuild_commit=abc123'
+      );
+
       const info = getVersionInfo();
-      
+
       expect(info.app_version).toBe('2.0.0');
       expect(info.build_time).toBe('2024-01-01');
       expect(info.build_commit).toBe('abc123');
@@ -47,9 +49,9 @@ describe('Version Utils', () => {
     it('should handle malformed version file', () => {
       fs.existsSync.mockReturnValue(true);
       fs.readFileSync.mockReturnValue('invalid content');
-      
+
       const info = getVersionInfo();
-      
+
       expect(info).toBeDefined();
       expect(info.app_version).toBe('0.0.1');
     });
@@ -59,9 +61,9 @@ describe('Version Utils', () => {
       fs.readFileSync.mockImplementation(() => {
         throw new Error('File read error');
       });
-      
+
       const info = getVersionInfo();
-      
+
       expect(info).toBeDefined();
       expect(info.app_version).toBe('0.0.1');
     });
@@ -70,9 +72,9 @@ describe('Version Utils', () => {
   describe('getVersionInfoFormatted', () => {
     it('should return formatted version info', () => {
       fs.existsSync.mockReturnValue(false);
-      
+
       const info = getVersionInfoFormatted();
-      
+
       expect(info).toBeDefined();
       expect(info.appVersion).toBe('0.0.1');
       expect(info.nodeVersion).toBe(process.version);
@@ -82,12 +84,11 @@ describe('Version Utils', () => {
     it('should format parsed version file data', () => {
       fs.existsSync.mockReturnValue(true);
       fs.readFileSync.mockReturnValue('app_version=2.0.0\nbuild_time=2024-01-01');
-      
+
       const info = getVersionInfoFormatted();
-      
+
       expect(info.appVersion).toBe('2.0.0');
       expect(info.buildTime).toBe('2024-01-01');
     });
   });
 });
-

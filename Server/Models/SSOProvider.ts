@@ -62,6 +62,9 @@ const ssoProviderSchema = new Schema<ISSOProvider>(
 ssoProviderSchema.index({ type: 1, enabled: 1 });
 ssoProviderSchema.index({ name: 1 });
 
-const SSOProvider = mongoose.model<ISSOProvider, SSOProviderModel>('SSOProvider', ssoProviderSchema);
+const SSOProvider = mongoose.model<ISSOProvider, SSOProviderModel>(
+  'SSOProvider',
+  ssoProviderSchema
+);
 
 export default SSOProvider;

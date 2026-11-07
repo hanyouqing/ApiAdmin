@@ -1,5 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Table, Space, Tag, Button, Select, DatePicker, Statistic, Row, Col, App, Tabs, Descriptions, Modal, Typography, Collapse } from 'antd';
+import {
+  Card,
+  Table,
+  Space,
+  Tag,
+  Button,
+  Select,
+  DatePicker,
+  Statistic,
+  Row,
+  Col,
+  App,
+  Tabs,
+  Descriptions,
+  Modal,
+  Typography,
+  Collapse,
+} from 'antd';
 import { PlayCircleOutlined, EyeOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
@@ -146,18 +163,18 @@ const TestManagement: React.FC = () => {
           pageSize: pagination.pageSize,
         },
       });
-      
+
       // 调试日志
       console.log('Test Collections API Response:', response.data);
-      
+
       // 处理响应数据，兼容不同的响应格式
       const responseData = response.data?.data || response.data;
       const collections = responseData?.collections || responseData || [];
       const paginationData = responseData?.pagination || {};
-      
+
       console.log('Parsed Collections:', collections);
       console.log('Parsed Pagination:', paginationData);
-      
+
       setCollections(Array.isArray(collections) ? collections : []);
       setPagination(prev => ({
         ...prev,
@@ -294,11 +311,7 @@ const TestManagement: React.FC = () => {
       key: 'action',
       width: 120,
       render: (_: any, record: TestCollection) => (
-        <Button
-          type="link"
-          icon={<PlayCircleOutlined />}
-          onClick={() => handleRunTest(record._id)}
-        >
+        <Button type="link" icon={<PlayCircleOutlined />} onClick={() => handleRunTest(record._id)}>
           {t('admin.test.run')}
         </Button>
       ),
@@ -349,11 +362,7 @@ const TestManagement: React.FC = () => {
       key: 'action',
       width: 100,
       render: (_: any, record: TestResult) => (
-        <Button
-          type="link"
-          icon={<EyeOutlined />}
-          onClick={() => handleViewResult(record)}
-        >
+        <Button type="link" icon={<EyeOutlined />} onClick={() => handleViewResult(record)}>
           {t('common.view')}
         </Button>
       ),
@@ -377,7 +386,7 @@ const TestManagement: React.FC = () => {
               value={selectedProject}
               onChange={setSelectedProject}
             >
-              {projects.map((project) => (
+              {projects.map(project => (
                 <Option key={project._id} value={project._id}>
                   {project.project_name}
                 </Option>
@@ -399,14 +408,17 @@ const TestManagement: React.FC = () => {
             {activeTab === 'statistics' && (
               <RangePicker
                 value={dateRange}
-                onChange={(dates) => setDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null)}
+                onChange={dates => setDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null)}
               />
             )}
-            <Button icon={<ReloadOutlined />} onClick={() => {
-              if (activeTab === 'collections') fetchCollections();
-              else if (activeTab === 'results') fetchResults();
-              else if (activeTab === 'statistics') fetchStatistics();
-            }}>
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={() => {
+                if (activeTab === 'collections') fetchCollections();
+                else if (activeTab === 'results') fetchResults();
+                else if (activeTab === 'statistics') fetchStatistics();
+              }}
+            >
               {t('common.refresh')}
             </Button>
           </Space>
@@ -428,9 +440,9 @@ const TestManagement: React.FC = () => {
                   pagination={{
                     ...pagination,
                     showSizeChanger: true,
-                    showTotal: (total) => t('admin.test.total', { total }),
+                    showTotal: total => t('admin.test.total', { total }),
                   }}
-                  onChange={(pagination) => {
+                  onChange={pagination => {
                     setPagination(prev => ({
                       ...prev,
                       current: pagination.current || 1,
@@ -452,9 +464,9 @@ const TestManagement: React.FC = () => {
                   pagination={{
                     ...pagination,
                     showSizeChanger: true,
-                    showTotal: (total) => t('admin.test.total', { total }),
+                    showTotal: total => t('admin.test.total', { total }),
                   }}
-                  onChange={(pagination) => {
+                  onChange={pagination => {
                     setPagination(prev => ({
                       ...prev,
                       current: pagination.current || 1,
@@ -493,7 +505,10 @@ const TestManagement: React.FC = () => {
                         title={t('admin.test.passRate')}
                         value={statistics.overview.passRate}
                         suffix="%"
-                        valueStyle={{ color: parseFloat(statistics.overview.passRate) >= 80 ? '#3f8600' : '#cf1322' }}
+                        valueStyle={{
+                          color:
+                            parseFloat(statistics.overview.passRate) >= 80 ? '#3f8600' : '#cf1322',
+                        }}
                       />
                     </Col>
                   </Row>
@@ -584,12 +599,16 @@ const TestManagement: React.FC = () => {
 
             <Collapse>
               <Panel header={t('admin.test.request')} key="request">
-                <pre style={{ background: '#f5f5f5', padding: 12, borderRadius: 4, overflow: 'auto' }}>
+                <pre
+                  style={{ background: '#f5f5f5', padding: 12, borderRadius: 4, overflow: 'auto' }}
+                >
                   {JSON.stringify(selectedResult.request, null, 2)}
                 </pre>
               </Panel>
               <Panel header={t('admin.test.response')} key="response">
-                <pre style={{ background: '#f5f5f5', padding: 12, borderRadius: 4, overflow: 'auto' }}>
+                <pre
+                  style={{ background: '#f5f5f5', padding: 12, borderRadius: 4, overflow: 'auto' }}
+                >
                   {JSON.stringify(selectedResult.response, null, 2)}
                 </pre>
               </Panel>
@@ -608,15 +627,16 @@ const TestManagement: React.FC = () => {
                         {selectedResult.assertion_result.message}
                       </Descriptions.Item>
                     )}
-                    {selectedResult.assertion_result.errors && selectedResult.assertion_result.errors.length > 0 && (
-                      <Descriptions.Item label={t('admin.test.errors')}>
-                        <ul>
-                          {selectedResult.assertion_result.errors.map((error, index) => (
-                            <li key={index}>{error}</li>
-                          ))}
-                        </ul>
-                      </Descriptions.Item>
-                    )}
+                    {selectedResult.assertion_result.errors &&
+                      selectedResult.assertion_result.errors.length > 0 && (
+                        <Descriptions.Item label={t('admin.test.errors')}>
+                          <ul>
+                            {selectedResult.assertion_result.errors.map((error, index) => (
+                              <li key={index}>{error}</li>
+                            ))}
+                          </ul>
+                        </Descriptions.Item>
+                      )}
                   </Descriptions>
                 </Panel>
               )}
@@ -630,7 +650,14 @@ const TestManagement: React.FC = () => {
                   {selectedResult.error.stack && (
                     <Paragraph>
                       <Text strong>{t('admin.test.stackTrace')}:</Text>
-                      <pre style={{ background: '#f5f5f5', padding: 12, borderRadius: 4, overflow: 'auto' }}>
+                      <pre
+                        style={{
+                          background: '#f5f5f5',
+                          padding: 12,
+                          borderRadius: 4,
+                          overflow: 'auto',
+                        }}
+                      >
                         {selectedResult.error.stack}
                       </pre>
                     </Paragraph>
@@ -646,4 +673,3 @@ const TestManagement: React.FC = () => {
 };
 
 export default TestManagement;
-

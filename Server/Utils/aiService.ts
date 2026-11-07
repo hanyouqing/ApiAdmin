@@ -73,9 +73,11 @@ export class AIService {
    */
   async generateContent(prompt: string, projectId?: string): Promise<string> {
     const aiConfig = await this.loadConfig(projectId);
-    
+
     if (!aiConfig) {
-      throw new Error('AI service not configured. Please configure AI settings in Admin or Project settings.');
+      throw new Error(
+        'AI service not configured. Please configure AI settings in Admin or Project settings.'
+      );
     }
 
     try {
@@ -95,8 +97,10 @@ export class AIService {
   }
 
   private async callOpenAICompatible(prompt: string, aiConfig: AIProviderConfig): Promise<string> {
-    const baseUrl = aiConfig.baseUrl || (aiConfig.provider === 'openai' ? 'https://api.openai.com/v1' : 'https://api.deepseek.com');
-    
+    const baseUrl =
+      aiConfig.baseUrl ||
+      (aiConfig.provider === 'openai' ? 'https://api.openai.com/v1' : 'https://api.deepseek.com');
+
     const response = await axios.post(
       `${baseUrl}/chat/completions`,
       {
@@ -107,7 +111,7 @@ export class AIService {
       },
       {
         headers: {
-          'Authorization': `Bearer ${aiConfig.apiKey}`,
+          Authorization: `Bearer ${aiConfig.apiKey}`,
           'Content-Type': 'application/json',
         },
       }
@@ -171,7 +175,9 @@ export class AIService {
       return JSON.parse(jsonStr);
     } catch (error) {
       logger.error({ error, content }, 'Failed to parse AI response as JSON');
-      throw new Error('AI returned an invalid JSON structure. Please try rephrasing your description.');
+      throw new Error(
+        'AI returned an invalid JSON structure. Please try rephrasing your description.'
+      );
     }
   }
 
@@ -197,7 +203,13 @@ export class AIService {
       const jsonStr = content.replace(/```json\n?|\n?```/g, '').trim();
       return JSON.parse(jsonStr);
     } catch (error) {
-      return [{ type: 'info', field: 'general', message: 'AI Review completed but failed to parse detailed suggestions.' }];
+      return [
+        {
+          type: 'info',
+          field: 'general',
+          message: 'AI Review completed but failed to parse detailed suggestions.',
+        },
+      ];
     }
   }
 }

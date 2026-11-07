@@ -1,7 +1,7 @@
 name: Feature request
 description: Propose an enhancement (OSS roadmap)
-title: "[feat] "
-labels: ["enhancement"]
+title: '[feat] '
+labels: ['enhancement']
 body:
   - type: dropdown
     id: priority_fit

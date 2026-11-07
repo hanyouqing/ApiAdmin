@@ -102,8 +102,10 @@ export const validateUsername = (username: string | null | undefined): UsernameV
     return { valid: false, message: 'Username must be at most 20 characters' };
   }
   if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
-    return { valid: false, message: 'Username can only contain letters, numbers, underscores and hyphens' };
+    return {
+      valid: false,
+      message: 'Username can only contain letters, numbers, underscores and hyphens',
+    };
   }
   return { valid: true };
 };
-

@@ -30,10 +30,10 @@ let reloadCallbacks: ((loadedFiles: string[]) => void)[] = [];
 export function loadEnvFiles() {
   const loadedFiles: string[] = [];
   const varSources = new Map<string, string>();
-  
+
   // 记录加载前的系统环境变量（这些变量的来源是 'system'）
   const beforeLoad = new Set(Object.keys(process.env));
-  
+
   // 先加载 .env（如果存在）
   if (existsSync(envPath)) {
     const result = dotenv.config({ path: envPath, override: false });
@@ -47,7 +47,7 @@ export function loadEnvFiles() {
       });
     }
   }
-  
+
   // 再加载 .env.local（如果存在，会覆盖 .env 中的同名变量）
   if (existsSync(envLocalPath)) {
     const beforeLocalLoad = new Set(Object.keys(process.env));
@@ -62,14 +62,14 @@ export function loadEnvFiles() {
       });
     }
   }
-  
+
   // 记录系统环境变量（在加载前就存在的变量）
   beforeLoad.forEach(key => {
     if (!varSources.has(key)) {
       varSources.set(key, 'system');
     }
   });
-  
+
   return { loadedFiles, varSources };
 }
 
@@ -79,7 +79,7 @@ export function loadEnvFiles() {
 export function reloadEnvFiles() {
   // 重新加载文件
   const result = loadEnvFiles();
-  
+
   // 触发回调（回调中会使用 logger 统一输出日志）
   reloadCallbacks.forEach(callback => {
     try {
@@ -89,7 +89,7 @@ export function reloadEnvFiles() {
       // 这里只做静默处理，避免格式不一致
     }
   });
-  
+
   return result;
 }
 
@@ -101,16 +101,16 @@ export function watchEnvFiles(callback?: (loadedFiles: string[]) => void) {
   if (callback) {
     reloadCallbacks.push(callback);
   }
-  
+
   // 只在开发环境启用文件监听
   if (process.env.NODE_ENV === 'production') {
     return;
   }
-  
+
   // 监听 .env 文件
   if (existsSync(envPath)) {
     try {
-      const watcher = watch(envPath, { persistent: true }, (eventType) => {
+      const watcher = watch(envPath, { persistent: true }, eventType => {
         if (eventType === 'change') {
           // 通过 reloadEnvFiles 触发 onReload 回调，统一使用 logger 输出日志
           reloadEnvFiles();
@@ -122,11 +122,11 @@ export function watchEnvFiles(callback?: (loadedFiles: string[]) => void) {
       // 如果 logger 已初始化，可以通过回调输出错误
     }
   }
-  
+
   // 监听 .env.local 文件
   if (existsSync(envLocalPath)) {
     try {
-      const watcher = watch(envLocalPath, { persistent: true }, (eventType) => {
+      const watcher = watch(envLocalPath, { persistent: true }, eventType => {
         if (eventType === 'change') {
           // 通过 reloadEnvFiles 触发 onReload 回调，统一使用 logger 输出日志
           reloadEnvFiles();
@@ -137,7 +137,7 @@ export function watchEnvFiles(callback?: (loadedFiles: string[]) => void) {
       // 错误通过 onReload 回调中的 logger 输出，这里只做静默处理
     }
   }
-  
+
   // 如果文件不存在，监听目录以便在文件创建时也能检测到
   try {
     const watcher = watch(rootDir, { persistent: true }, (eventType, filename) => {
@@ -186,17 +186,19 @@ export function getEnv(key: string, defaultValue: any = undefined) {
  * @param {boolean} options.watch - 是否启用文件监听（默认：开发环境启用）
  * @param {Function} options.onReload - 环境变量重新加载时的回调
  */
-export function initEnvLoader(options: { watch?: boolean, onReload?: (loadedFiles: string[]) => void } = {}) {
+export function initEnvLoader(
+  options: { watch?: boolean; onReload?: (loadedFiles: string[]) => void } = {}
+) {
   const { watch: enableWatch = process.env.NODE_ENV !== 'production', onReload } = options;
-  
+
   // 初始加载
   const result = loadEnvFiles();
-  
+
   // 启用文件监听
   if (enableWatch) {
     watchEnvFiles(onReload);
   }
-  
+
   return {
     loadedFiles: result.loadedFiles,
     varSources: result.varSources,

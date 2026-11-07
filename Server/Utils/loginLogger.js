@@ -41,9 +41,9 @@ export async function logLogin({
     await loginLog.save();
   } catch (error) {
     // 登录日志记录失败不应该影响登录流程
-    logger.error({ error, params: { userId, username, email, loginType, status } }, 'Failed to log login');
+    logger.error(
+      { error, params: { userId, username, email, loginType, status } },
+      'Failed to log login'
+    );
   }
 }
-
-
-

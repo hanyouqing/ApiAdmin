@@ -76,9 +76,7 @@ const Notifications: React.FC = () => {
       }
       extra={
         unreadCount > 0 && (
-          <Button onClick={handleMarkAllAsRead}>
-            {t('user.notifications.markAllRead')}
-          </Button>
+          <Button onClick={handleMarkAllAsRead}>{t('user.notifications.markAllRead')}</Button>
         )
       }
       loading={loading}
@@ -88,7 +86,7 @@ const Notifications: React.FC = () => {
       ) : (
         <List
           dataSource={notifications}
-          renderItem={(item) => (
+          renderItem={item => (
             <List.Item
               style={{
                 backgroundColor: item.read ? '#fff' : '#f0f9ff',
@@ -141,4 +139,3 @@ const Notifications: React.FC = () => {
 };
 
 export default Notifications;
-

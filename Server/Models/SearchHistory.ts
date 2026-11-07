@@ -44,6 +44,9 @@ const searchHistorySchema = new Schema<ISearchHistory>(
 searchHistorySchema.index({ user_id: 1, createdAt: -1 });
 searchHistorySchema.index({ user_id: 1, keyword: 1 });
 
-const SearchHistory = mongoose.model<ISearchHistory, SearchHistoryModel>('SearchHistory', searchHistorySchema);
+const SearchHistory = mongoose.model<ISearchHistory, SearchHistoryModel>(
+  'SearchHistory',
+  searchHistorySchema
+);
 
 export default SearchHistory;

@@ -661,16 +661,37 @@ export class TestCaseGenerator {
       const currentPath = path === 'body' ? `body.${key}` : `${path}.${key}`;
 
       if (Array.isArray(value)) {
-        assertions.push(`assert(Array.isArray(${currentPath}), '${currentPath} should be an array');`);
+        assertions.push(
+          `assert(Array.isArray(${currentPath}), '${currentPath} should be an array');`
+        );
         if (value.length > 0 && typeof value[0] === 'object') {
-          assertions.push(...this.generateSchemaAssertions(value[0], `${currentPath}[0]`).split('\n').filter(s => s.trim()));
+          assertions.push(
+            ...this.generateSchemaAssertions(value[0], `${currentPath}[0]`)
+              .split('\n')
+              .filter(s => s.trim())
+          );
         }
       } else if (typeof value === 'object' && value !== null) {
-        assertions.push(`assert(typeof ${currentPath} === 'object' && ${currentPath} !== null, '${currentPath} should be an object');`);
-        assertions.push(...this.generateSchemaAssertions(value, currentPath).split('\n').filter(s => s.trim()));
+        assertions.push(
+          `assert(typeof ${currentPath} === 'object' && ${currentPath} !== null, '${currentPath} should be an object');`
+        );
+        assertions.push(
+          ...this.generateSchemaAssertions(value, currentPath)
+            .split('\n')
+            .filter(s => s.trim())
+        );
       } else {
-        const expectedType = typeof value === 'string' ? 'string' : typeof value === 'number' ? 'number' : typeof value === 'boolean' ? 'boolean' : 'object';
-        assertions.push(`assert(typeof ${currentPath} === '${expectedType}', '${currentPath} should be ${expectedType}');`);
+        const expectedType =
+          typeof value === 'string'
+            ? 'string'
+            : typeof value === 'number'
+              ? 'number'
+              : typeof value === 'boolean'
+                ? 'boolean'
+                : 'object';
+        assertions.push(
+          `assert(typeof ${currentPath} === '${expectedType}', '${currentPath} should be ${expectedType}');`
+        );
       }
     }
 
@@ -776,4 +797,3 @@ export class TestCaseGenerator {
     }
   }
 }
-

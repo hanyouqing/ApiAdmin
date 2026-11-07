@@ -1,0 +1,15 @@
+node_modules
+dist
+coverage
+playwright-report
+test-results
+backups
+*.min.js
+package-lock.json
+Client/dist
+Server/dist
+Static/assets
+Docs/**/*.png
+Images
+# Helm Go templates are not valid standalone YAML for Prettier
+Helm/**/templates/**

@@ -91,7 +91,7 @@ describe('TestCase Model', () => {
     const testCase = new TestCase({
       request: { method: 'GET' },
     });
-    
+
     await expect(testCase.save()).rejects.toThrow();
   });
 });

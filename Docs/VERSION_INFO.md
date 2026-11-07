@@ -17,11 +17,13 @@
 ## API 端点
 
 ### GET /version
+
 ### GET /api/version
 
 返回 JSON 格式的版本信息，无需认证。
 
 **响应示例**：
+
 ```json
 {
   "buildTime": "2025-01-27-14:30:45+0800",
@@ -74,6 +76,7 @@ docker build -t apiadmin:latest .
 ```
 
 默认值：
+
 - `BUILD_TIME`: 当前时间
 - `BUILD_BRANCH`: `unknown`
 - `BUILD_COMMIT`: `unknown`
@@ -88,7 +91,7 @@ docker build -t apiadmin:latest .
     BUILD_TIME=$(date +%Y-%m-%d-%H:%M:%S%z)
     BUILD_BRANCH=${GITHUB_REF#refs/heads/}
     BUILD_COMMIT=${{ github.sha }}
-    
+
     docker build \
       --build-arg BUILD_TIME="$BUILD_TIME" \
       --build-arg BUILD_BRANCH="$BUILD_BRANCH" \
@@ -105,7 +108,7 @@ build:
       BUILD_TIME=$(date +%Y-%m-%d-%H:%M:%S%z)
       BUILD_BRANCH=${CI_COMMIT_REF_NAME}
       BUILD_COMMIT=${CI_COMMIT_SHA}
-      
+
       docker build \
         --build-arg BUILD_TIME="$BUILD_TIME" \
         --build-arg BUILD_BRANCH="$BUILD_BRANCH" \
@@ -126,4 +129,3 @@ build:
 2. 如果不在 Git 仓库中构建，分支和提交信息会显示为 `unknown`
 3. 版本信息文件位于 `/app/version`，应用启动时读取
 4. 版本信息在应用启动时缓存，重启后更新
-

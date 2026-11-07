@@ -10,7 +10,9 @@ import APIDesignController from './APIDesign.js';
  * Interactive document center — generate, publish, preview API docs.
  */
 class DocumentCenterController extends BaseController {
-  static get ControllerName() { return 'DocumentCenterController'; }
+  static get ControllerName() {
+    return 'DocumentCenterController';
+  }
 
   static async generateDocument(ctx) {
     try {
@@ -32,11 +34,15 @@ class DocumentCenterController extends BaseController {
 
       const interfaces = await Interface.find({ project_id: projectId });
 
-      const openapiSpec = DocumentCenterController.generateOpenAPISpecForProject(project, interfaces);
+      const openapiSpec = DocumentCenterController.generateOpenAPISpecForProject(
+        project,
+        interfaces
+      );
       const documentContent = DocumentCenterController.generateDocumentContent(project, interfaces);
 
-      const latestVersion = await DocumentVersion.findOne({ project_id: projectId })
-        .sort({ version_number: -1 });
+      const latestVersion = await DocumentVersion.findOne({ project_id: projectId }).sort({
+        version_number: -1,
+      });
 
       const versionNumber = latestVersion ? latestVersion.version_number + 1 : 1;
       const versionString = version || `1.0.${versionNumber}`;
@@ -59,17 +65,18 @@ class DocumentCenterController extends BaseController {
 
       logger.info({ userId: user._id, projectId, version: versionString }, 'Document generated');
 
-      ctx.body = DocumentCenterController.success({
-        documentId: documentVersion._id,
-        version: versionString,
-      }, '文档生成成功');
+      ctx.body = DocumentCenterController.success(
+        {
+          documentId: documentVersion._id,
+          version: versionString,
+        },
+        '文档生成成功'
+      );
     } catch (error) {
       logger.error({ error }, 'Generate document error');
       ctx.status = 500;
       ctx.body = DocumentCenterController.error(
-        process.env.NODE_ENV === 'production'
-          ? '生成文档失败'
-          : error.message || '生成文档失败'
+        process.env.NODE_ENV === 'production' ? '生成文档失败' : error.message || '生成文档失败'
       );
     }
   }
@@ -117,9 +124,7 @@ class DocumentCenterController extends BaseController {
       logger.error({ error }, 'Publish document error');
       ctx.status = 500;
       ctx.body = DocumentCenterController.error(
-        process.env.NODE_ENV === 'production'
-          ? '发布文档失败'
-          : error.message || '发布文档失败'
+        process.env.NODE_ENV === 'production' ? '发布文档失败' : error.message || '发布文档失败'
       );
     }
   }
@@ -137,7 +142,9 @@ class DocumentCenterController extends BaseController {
       const document = await DocumentVersion.findOne({
         project_id: projectId,
         published: true,
-      }).populate('published_by', 'username').populate('created_by', 'username');
+      })
+        .populate('published_by', 'username')
+        .populate('created_by', 'username');
 
       if (!document) {
         ctx.status = 404;
@@ -150,9 +157,7 @@ class DocumentCenterController extends BaseController {
       logger.error({ error }, 'Get published document error');
       ctx.status = 500;
       ctx.body = DocumentCenterController.error(
-        process.env.NODE_ENV === 'production'
-          ? '获取文档失败'
-          : error.message || '获取文档失败'
+        process.env.NODE_ENV === 'production' ? '获取文档失败' : error.message || '获取文档失败'
       );
     }
   }
@@ -196,18 +201,12 @@ class DocumentCenterController extends BaseController {
 
       const v1 = await DocumentVersion.findOne({
         project_id: projectId,
-        $or: [
-          { version: version1 },
-          { version_number: parseInt(version1, 10) || 0 },
-        ],
+        $or: [{ version: version1 }, { version_number: parseInt(version1, 10) || 0 }],
       });
 
       const v2 = await DocumentVersion.findOne({
         project_id: projectId,
-        $or: [
-          { version: version2 },
-          { version_number: parseInt(version2, 10) || 0 },
-        ],
+        $or: [{ version: version2 }, { version_number: parseInt(version2, 10) || 0 }],
       });
 
       if (!v1 || !v2) {
@@ -227,9 +226,7 @@ class DocumentCenterController extends BaseController {
       logger.error({ error }, 'Compare document versions error');
       ctx.status = 500;
       ctx.body = DocumentCenterController.error(
-        process.env.NODE_ENV === 'production'
-          ? '版本对比失败'
-          : error.message || '版本对比失败'
+        process.env.NODE_ENV === 'production' ? '版本对比失败' : error.message || '版本对比失败'
       );
     }
   }
@@ -269,7 +266,7 @@ class DocumentCenterController extends BaseController {
         spec.paths[path][method] = {
           summary: interfaceData.title || path,
           description: interfaceData.desc || '',
-          responses: { '200': { description: 'Success' } },
+          responses: { 200: { description: 'Success' } },
         };
       }
     }
@@ -283,7 +280,7 @@ class DocumentCenterController extends BaseController {
         name: project.project_name || project.name,
         description: project.project_desc || project.desc,
       },
-      interfaces: interfaces.map((i) => ({
+      interfaces: interfaces.map(i => ({
         id: i._id,
         title: i.title,
         path: i.path,

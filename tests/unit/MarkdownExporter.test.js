@@ -70,9 +70,7 @@ describe('MarkdownExporter', () => {
           path: '/api/test',
           method: 'GET',
           title: 'Test Interface',
-          req_query: [
-            { name: 'id', type: 'string', required: true, desc: 'ID' },
-          ],
+          req_query: [{ name: 'id', type: 'string', required: true, desc: 'ID' }],
           req_body: null,
           res_body: '{}',
         },
@@ -114,4 +112,3 @@ describe('MarkdownExporter', () => {
     });
   });
 });
-

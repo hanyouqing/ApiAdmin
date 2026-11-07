@@ -32,10 +32,7 @@ export const authMiddleware = async (ctx, next) => {
     const cookieToken = ctx.cookies.get('token');
 
     // Prefer Authorization / Cookie. Query-string tokens are rejected in production (leak via logs/Referer).
-    let token =
-      authHeader?.replace(/^Bearer\s+/i, '') ||
-      cookieToken ||
-      null;
+    let token = authHeader?.replace(/^Bearer\s+/i, '') || cookieToken || null;
 
     if (!token && queryToken) {
       if (process.env.NODE_ENV === 'production') {
@@ -51,11 +48,14 @@ export const authMiddleware = async (ctx, next) => {
     }
 
     if (!token) {
-      logger.debug({
-        hasAuthHeader: !!authHeader,
-        hasQueryToken: !!queryToken,
-        hasCookieToken: !!cookieToken,
-      }, 'No token provided');
+      logger.debug(
+        {
+          hasAuthHeader: !!authHeader,
+          hasQueryToken: !!queryToken,
+          hasCookieToken: !!cookieToken,
+        },
+        'No token provided'
+      );
       ctx.status = 401;
       ctx.body = {
         success: false,
@@ -69,9 +69,12 @@ export const authMiddleware = async (ctx, next) => {
       decoded = jwt.verify(token, JWT_SECRET);
     } catch (err) {
       if (err.name === 'TokenExpiredError') {
-        logger.debug({
-          expiredAt: err.expiredAt,
-        }, 'Token expired');
+        logger.debug(
+          {
+            expiredAt: err.expiredAt,
+          },
+          'Token expired'
+        );
         ctx.status = 401;
         ctx.body = {
           success: false,
@@ -81,10 +84,13 @@ export const authMiddleware = async (ctx, next) => {
       }
       if (err.name === 'JsonWebTokenError') {
         const isSignatureError = err.message === 'invalid signature';
-        logger.warn({
-          error: err.message,
-          isSignatureError,
-        }, isSignatureError ? 'Invalid token signature' : 'Invalid token format');
+        logger.warn(
+          {
+            error: err.message,
+            isSignatureError,
+          },
+          isSignatureError ? 'Invalid token signature' : 'Invalid token format'
+        );
         ctx.status = 401;
         ctx.body = {
           success: false,
@@ -92,12 +98,15 @@ export const authMiddleware = async (ctx, next) => {
         };
         return;
       }
-      logger.error({
-        error: {
-          name: err.name,
-          message: err.message,
+      logger.error(
+        {
+          error: {
+            name: err.name,
+            message: err.message,
+          },
         },
-      }, 'JWT verification error');
+        'JWT verification error'
+      );
       throw err;
     }
 
@@ -123,10 +132,13 @@ export const authMiddleware = async (ctx, next) => {
         return;
       }
     } catch (dbError) {
-      logger.error({
-        error: dbError.message,
-        userId: decoded.userId,
-      }, 'Failed to fetch user from database');
+      logger.error(
+        {
+          error: dbError.message,
+          userId: decoded.userId,
+        },
+        'Failed to fetch user from database'
+      );
       ctx.status = 500;
       ctx.body = {
         success: false,
@@ -138,14 +150,17 @@ export const authMiddleware = async (ctx, next) => {
     ctx.state.user = user;
     await next();
   } catch (error) {
-    logger.error({
-      error: {
-        name: error?.name,
-        message: error?.message,
+    logger.error(
+      {
+        error: {
+          name: error?.name,
+          message: error?.message,
+        },
+        url: ctx.url,
+        method: ctx.method,
       },
-      url: ctx.url,
-      method: ctx.method,
-    }, 'Auth middleware error');
+      'Auth middleware error'
+    );
     ctx.status = 401;
     ctx.body = {
       success: false,

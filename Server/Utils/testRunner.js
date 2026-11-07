@@ -65,10 +65,7 @@ export class TestRunner {
         path: requestPath,
       };
 
-      const preScript =
-        testCase.pre_request_script ||
-        interfaceData.pre_request_script ||
-        '';
+      const preScript = testCase.pre_request_script || interfaceData.pre_request_script || '';
       if (preScript.trim()) {
         const sandbox = createPmSandbox({
           request: mutableRequest,
@@ -98,7 +95,7 @@ export class TestRunner {
         iterationData
       );
       requestPath = deepResolveTemplates(requestPath, templateEnv, this.variables, iterationData);
-      Object.keys(pathParams).forEach((key) => {
+      Object.keys(pathParams).forEach(key => {
         requestPath = requestPath.replace(`{${key}}`, pathParams[key]);
         requestPath = requestPath.replace(`:${key}`, pathParams[key]);
       });
@@ -166,10 +163,7 @@ export class TestRunner {
         response: result.response,
       });
 
-      const assertionScript =
-        testCase.assertion_script ||
-        interfaceData.test_script ||
-        '';
+      const assertionScript = testCase.assertion_script || interfaceData.test_script || '';
 
       if (assertionScript.trim()) {
         const sandbox = createPmSandbox({
@@ -182,10 +176,11 @@ export class TestRunner {
         });
         const assertResult = runScript(assertionScript, sandbox, { name: 'test-script' });
         Object.assign(this.variables, sandbox.getVariables());
-        const pmFailed = sandbox.getTests().some((t) => !t.passed);
+        const pmFailed = sandbox.getTests().some(t => !t.passed);
         result.assertionResult = {
           passed: assertResult.ok && !pmFailed,
-          message: assertResult.error || (assertResult.ok ? 'All assertions passed' : 'Assertion failed'),
+          message:
+            assertResult.error || (assertResult.ok ? 'All assertions passed' : 'Assertion failed'),
           errors: assertResult.error ? [assertResult.error] : [],
           tests: sandbox.getTests(),
         };
@@ -214,7 +209,7 @@ export class TestRunner {
   async runTestCollection(collectionId, environment = {}, options = {}) {
     const TestCollection = (await import('../Models/TestCollection.js')).default;
     const collection = await TestCollection.findById(collectionId).populate('test_cases');
-    
+
     if (!collection) {
       throw new Error('Test collection not found');
     }
@@ -226,9 +221,10 @@ export class TestRunner {
       .sort({ order: 1 })
       .populate('interface_id');
 
-    const iterations = Array.isArray(options.iteration_data) && options.iteration_data.length
-      ? options.iteration_data
-      : [{}];
+    const iterations =
+      Array.isArray(options.iteration_data) && options.iteration_data.length
+        ? options.iteration_data
+        : [{}];
 
     const results = [];
     const startTime = Date.now();
@@ -248,9 +244,9 @@ export class TestRunner {
     }
 
     const totalDuration = Date.now() - startTime;
-    const passed = results.filter((r) => r.status === 'passed').length;
-    const failed = results.filter((r) => r.status === 'failed').length;
-    const errors = results.filter((r) => r.status === 'error').length;
+    const passed = results.filter(r => r.status === 'passed').length;
+    const failed = results.filter(r => r.status === 'failed').length;
+    const errors = results.filter(r => r.status === 'error').length;
 
     return {
       collectionId,
@@ -270,7 +266,7 @@ export class TestRunner {
     if (typeof data === 'string') {
       return this.resolveVariableExpression(data, records);
     } else if (Array.isArray(data)) {
-      return data.map((item) => this.resolveVariables(item, records));
+      return data.map(item => this.resolveVariables(item, records));
     } else if (data && typeof data === 'object') {
       const resolved = {};
       for (const [key, value] of Object.entries(data)) {
@@ -290,7 +286,7 @@ export class TestRunner {
     let resolved = expression;
 
     resolved = resolved.replace(variablePattern, (match, key, type, path) => {
-      const record = records.find((r) => r.key === key);
+      const record = records.find(r => r.key === key);
       if (!record) {
         logger.warn({ match, key }, 'Variable record not found');
         return match;
@@ -320,8 +316,7 @@ export class TestRunner {
       if (resolved.startsWith('{') || resolved.startsWith('[')) {
         return JSON.parse(resolved);
       }
-    } catch (error) {
-    }
+    } catch (error) {}
 
     return resolved;
   }
@@ -415,4 +410,3 @@ export class TestRunner {
     }
   }
 }
-

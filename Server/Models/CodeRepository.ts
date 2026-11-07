@@ -97,6 +97,9 @@ const codeRepositorySchema = new Schema<ICodeRepository>(
 
 codeRepositorySchema.index({ project_id: 1 });
 
-const CodeRepository = mongoose.model<ICodeRepository, CodeRepositoryModel>('CodeRepository', codeRepositorySchema);
+const CodeRepository = mongoose.model<ICodeRepository, CodeRepositoryModel>(
+  'CodeRepository',
+  codeRepositorySchema
+);
 
 export default CodeRepository;

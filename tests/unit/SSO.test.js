@@ -291,6 +291,3 @@ describe('SSO Controller', () => {
     });
   });
 });
-
-
-

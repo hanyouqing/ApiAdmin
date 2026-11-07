@@ -1,6 +1,13 @@
 import mongoose, { Schema, Model } from 'mongoose';
 
-export type PluginCategory = 'export' | 'import' | 'mock' | 'test' | 'integration' | 'buildin' | 'other';
+export type PluginCategory =
+  | 'export'
+  | 'import'
+  | 'mock'
+  | 'test'
+  | 'integration'
+  | 'buildin'
+  | 'other';
 
 export interface IPlugin {
   name: string;

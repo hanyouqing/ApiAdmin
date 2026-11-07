@@ -6,7 +6,10 @@ alwaysApply: true
 # Project Workflow
 
 - Apply PATH from `~/.zshrc` before shell commands (`grep PATH ~/.zshrc`).
-- Prefer `make help` / Makefile targets over ad-hoc scripts when a target exists (`start`, `build`, `test`, `backup`, `restore`, `config-backup`, etc.).
+- Prefer `make help` / Makefile targets over ad-hoc scripts when a target exists (`start`, `backend`, `seed-demo`, `reset-password`, `build`, `test`, `backup`, `restore`, `config-backup`, etc.).
+- `make backend` / `make start` run `mongo-up` first: Docker container `apiadmin-mongo` (`mongo:7`) on `127.0.0.1:27017`, no auth, matching default `MONGODB_URL=mongodb://localhost:27017/apiadmin`. Use `make mongo-down` to stop; volume `apiadmin-mongo-data` is kept.
+- `make reset-password` resets a local user password via `Server/scripts/reset-password.mjs` (defaults `demo@apiadmin.local` / `Demo1234!`). Pass `EMAIL=`, `PASSWORD=`, optional `CREATE=1`.
+- Git hooks (Husky): pre-commit runs lint-staged (Prettier + ESLint) then `vitest --run`; commit-msg enforces Conventional Commits. See `Docs/GIT_HOOKS.md`. Escape hatch: `SKIP_TESTS=1` or `--no-verify` (sparingly).
 - Stack: Client (Vite/React/antd) + Server (Koa/Mongoose) + MongoDB + Redis.
 - Root `package.json` orchestrates `dev`/`build`/`test`; Client and Server have their own packages.
 - Do not commit secrets (`.env`, credentials). Prefer MIT/Apache dependencies.

@@ -69,11 +69,16 @@ const MyProjects: React.FC = () => {
   ];
 
   return (
-    <Card title={<><ProjectOutlined /> {t('user.projects.title')}</>}>
+    <Card
+      title={
+        <>
+          <ProjectOutlined /> {t('user.projects.title')}
+        </>
+      }
+    >
       <Table columns={columns} dataSource={projects} rowKey="_id" loading={loading} />
     </Card>
   );
 };
 
 export default MyProjects;
-

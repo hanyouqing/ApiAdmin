@@ -10,7 +10,7 @@
  */
 export const formatDate = (date, format = 'YYYY-MM-DD HH:mm:ss') => {
   if (!date) return '';
-  
+
   const d = date instanceof Date ? date : new Date(date);
   if (isNaN(d.getTime())) return '';
 
@@ -35,9 +35,9 @@ export const formatDate = (date, format = 'YYYY-MM-DD HH:mm:ss') => {
  * @param {Date|string|number} date - 日期
  * @returns {string} 相对时间字符串
  */
-export const formatRelativeTime = (date) => {
+export const formatRelativeTime = date => {
   if (!date) return '';
-  
+
   const d = date instanceof Date ? date : new Date(date);
   if (isNaN(d.getTime())) return '';
 
@@ -52,7 +52,7 @@ export const formatRelativeTime = (date) => {
   if (minutes < 60) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
   if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
   if (days < 30) return `${days} day${days > 1 ? 's' : ''} ago`;
-  
+
   return formatDate(d, 'YYYY-MM-DD');
 };
 
@@ -69,14 +69,15 @@ export const getTimestamp = () => {
  * @param {Date|string|number} date - 日期
  * @returns {boolean} 是否为今天
  */
-export const isToday = (date) => {
+export const isToday = date => {
   if (!date) return false;
   const d = date instanceof Date ? date : new Date(date);
   if (isNaN(d.getTime())) return false;
-  
-  const today = new Date();
-  return d.getDate() === today.getDate() &&
-         d.getMonth() === today.getMonth() &&
-         d.getFullYear() === today.getFullYear();
-};
 
+  const today = new Date();
+  return (
+    d.getDate() === today.getDate() &&
+    d.getMonth() === today.getMonth() &&
+    d.getFullYear() === today.getFullYear()
+  );
+};

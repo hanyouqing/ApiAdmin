@@ -35,10 +35,10 @@ describe('PasswordReset Model', () => {
 
   it('should create a reset token', async () => {
     const token = await PasswordReset.createResetToken(testUser._id);
-    
+
     expect(token).toBeDefined();
     expect(typeof token).toBe('string');
-    
+
     const resetToken = await PasswordReset.findOne({ userId: testUser._id });
     expect(resetToken).toBeDefined();
     expect(resetToken.token).toBe(token);
@@ -49,7 +49,7 @@ describe('PasswordReset Model', () => {
   it('should validate a valid token', async () => {
     const token = await PasswordReset.createResetToken(testUser._id);
     const resetToken = await PasswordReset.validateToken(token);
-    
+
     expect(resetToken).toBeDefined();
     expect(resetToken.userId.toString()).toBe(testUser._id.toString());
   });
@@ -64,7 +64,7 @@ describe('PasswordReset Model', () => {
     const resetToken = await PasswordReset.findOne({ token });
     resetToken.expiresAt = new Date(Date.now() - 1000);
     await resetToken.save();
-    
+
     const validated = await PasswordReset.validateToken(token);
     expect(validated).toBe(null);
   });
@@ -74,9 +74,8 @@ describe('PasswordReset Model', () => {
     const resetToken = await PasswordReset.findOne({ token });
     resetToken.used = true;
     await resetToken.save();
-    
+
     const validated = await PasswordReset.validateToken(token);
     expect(validated).toBe(null);
   });
 });
-

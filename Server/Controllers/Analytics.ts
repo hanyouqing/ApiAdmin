@@ -9,7 +9,9 @@ import TestCollection from '../Models/TestCollection.js';
 import TestCase from '../Models/TestCase.js';
 
 class AnalyticsController extends BaseController {
-  static get ControllerName() { return 'AnalyticsController'; }
+  static get ControllerName() {
+    return 'AnalyticsController';
+  }
 
   static async getProjectHealth(ctx: Koa.Context) {
     try {
@@ -31,13 +33,11 @@ class AnalyticsController extends BaseController {
       const totalInterfaces = await Interface.countDocuments({ project_id: projectId });
       const documentedInterfaces = await Interface.countDocuments({
         project_id: projectId,
-        $or: [
-          { desc: { $exists: true, $ne: '' } },
-          { res_body: { $exists: true, $ne: '' } },
-        ],
+        $or: [{ desc: { $exists: true, $ne: '' } }, { res_body: { $exists: true, $ne: '' } }],
       });
 
-      const documentationCoverage = totalInterfaces > 0 ? documentedInterfaces / totalInterfaces : 0;
+      const documentationCoverage =
+        totalInterfaces > 0 ? documentedInterfaces / totalInterfaces : 0;
       const mockUsedInterfaces = await Interface.countDocuments({
         project_id: projectId,
         res_body: { $exists: true, $ne: '' },
@@ -59,7 +59,11 @@ class AnalyticsController extends BaseController {
       const totalMembers = (project.member?.length || 0) + (project.uid ? 1 : 0);
 
       const score = Math.round(
-        (documentationCoverage * 0.3 + mockUsageRate * 0.2 + testPassRate * 0.3 + (totalMembers > 0 ? 0.2 : 0)) * 100
+        (documentationCoverage * 0.3 +
+          mockUsageRate * 0.2 +
+          testPassRate * 0.3 +
+          (totalMembers > 0 ? 0.2 : 0)) *
+          100
       );
 
       ctx.body = AnalyticsController.success({
@@ -94,16 +98,19 @@ class AnalyticsController extends BaseController {
 
       const testCases = await TestCase.find({ interface_id: id });
       const testCaseIds = testCases.map(tc => tc._id);
-      const testResults = await TestResult.find({ test_case_id: { $in: testCaseIds } }).sort({ run_at: -1 });
+      const testResults = await TestResult.find({ test_case_id: { $in: testCaseIds } }).sort({
+        run_at: -1,
+      });
 
       const totalRuns = testResults.length;
       const successRuns = testResults.filter(r => r.status === 'passed').length;
       const successRate = totalRuns > 0 ? successRuns / totalRuns : 0;
 
       const responseTimes = testResults.filter(r => r.duration).map(r => r.duration);
-      const averageResponseTime = responseTimes.length > 0
-        ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length
-        : 0;
+      const averageResponseTime =
+        responseTimes.length > 0
+          ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length
+          : 0;
 
       ctx.body = AnalyticsController.success({
         testHistory: {

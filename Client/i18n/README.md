@@ -29,7 +29,7 @@ import { useTranslation } from 'react-i18next';
 
 const MyComponent: React.FC = () => {
   const { t } = useTranslation();
-  
+
   return (
     <div>
       <h1>{t('app.title')}</h1>
@@ -46,7 +46,7 @@ import { useTranslation } from 'react-i18next';
 
 const LoginForm: React.FC = () => {
   const { t } = useTranslation();
-  
+
   return (
     <Form>
       <Form.Item
@@ -71,11 +71,11 @@ import { useTranslation } from 'react-i18next';
 
 const MyComponent: React.FC = () => {
   const { t } = useTranslation();
-  
+
   const handleSuccess = () => {
     message.success(t('message.operationSuccess'));
   };
-  
+
   const handleError = () => {
     message.error(t('message.operationFailed'));
   };
@@ -88,7 +88,7 @@ const MyComponent: React.FC = () => {
 const { t } = useTranslation();
 
 // In translation file: "minLength": "Minimum length is {{min}} characters"
-t('validation.minLength', { min: 6 })
+t('validation.minLength', { min: 6 });
 // Output: "Minimum length is 6 characters"
 ```
 
@@ -124,6 +124,7 @@ t('validation.minLength', { min: 6 })
 ## Language Switching
 
 Users can switch languages using the language switcher in the Header component. The selected language is:
+
 - Saved to `localStorage`
 - Stored in Redux (`ui.locale`)
 - Applied to both app content and Ant Design components
@@ -151,14 +152,13 @@ Users can switch languages using the language switcher in the Header component. 
 ## Troubleshooting
 
 ### Translation not showing
+
 - Check if key exists in both language files
 - Verify key path is correct (use dot notation)
 - Check browser console for i18n errors
 
 ### Language not switching
+
 - Clear localStorage and refresh
 - Check Redux state (`ui.locale`)
 - Verify i18n config is loaded correctly
-
-
-

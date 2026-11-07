@@ -5,9 +5,12 @@
 /**
  * 格式化日期
  */
-export const formatDate = (date: Date | string | number | null | undefined, format: string = 'YYYY-MM-DD HH:mm:ss'): string => {
+export const formatDate = (
+  date: Date | string | number | null | undefined,
+  format: string = 'YYYY-MM-DD HH:mm:ss'
+): string => {
   if (!date) return '';
-  
+
   const d = date instanceof Date ? date : new Date(date);
   if (isNaN(d.getTime())) return '';
 
@@ -32,7 +35,7 @@ export const formatDate = (date: Date | string | number | null | undefined, form
  */
 export const formatRelativeTime = (date: Date | string | number | null | undefined): string => {
   if (!date) return '';
-  
+
   const d = date instanceof Date ? date : new Date(date);
   if (isNaN(d.getTime())) return '';
 
@@ -47,7 +50,7 @@ export const formatRelativeTime = (date: Date | string | number | null | undefin
   if (minutes < 60) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
   if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
   if (days < 30) return `${days} day${days > 1 ? 's' : ''} ago`;
-  
+
   return formatDate(d, 'YYYY-MM-DD');
 };
 
@@ -65,12 +68,11 @@ export const isToday = (date: Date | string | number | null | undefined): boolea
   if (!date) return false;
   const d = date instanceof Date ? date : new Date(date);
   if (isNaN(d.getTime())) return false;
-  
+
   const today = new Date();
-  return d.getDate() === today.getDate() &&
-         d.getMonth() === today.getMonth() &&
-         d.getFullYear() === today.getFullYear();
+  return (
+    d.getDate() === today.getDate() &&
+    d.getMonth() === today.getMonth() &&
+    d.getFullYear() === today.getFullYear()
+  );
 };
-
-
-

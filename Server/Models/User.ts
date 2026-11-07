@@ -2,7 +2,19 @@ import mongoose, { Model } from 'mongoose';
 import bcrypt from 'bcrypt';
 
 export type UserRole = 'super_admin' | 'group_leader' | 'project_leader' | 'developer' | 'guest';
-export type SSOProvider = 'local' | 'saml' | 'oauth2' | 'oidc' | 'ldap' | 'cas' | 'wechat' | 'google' | 'github' | 'gitlab' | 'phone' | 'email';
+export type SSOProvider =
+  | 'local'
+  | 'saml'
+  | 'oauth2'
+  | 'oidc'
+  | 'ldap'
+  | 'cas'
+  | 'wechat'
+  | 'google'
+  | 'github'
+  | 'gitlab'
+  | 'phone'
+  | 'email';
 
 export interface IUser {
   username: string;
@@ -55,7 +67,20 @@ const userSchema = new mongoose.Schema<IUser, UserModel, IUserMethods>(
     },
     ssoProvider: {
       type: String,
-      enum: ['local', 'saml', 'oauth2', 'oidc', 'ldap', 'cas', 'wechat', 'google', 'github', 'gitlab', 'phone', 'email'],
+      enum: [
+        'local',
+        'saml',
+        'oauth2',
+        'oidc',
+        'ldap',
+        'cas',
+        'wechat',
+        'google',
+        'github',
+        'gitlab',
+        'phone',
+        'email',
+      ],
       default: 'local',
     },
     ssoId: {
@@ -87,7 +112,7 @@ userSchema.methods.comparePassword = async function (candidatePassword: string) 
 
 userSchema.methods.toJSON = function () {
   const DEFAULT_AVATAR = '/icons/icon-64x64.png';
-  
+
   try {
     const obj = this.toObject();
     delete obj.password;
@@ -102,7 +127,8 @@ userSchema.methods.toJSON = function () {
     return obj;
   } catch (error) {
     // 如果 toObject() 失败，返回一个基本对象
-    const avatar = (this as any).avatar && (this as any).avatar !== '' ? (this as any).avatar : DEFAULT_AVATAR;
+    const avatar =
+      (this as any).avatar && (this as any).avatar !== '' ? (this as any).avatar : DEFAULT_AVATAR;
     return {
       _id: this._id ? this._id.toString() : null,
       username: (this as any).username,

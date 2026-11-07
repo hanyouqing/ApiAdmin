@@ -1,6 +1,25 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Table, Button, Space, Tag, Modal, Form, Input, Select, Switch, App, message } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined, DownloadOutlined } from '@ant-design/icons';
+import {
+  Card,
+  Table,
+  Button,
+  Space,
+  Tag,
+  Modal,
+  Form,
+  Input,
+  Select,
+  Switch,
+  App,
+  message,
+} from 'antd';
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  ReloadOutlined,
+  DownloadOutlined,
+} from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { useSelector } from 'react-redux';
 import { api } from '../../Utils/api';
@@ -59,7 +78,7 @@ const CodeManagement: React.FC = () => {
 
   const fetchRepositories = async () => {
     if (projects.length === 0) return;
-    
+
     setLoading(true);
     try {
       const repoList: CodeRepository[] = [];
@@ -199,7 +218,9 @@ const CodeManagement: React.FC = () => {
       key: 'auth_type',
       render: (type: string) => (
         <Tag color={type === 'ssh' ? 'blue' : 'green'}>
-          {type === 'ssh' ? t('admin.codeManagement.authTypeSSH') : t('admin.codeManagement.authTypeToken')}
+          {type === 'ssh'
+            ? t('admin.codeManagement.authTypeSSH')
+            : t('admin.codeManagement.authTypeToken')}
         </Tag>
       ),
     },
@@ -242,7 +263,12 @@ const CodeManagement: React.FC = () => {
       <Card
         title={t('admin.codeManagement.title')}
         extra={
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate} style={{ color: '#ffffff' }}>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={handleCreate}
+            style={{ color: '#ffffff' }}
+          >
             {t('admin.codeManagement.create')}
           </Button>
         }
@@ -275,7 +301,7 @@ const CodeManagement: React.FC = () => {
             rules={[{ required: true, message: t('admin.codeManagement.projectRequired') }]}
           >
             <Select placeholder={t('admin.codeManagement.selectProject')} disabled={!!editingRepo}>
-              {projects.map((project) => (
+              {projects.map(project => (
                 <Option key={project._id} value={project._id}>
                   {project.project_name}
                 </Option>
@@ -308,19 +334,11 @@ const CodeManagement: React.FC = () => {
             <Input placeholder="https://github.com/owner/repo" />
           </Form.Item>
 
-          <Form.Item
-            name="branch"
-            label={t('project.repository.branch')}
-            initialValue="main"
-          >
+          <Form.Item name="branch" label={t('project.repository.branch')} initialValue="main">
             <Input placeholder="main" />
           </Form.Item>
 
-          <Form.Item
-            name="auth_type"
-            label={t('project.repository.authType')}
-            initialValue="token"
-          >
+          <Form.Item name="auth_type" label={t('project.repository.authType')} initialValue="token">
             <Select>
               <Option value="token">{t('project.repository.authTypeToken')}</Option>
               <Option value="ssh">{t('project.repository.authTypeSSH')}</Option>
@@ -329,7 +347,9 @@ const CodeManagement: React.FC = () => {
 
           <Form.Item
             noStyle
-            shouldUpdate={(prevValues, currentValues) => prevValues.auth_type !== currentValues.auth_type}
+            shouldUpdate={(prevValues, currentValues) =>
+              prevValues.auth_type !== currentValues.auth_type
+            }
           >
             {({ getFieldValue }) =>
               getFieldValue('auth_type') === 'token' ? (
@@ -347,16 +367,23 @@ const CodeManagement: React.FC = () => {
                   <Form.Item
                     name="ssh_private_key"
                     label={t('project.repository.sshPrivateKey')}
-                    rules={[{ required: true, message: t('project.repository.sshPrivateKeyPlaceholder') }]}
+                    rules={[
+                      { required: true, message: t('project.repository.sshPrivateKeyPlaceholder') },
+                    ]}
                   >
-                    <TextArea rows={6} placeholder={t('project.repository.sshPrivateKeyPlaceholder')} />
+                    <TextArea
+                      rows={6}
+                      placeholder={t('project.repository.sshPrivateKeyPlaceholder')}
+                    />
                   </Form.Item>
                   <Form.Item
                     name="ssh_private_key_password"
                     label={t('project.repository.sshPrivateKeyPassword')}
                     tooltip={t('project.repository.sshPrivateKeyPasswordTooltip')}
                   >
-                    <Input.Password placeholder={t('project.repository.sshPrivateKeyPasswordPlaceholder')} />
+                    <Input.Password
+                      placeholder={t('project.repository.sshPrivateKeyPasswordPlaceholder')}
+                    />
                   </Form.Item>
                 </>
               )
@@ -387,4 +414,3 @@ const CodeManagement: React.FC = () => {
 };
 
 export default CodeManagement;
-

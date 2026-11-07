@@ -9,7 +9,9 @@ import Group from '../Models/Group.js';
 import User from '../Models/User.js';
 
 class PermissionController extends BaseController {
-  static get ControllerName() { return 'PermissionController'; }
+  static get ControllerName() {
+    return 'PermissionController';
+  }
 
   // ========== 项目成员权限管理 ==========
 
@@ -42,7 +44,11 @@ class PermissionController extends BaseController {
       }
 
       // 检查当前用户权限（必须是项目负责人或超级管理员）
-      const hasPermission = await this.checkProjectPermission(user._id, project_id, 'manage_members');
+      const hasPermission = await this.checkProjectPermission(
+        user._id,
+        project_id,
+        'manage_members'
+      );
       if (!hasPermission) {
         ctx.status = 403;
         ctx.body = PermissionController.error('无权限管理项目成员');
@@ -74,7 +80,10 @@ class PermissionController extends BaseController {
         await project.save();
       }
 
-      logger.info({ userId: user._id, projectId: project_id, memberId: user_id }, 'Project member added');
+      logger.info(
+        { userId: user._id, projectId: project_id, memberId: user_id },
+        'Project member added'
+      );
 
       ctx.body = PermissionController.success(member, '项目成员添加成功');
     } catch (error) {
@@ -107,7 +116,11 @@ class PermissionController extends BaseController {
       }
 
       // 检查权限
-      const hasPermission = await this.checkProjectPermission(user._id, project_id, 'manage_members');
+      const hasPermission = await this.checkProjectPermission(
+        user._id,
+        project_id,
+        'manage_members'
+      );
       if (!hasPermission) {
         ctx.status = 403;
         ctx.body = PermissionController.error('无权限修改项目成员');
@@ -137,7 +150,10 @@ class PermissionController extends BaseController {
 
       await member.save();
 
-      logger.info({ userId: user._id, projectId: project_id, memberId: user_id }, 'Project member updated');
+      logger.info(
+        { userId: user._id, projectId: project_id, memberId: user_id },
+        'Project member updated'
+      );
 
       ctx.body = PermissionController.success(member, '项目成员权限更新成功');
     } catch (error) {
@@ -164,7 +180,11 @@ class PermissionController extends BaseController {
       }
 
       // 检查权限
-      const hasPermission = await this.checkProjectPermission(user._id, project_id, 'manage_members');
+      const hasPermission = await this.checkProjectPermission(
+        user._id,
+        project_id,
+        'manage_members'
+      );
       if (!hasPermission) {
         ctx.status = 403;
         ctx.body = PermissionController.error('无权限移除项目成员');
@@ -190,13 +210,14 @@ class PermissionController extends BaseController {
       // 更新项目的成员列表（向后兼容）
       const project = await Project.findById(project_id);
       if (project) {
-        project.member = project.member.filter(
-          (id) => id.toString() !== user_id.toString()
-        );
+        project.member = project.member.filter(id => id.toString() !== user_id.toString());
         await project.save();
       }
 
-      logger.info({ userId: user._id, projectId: project_id, memberId: user_id }, 'Project member removed');
+      logger.info(
+        { userId: user._id, projectId: project_id, memberId: user_id },
+        'Project member removed'
+      );
 
       ctx.body = PermissionController.success(null, '项目成员移除成功');
     } catch (error) {
@@ -257,7 +278,11 @@ class PermissionController extends BaseController {
       }
 
       // 检查权限
-      const hasPermission = await this.checkProjectPermission(user._id, project_id, 'manage_members');
+      const hasPermission = await this.checkProjectPermission(
+        user._id,
+        project_id,
+        'manage_members'
+      );
       if (!hasPermission) {
         ctx.status = 403;
         ctx.body = PermissionController.error('无权限管理项目成员');
@@ -320,13 +345,19 @@ class PermissionController extends BaseController {
 
       await project.save();
 
-      logger.info({ userId: user._id, projectId: project_id, successCount, failedCount }, 'Batch add project members');
+      logger.info(
+        { userId: user._id, projectId: project_id, successCount, failedCount },
+        'Batch add project members'
+      );
 
-      ctx.body = PermissionController.success({
-        successCount,
-        failedCount,
-        failedMembers,
-      }, '批量添加完成');
+      ctx.body = PermissionController.success(
+        {
+          successCount,
+          failedCount,
+          failedMembers,
+        },
+        '批量添加完成'
+      );
     } catch (error) {
       logger.error({ error }, 'Batch add project members error');
       ctx.status = 500;
@@ -450,7 +481,10 @@ class PermissionController extends BaseController {
 
       await member.save();
 
-      logger.info({ userId: user._id, groupId: group_id, memberId: user_id }, 'Group member updated');
+      logger.info(
+        { userId: user._id, groupId: group_id, memberId: user_id },
+        'Group member updated'
+      );
 
       ctx.body = PermissionController.success(member, '分组成员权限更新成功');
     } catch (error) {
@@ -500,13 +534,14 @@ class PermissionController extends BaseController {
 
       const group = await Group.findById(group_id);
       if (group) {
-        group.member = group.member.filter(
-          (id) => id.toString() !== user_id.toString()
-        );
+        group.member = group.member.filter(id => id.toString() !== user_id.toString());
         await group.save();
       }
 
-      logger.info({ userId: user._id, groupId: group_id, memberId: user_id }, 'Group member removed');
+      logger.info(
+        { userId: user._id, groupId: group_id, memberId: user_id },
+        'Group member removed'
+      );
 
       ctx.body = PermissionController.success(null, '分组成员移除成功');
     } catch (error) {
@@ -765,6 +800,3 @@ class PermissionController extends BaseController {
 }
 
 export default PermissionController;
-
-
-

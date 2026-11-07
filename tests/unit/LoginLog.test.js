@@ -107,7 +107,9 @@ describe('LoginLogController', () => {
 
       expect(ctx.status).toBe(200);
       expect(ctx.body.success).toBe(true);
-      expect(ctx.body.data.list.every(log => log.userId._id.toString() === testUser._id.toString())).toBe(true);
+      expect(
+        ctx.body.data.list.every(log => log.userId._id.toString() === testUser._id.toString())
+      ).toBe(true);
     });
 
     it('should filter by status', async () => {
@@ -164,7 +166,7 @@ describe('LoginLogController', () => {
       for (let i = 0; i < 25; i++) {
         await LoginLog.create({
           userId: testUser._id,
-        username: testUser.username,
+          username: testUser.username,
           status: 'success',
           loginType: 'password',
           ip: '127.0.0.1',
@@ -301,4 +303,3 @@ describe('LoginLogController', () => {
     });
   });
 });
-

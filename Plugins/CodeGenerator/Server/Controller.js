@@ -11,7 +11,7 @@ export default {
         ctx.status = 400;
         ctx.body = {
           success: false,
-          message: 'interfaceData is required'
+          message: 'interfaceData is required',
         };
         return;
       }
@@ -19,23 +19,22 @@ export default {
       const code = service.generate(interfaceData, {
         language: language || 'javascript',
         environment,
-        includeComments: includeComments !== false
+        includeComments: includeComments !== false,
       });
 
       ctx.body = {
         success: true,
         data: {
           code,
-          language: language || 'javascript'
-        }
+          language: language || 'javascript',
+        },
       };
     } catch (error) {
       ctx.status = 500;
       ctx.body = {
         success: false,
-        message: error.message
+        message: error.message,
       };
     }
-  }
+  },
 };
-

@@ -93,7 +93,12 @@ describe('ProjectTokenController', () => {
 
     it('should return 404 for non-existent project', async () => {
       const fakeId = new mongoose.Types.ObjectId();
-      const ctx = createMockCtx({ projectId: fakeId.toString() }, {}, { name: 'Test Token' }, testUser);
+      const ctx = createMockCtx(
+        { projectId: fakeId.toString() },
+        {},
+        { name: 'Test Token' },
+        testUser
+      );
       await ProjectTokenController.generateToken(ctx);
 
       expect(ctx.status).toBe(404);
@@ -277,4 +282,3 @@ describe('ProjectTokenController', () => {
     });
   });
 });
-

@@ -1,5 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Table, Input, Select, Button, Space, Tag, App, DatePicker, Row, Col, Statistic } from 'antd';
+import {
+  Card,
+  Table,
+  Input,
+  Select,
+  Button,
+  Space,
+  Tag,
+  App,
+  DatePicker,
+  Row,
+  Col,
+  Statistic,
+} from 'antd';
 import { SearchOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
@@ -77,7 +90,7 @@ const LoginLogManagement: React.FC = () => {
         params.startDate = dateRange[0].startOf('day').toISOString();
         params.endDate = dateRange[1].endOf('day').toISOString();
       }
-      
+
       const response = await api.get('/login-logs', { params });
       const data = response.data.data || {};
       setLogs(data.list || []);
@@ -86,7 +99,9 @@ const LoginLogManagement: React.FC = () => {
         total: data.pagination?.total || 0,
       });
     } catch (error: any) {
-      message.error(error.response?.data?.message || t('admin.loginLog.fetchFailed') || '获取登录日志失败');
+      message.error(
+        error.response?.data?.message || t('admin.loginLog.fetchFailed') || '获取登录日志失败'
+      );
     } finally {
       setLoading(false);
     }
@@ -99,7 +114,7 @@ const LoginLogManagement: React.FC = () => {
         params.startDate = dateRange[0].startOf('day').toISOString();
         params.endDate = dateRange[1].endOf('day').toISOString();
       }
-      
+
       const response = await api.get('/login-logs/statistics', { params });
       setStatistics(response.data.data || null);
     } catch (error: any) {
@@ -130,7 +145,9 @@ const LoginLogManagement: React.FC = () => {
       render: (_: any, record: LoginLog) => (
         <div>
           <div>{record.userId?.username || record.username || '-'}</div>
-          <div style={{ fontSize: 12, color: '#999' }}>{record.userId?.email || record.email || '-'}</div>
+          <div style={{ fontSize: 12, color: '#999' }}>
+            {record.userId?.email || record.email || '-'}
+          </div>
         </div>
       ),
     },
@@ -152,7 +169,9 @@ const LoginLogManagement: React.FC = () => {
       render: (status: string, record: LoginLog) => (
         <div>
           <Tag color={status === 'success' ? 'green' : 'red'}>
-            {status === 'success' ? (t('admin.loginLog.status.success') || '成功') : (t('admin.loginLog.status.failed') || '失败')}
+            {status === 'success'
+              ? t('admin.loginLog.status.success') || '成功'
+              : t('admin.loginLog.status.failed') || '失败'}
           </Tag>
           {status === 'failed' && record.failureReason && (
             <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>{record.failureReason}</div>
@@ -175,11 +194,11 @@ const LoginLogManagement: React.FC = () => {
       title: t('admin.loginLog.time') || '时间',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (text: string) => text ? new Date(text).toLocaleString() : '-',
+      render: (text: string) => (text ? new Date(text).toLocaleString() : '-'),
     },
   ];
 
-  const filteredLogs = logs.filter((log) => {
+  const filteredLogs = logs.filter(log => {
     if (!searchText) return true;
     const searchLower = searchText.toLowerCase();
     return (
@@ -199,10 +218,7 @@ const LoginLogManagement: React.FC = () => {
         <Row gutter={16} style={{ marginBottom: 16 }}>
           <Col span={6}>
             <Card>
-              <Statistic
-                title={t('admin.loginLog.statistics.total')}
-                value={statistics.total}
-              />
+              <Statistic title={t('admin.loginLog.statistics.total')} value={statistics.total} />
             </Card>
           </Col>
           <Col span={6}>
@@ -239,7 +255,13 @@ const LoginLogManagement: React.FC = () => {
       <Card
         title={t('admin.loginLog.title')}
         extra={
-          <Button icon={<ReloadOutlined />} onClick={() => { fetchLogs(); fetchStatistics(); }}>
+          <Button
+            icon={<ReloadOutlined />}
+            onClick={() => {
+              fetchLogs();
+              fetchStatistics();
+            }}
+          >
             {t('common.refresh')}
           </Button>
         }
@@ -249,7 +271,7 @@ const LoginLogManagement: React.FC = () => {
             placeholder={t('admin.loginLog.searchPlaceholder')}
             prefix={<SearchOutlined />}
             value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
+            onChange={e => setSearchText(e.target.value)}
             style={{ width: 250 }}
             allowClear
           />
@@ -281,21 +303,21 @@ const LoginLogManagement: React.FC = () => {
           </Select>
           <RangePicker
             value={dateRange}
-            onChange={(dates) => setDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null)}
+            onChange={dates => setDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null)}
             format="YYYY-MM-DD"
           />
         </Space>
-        <Table 
-          columns={columns} 
-          dataSource={filteredLogs} 
-          rowKey="_id" 
+        <Table
+          columns={columns}
+          dataSource={filteredLogs}
+          rowKey="_id"
           loading={loading}
           pagination={{
             current: pagination.page,
             pageSize: pagination.pageSize,
             total: pagination.total,
             showSizeChanger: true,
-            showTotal: (total) => `共 ${total} 条`,
+            showTotal: total => `共 ${total} 条`,
             onChange: (page, pageSize) => {
               setPagination({ ...pagination, page, pageSize });
             },
@@ -307,5 +329,3 @@ const LoginLogManagement: React.FC = () => {
 };
 
 export default LoginLogManagement;
-
-

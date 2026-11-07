@@ -25,7 +25,8 @@ export interface IProjectTokenStatics {
   hashToken(token: string): string;
 }
 
-export type ProjectTokenModel = Model<IProjectToken, {}, IProjectTokenMethods> & IProjectTokenStatics;
+export type ProjectTokenModel = Model<IProjectToken, {}, IProjectTokenMethods> &
+  IProjectTokenStatics;
 
 const projectTokenSchema = new Schema<IProjectToken, ProjectTokenModel, IProjectTokenMethods>(
   {
@@ -97,6 +98,9 @@ projectTokenSchema.methods.updateLastUsed = async function () {
   await this.save();
 };
 
-const ProjectToken = mongoose.model<IProjectToken, ProjectTokenModel>('ProjectToken', projectTokenSchema);
+const ProjectToken = mongoose.model<IProjectToken, ProjectTokenModel>(
+  'ProjectToken',
+  projectTokenSchema
+);
 
 export default ProjectToken;

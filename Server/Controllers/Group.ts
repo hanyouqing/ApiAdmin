@@ -36,9 +36,8 @@ class GroupController extends BaseController {
         userId = new mongoose.Types.ObjectId(user._id.toString());
       }
 
-      const query = user.role === 'super_admin' 
-        ? {} 
-        : { $or: [{ uid: userId }, { member: userId }] };
+      const query =
+        user.role === 'super_admin' ? {} : { $or: [{ uid: userId }, { member: userId }] };
 
       const groups = await Group.find(query)
         .populate('uid', 'username email avatar')
@@ -51,7 +50,7 @@ class GroupController extends BaseController {
         const groupIds = groups.map((g: any) => g._id);
         const projectCounts = await Project.aggregate([
           { $match: { group_id: { $in: groupIds } } },
-          { $group: { _id: '$group_id', count: { $sum: 1 } } }
+          { $group: { _id: '$group_id', count: { $sum: 1 } } },
         ]);
 
         const countMap = new Map();
@@ -61,7 +60,7 @@ class GroupController extends BaseController {
 
         const groupsWithCounts = groups.map((group: any) => ({
           ...group,
-          project_count: countMap.get(group._id.toString()) || 0
+          project_count: countMap.get(group._id.toString()) || 0,
         }));
         ctx.body = GroupController.success(groupsWithCounts);
       } else {
@@ -120,7 +119,10 @@ class GroupController extends BaseController {
         });
         await groupMember.save();
       } catch (memberError) {
-        logger.warn({ error: memberError, groupId: group._id }, 'Failed to create group member record');
+        logger.warn(
+          { error: memberError, groupId: group._id },
+          'Failed to create group member record'
+        );
       }
 
       await logOperation({
@@ -165,9 +167,9 @@ class GroupController extends BaseController {
       }
 
       if (group_name && group_name !== group.group_name) {
-        const existingGroup = await Group.findOne({ 
+        const existingGroup = await Group.findOne({
           group_name,
-          _id: { $ne: group._id }
+          _id: { $ne: group._id },
         });
         if (existingGroup) {
           ctx.status = 400;
@@ -180,7 +182,7 @@ class GroupController extends BaseController {
       if (group_desc !== undefined) group.group_desc = group_desc;
 
       await group.save();
-      
+
       await logOperation({
         type: 'group',
         action: 'update',
@@ -287,7 +289,8 @@ class GroupController extends BaseController {
     return (
       group.uid.toString() === user._id.toString() ||
       user.role === 'super_admin' ||
-      (user.role === 'group_leader' && group.member.map((m: any) => m.toString()).includes(user._id.toString()))
+      (user.role === 'group_leader' &&
+        group.member.map((m: any) => m.toString()).includes(user._id.toString()))
     );
   }
 
@@ -402,7 +405,10 @@ class GroupController extends BaseController {
         return;
       }
 
-      if (!group.member.map((m: any) => m.toString()).includes(member_id) && group.uid.toString() !== member_id) {
+      if (
+        !group.member.map((m: any) => m.toString()).includes(member_id) &&
+        group.uid.toString() !== member_id
+      ) {
         ctx.status = 400;
         ctx.body = GroupController.error('目标用户不是分组成员');
         return;

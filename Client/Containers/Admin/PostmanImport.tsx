@@ -1,5 +1,17 @@
 import React, { useState } from 'react';
-import { Card, Button, Form, Select, Upload, Space, Typography, Alert, Table, Tag, App } from 'antd';
+import {
+  Card,
+  Button,
+  Form,
+  Select,
+  Upload,
+  Space,
+  Typography,
+  Alert,
+  Table,
+  Tag,
+  App,
+} from 'antd';
 import { UploadOutlined, ImportOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { useSelector, useDispatch } from 'react-redux';
@@ -95,10 +107,10 @@ const PostmanImport: React.FC = () => {
           path: path || '/',
           method: method,
           name: item.name || '',
-          description: item.request.description 
-            ? (typeof item.request.description === 'string' 
-                ? item.request.description 
-                : item.request.description.content || '')
+          description: item.request.description
+            ? typeof item.request.description === 'string'
+              ? item.request.description
+              : item.request.description.content || ''
             : '',
         });
       }
@@ -140,7 +152,7 @@ const PostmanImport: React.FC = () => {
 
       const interfaces = parsePostmanCollection(data);
       setPreviewData(interfaces);
-      
+
       if (interfaces.length === 0) {
         messageApi.warning(t('admin.postmanImport.noInterfaces'));
       }
@@ -267,7 +279,7 @@ const PostmanImport: React.FC = () => {
           <Form.Item label={t('admin.postmanImport.uploadFile')}>
             <Upload
               accept=".json"
-              beforeUpload={(file) => {
+              beforeUpload={file => {
                 handleFileUpload(file);
                 return false;
               }}
@@ -291,7 +303,11 @@ const PostmanImport: React.FC = () => {
             )}
           </Form.Item>
 
-          <Form.Item name="import_mode" label={t('admin.postmanImport.importMode')} initialValue="normal">
+          <Form.Item
+            name="import_mode"
+            label={t('admin.postmanImport.importMode')}
+            initialValue="normal"
+          >
             <Select>
               <Option value="normal">{t('admin.postmanImport.modeNormal')}</Option>
               <Option value="good">{t('admin.postmanImport.modeGood')}</Option>
@@ -333,11 +349,15 @@ const PostmanImport: React.FC = () => {
                     )}
                     {importResult.errors && importResult.errors.length > 0 && (
                       <div style={{ marginTop: 8 }}>
-                        <Text type="danger">{t('admin.postmanImport.errors', { count: importResult.errors.length })}</Text>
+                        <Text type="danger">
+                          {t('admin.postmanImport.errors', { count: importResult.errors.length })}
+                        </Text>
                         <ul style={{ marginTop: 8, marginBottom: 0 }}>
                           {importResult.errors.map((error: any, index: number) => (
                             <li key={index}>
-                              {typeof error === 'string' ? error : `${error.path} ${error.method}: ${error.error || error}`}
+                              {typeof error === 'string'
+                                ? error
+                                : `${error.path} ${error.method}: ${error.error || error}`}
                             </li>
                           ))}
                         </ul>
@@ -384,4 +404,3 @@ const PostmanImport: React.FC = () => {
 };
 
 export default PostmanImport;
-

@@ -12,14 +12,19 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 class PluginController extends BaseController {
-  static get ControllerName() { return 'PluginController'; }
+  static get ControllerName() {
+    return 'PluginController';
+  }
 
   static async listPlugins(ctx) {
     try {
       // 检查数据库连接
       const mongoose = (await import('mongoose')).default;
       if (mongoose.connection.readyState !== 1) {
-        logger.warn({ readyState: mongoose.connection.readyState }, 'Database not connected in listPlugins');
+        logger.warn(
+          { readyState: mongoose.connection.readyState },
+          'Database not connected in listPlugins'
+        );
         ctx.status = 503;
         ctx.body = PluginController.success([]);
         return;
@@ -42,39 +47,42 @@ class PluginController extends BaseController {
           .populate({
             path: 'installedBy',
             select: 'username email',
-            options: { lean: true }
+            options: { lean: true },
           })
           .sort({ installedAt: -1 })
           .lean();
       } catch (dbError) {
-        logger.error({ 
-          error: {
-            name: dbError?.name,
-            message: dbError?.message,
-            stack: dbError?.stack,
+        logger.error(
+          {
+            error: {
+              name: dbError?.name,
+              message: dbError?.message,
+              stack: dbError?.stack,
+            },
+            query,
           },
-          query
-        }, 'Failed to query plugins from database');
+          'Failed to query plugins from database'
+        );
         // 如果查询失败，返回空数组而不是错误
         ctx.body = PluginController.success([]);
         return;
       }
-      
+
       // 如果 plugins 为 null 或 undefined，设置为空数组
       if (!plugins || !Array.isArray(plugins)) {
         plugins = [];
       }
 
       const pluginsWithManifest = await Promise.all(
-        plugins.map(async (plugin) => {
+        plugins.map(async plugin => {
           try {
             if (!plugin || !plugin.name) {
               return plugin;
             }
-            
+
             const pluginPath = path.join(__dirname, '../../Plugins', plugin.name);
             const manifestPath = path.join(pluginPath, 'manifest.json');
-            
+
             if (await this.pathExists(manifestPath)) {
               try {
                 const manifestContent = await fs.readFile(manifestPath, 'utf-8');
@@ -84,7 +92,10 @@ class PluginController extends BaseController {
                   manifest,
                 };
               } catch (readError) {
-                logger.warn({ error: readError, pluginName: plugin.name }, 'Failed to read or parse plugin manifest');
+                logger.warn(
+                  { error: readError, pluginName: plugin.name },
+                  'Failed to read or parse plugin manifest'
+                );
                 return plugin;
               }
             }
@@ -126,8 +137,7 @@ class PluginController extends BaseController {
         return;
       }
 
-      const plugin = await Plugin.findById(id)
-        .populate('installedBy', 'username');
+      const plugin = await Plugin.findById(id).populate('installedBy', 'username');
 
       if (!plugin) {
         ctx.status = 404;
@@ -140,9 +150,7 @@ class PluginController extends BaseController {
       logger.error({ error }, 'Get plugin error');
       ctx.status = 500;
       ctx.body = PluginController.error(
-        process.env.NODE_ENV === 'production'
-          ? '获取插件失败'
-          : error.message || '获取插件失败'
+        process.env.NODE_ENV === 'production' ? '获取插件失败' : error.message || '获取插件失败'
       );
     }
   }
@@ -165,7 +173,7 @@ class PluginController extends BaseController {
       }
 
       const fullPath = path.join(__dirname, '../../Plugins', pluginPath);
-      
+
       // 检查路径安全性
       const resolvedPath = path.resolve(fullPath);
       const pluginsDir = path.resolve(__dirname, '../../Plugins');
@@ -222,16 +230,17 @@ class PluginController extends BaseController {
       const router = (await import('../Router.js')).default;
       await registerPluginRoutes(router);
 
-      logger.info({ userId: user._id, pluginId: plugin._id, pluginName: manifest.name }, 'Plugin installed');
+      logger.info(
+        { userId: user._id, pluginId: plugin._id, pluginName: manifest.name },
+        'Plugin installed'
+      );
 
       ctx.body = PluginController.success(plugin, '插件安装成功');
     } catch (error) {
       logger.error({ error }, 'Install local plugin error');
       ctx.status = 500;
       ctx.body = PluginController.error(
-        process.env.NODE_ENV === 'production'
-          ? '安装插件失败'
-          : error.message || '安装插件失败'
+        process.env.NODE_ENV === 'production' ? '安装插件失败' : error.message || '安装插件失败'
       );
     }
   }
@@ -270,9 +279,7 @@ class PluginController extends BaseController {
       logger.error({ error }, 'Uninstall plugin error');
       ctx.status = 500;
       ctx.body = PluginController.error(
-        process.env.NODE_ENV === 'production'
-          ? '卸载插件失败'
-          : error.message || '卸载插件失败'
+        process.env.NODE_ENV === 'production' ? '卸载插件失败' : error.message || '卸载插件失败'
       );
     }
   }
@@ -425,7 +432,7 @@ class PluginController extends BaseController {
           // 读取插件 manifest.json
           const pluginPath = path.join(__dirname, '../../Plugins', pluginName);
           const manifestPath = path.join(pluginPath, 'manifest.json');
-          
+
           let manifest;
           try {
             const manifestContent = await fs.readFile(manifestPath, 'utf-8');
@@ -465,23 +472,29 @@ class PluginController extends BaseController {
           });
 
           await plugin.save();
-          
+
           await pluginManager.loadPlugin(plugin);
           const router = (await import('../Router.js')).default;
           await registerPluginRoutes(router);
-          
+
           installedPlugins.push(pluginName);
-          logger.info({ userId: user._id, pluginId: plugin._id, pluginName: manifest.name }, 'Default plugin installed');
+          logger.info(
+            { userId: user._id, pluginId: plugin._id, pluginName: manifest.name },
+            'Default plugin installed'
+          );
         } catch (error) {
           logger.error({ pluginName, error }, 'Failed to install default plugin');
         }
       }
 
-      ctx.body = PluginController.success({
-        installed: installedPlugins,
-        skipped: skippedPlugins,
-        total: defaultPlugins.length,
-      }, `成功安装 ${installedPlugins.length} 个默认插件`);
+      ctx.body = PluginController.success(
+        {
+          installed: installedPlugins,
+          skipped: skippedPlugins,
+          total: defaultPlugins.length,
+        },
+        `成功安装 ${installedPlugins.length} 个默认插件`
+      );
     } catch (error) {
       logger.error({ error }, 'Install default plugins error');
       ctx.status = 500;
@@ -495,4 +508,3 @@ class PluginController extends BaseController {
 }
 
 export default PluginController;
-

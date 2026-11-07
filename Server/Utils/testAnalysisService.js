@@ -31,13 +31,16 @@ class TestAnalysisService {
       });
 
       let codeContext = [];
-      
+
       // 如果配置了代码仓库，获取相关代码
       if (repository && options.includeCode !== false) {
         try {
           codeContext = await this.getRelevantCode(result, repository);
         } catch (error) {
-          logger.warn({ error, resultId }, 'Failed to get code from repository, continuing without code context');
+          logger.warn(
+            { error, resultId },
+            'Failed to get code from repository, continuing without code context'
+          );
         }
       }
 
@@ -63,7 +66,7 @@ class TestAnalysisService {
    */
   async getRelevantCode(testResult, repository) {
     const codeFiles = [];
-    
+
     try {
       // 从测试结果中提取接口信息
       if (testResult.results && Array.isArray(testResult.results)) {
@@ -81,7 +84,7 @@ class TestAnalysisService {
 
           // 推断可能的代码文件路径
           const possiblePaths = codeRepositoryService.inferFilePath(interfacePath, '');
-          
+
           // 尝试获取代码文件
           for (const filePath of possiblePaths) {
             try {
@@ -112,16 +115,16 @@ class TestAnalysisService {
   detectLanguage(filePath) {
     const ext = filePath.split('.').pop()?.toLowerCase();
     const languageMap = {
-      'js': 'javascript',
-      'jsx': 'javascript',
-      'ts': 'typescript',
-      'tsx': 'typescript',
-      'py': 'python',
-      'java': 'java',
-      'go': 'go',
-      'rs': 'rust',
-      'php': 'php',
-      'rb': 'ruby',
+      js: 'javascript',
+      jsx: 'javascript',
+      ts: 'typescript',
+      tsx: 'typescript',
+      py: 'python',
+      java: 'java',
+      go: 'go',
+      rs: 'rust',
+      php: 'php',
+      rb: 'ruby',
     };
     return languageMap[ext] || 'text';
   }
@@ -132,7 +135,7 @@ class TestAnalysisService {
   async autoAnalyzeFailedTest(resultId) {
     try {
       const result = await AutoTestResult.findById(resultId).lean();
-      
+
       // 只分析失败的测试
       if (result.status !== 'failed' && result.status !== 'error') {
         return null;
@@ -169,5 +172,3 @@ class TestAnalysisService {
 
 export const testAnalysisService = new TestAnalysisService();
 export default testAnalysisService;
-
-

@@ -1,5 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Button, Table, Space, Modal, Form, Input, Select, Tag, App, Switch, Radio } from 'antd';
+import {
+  Card,
+  Button,
+  Table,
+  Space,
+  Modal,
+  Form,
+  Input,
+  Select,
+  Tag,
+  App,
+  Switch,
+  Radio,
+} from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, EnvironmentOutlined } from '@ant-design/icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
@@ -53,7 +66,10 @@ const EnvironmentManagement: React.FC = () => {
       if (message) {
         message.error(error.response?.data?.message || t('admin.project.fetchFailed'));
       } else {
-        console.error('获取项目列表失败:', error.response?.data?.message || t('admin.project.fetchFailed'));
+        console.error(
+          '获取项目列表失败:',
+          error.response?.data?.message || t('admin.project.fetchFailed')
+        );
       }
     }
   };
@@ -113,7 +129,7 @@ const EnvironmentManagement: React.FC = () => {
           setLoading(false);
           return;
         }
-        
+
         const allEnvironments: any[] = [];
         for (const project of projects) {
           try {
@@ -129,10 +145,15 @@ const EnvironmentManagement: React.FC = () => {
                 base_url: env.base_url || '',
               });
             });
-            console.log(`获取项目 ${project._id} (${project.project_name}) 的环境成功，共 ${envList.length} 个`);
+            console.log(
+              `获取项目 ${project._id} (${project.project_name}) 的环境成功，共 ${envList.length} 个`
+            );
           } catch (error: any) {
             // 忽略单个项目的错误，继续处理其他项目
-            console.warn(`获取项目 ${project._id} (${project.project_name}) 的环境失败:`, error.response?.data?.message || error.message);
+            console.warn(
+              `获取项目 ${project._id} (${project.project_name}) 的环境失败:`,
+              error.response?.data?.message || error.message
+            );
           }
         }
         setEnvironments(allEnvironments);
@@ -143,7 +164,10 @@ const EnvironmentManagement: React.FC = () => {
       if (message) {
         message.error(error.response?.data?.message || t('admin.environment.fetchFailed'));
       } else {
-        console.error('获取环境列表失败:', error.response?.data?.message || t('admin.environment.fetchFailed'));
+        console.error(
+          '获取环境列表失败:',
+          error.response?.data?.message || t('admin.environment.fetchFailed')
+        );
       }
       setEnvironments([]);
     } finally {
@@ -193,7 +217,7 @@ const EnvironmentManagement: React.FC = () => {
 
   const handleEdit = (record: any) => {
     setEditingEnv(record);
-    
+
     // 处理 variables
     let variablesValue = '';
     if (record.variables && typeof record.variables === 'object') {
@@ -203,7 +227,7 @@ const EnvironmentManagement: React.FC = () => {
     } else {
       variablesValue = '{}';
     }
-    
+
     // 处理 headers
     let headersValue = '';
     if (record.headers && typeof record.headers === 'object') {
@@ -213,7 +237,7 @@ const EnvironmentManagement: React.FC = () => {
     } else {
       headersValue = '{}';
     }
-    
+
     form.setFieldsValue({
       project_id: record.project_id,
       name: record.name,
@@ -223,7 +247,7 @@ const EnvironmentManagement: React.FC = () => {
       description: record.description || '',
       is_default: record.is_default || false,
     });
-    
+
     // 重置格式为 JSON
     setVariablesFormat('json');
     setHeadersFormat('json');
@@ -248,7 +272,10 @@ const EnvironmentManagement: React.FC = () => {
           if (message) {
             message.error(error.response?.data?.message || t('admin.environment.deleteFailed'));
           } else {
-            console.error('删除失败:', error.response?.data?.message || t('admin.environment.deleteFailed'));
+            console.error(
+              '删除失败:',
+              error.response?.data?.message || t('admin.environment.deleteFailed')
+            );
           }
         }
       },
@@ -260,7 +287,7 @@ const EnvironmentManagement: React.FC = () => {
       const values = await form.validateFields();
       let variables = {};
       let headers = {};
-      
+
       // 处理 variables
       if (values.variables) {
         try {
@@ -273,7 +300,7 @@ const EnvironmentManagement: React.FC = () => {
         } catch (error) {
           if (message) {
             message.error(
-              variablesFormat === 'json' 
+              variablesFormat === 'json'
                 ? t('admin.environment.invalidJson')
                 : '无效的 key=value 格式'
             );
@@ -283,7 +310,7 @@ const EnvironmentManagement: React.FC = () => {
           return;
         }
       }
-      
+
       // 处理 headers
       if (values.headers) {
         try {
@@ -306,7 +333,7 @@ const EnvironmentManagement: React.FC = () => {
           return;
         }
       }
-      
+
       if (editingEnv && editingEnv._id) {
         // 更新环境
         await api.put(`/test/environments/${editingEnv._id}`, {
@@ -340,7 +367,10 @@ const EnvironmentManagement: React.FC = () => {
       if (message) {
         message.error(error.response?.data?.message || t('admin.environment.operationFailed'));
       } else {
-        console.error('操作失败:', error.response?.data?.message || t('admin.environment.operationFailed'));
+        console.error(
+          '操作失败:',
+          error.response?.data?.message || t('admin.environment.operationFailed')
+        );
       }
     }
   };
@@ -367,7 +397,9 @@ const EnvironmentManagement: React.FC = () => {
       dataIndex: 'variables',
       key: 'variables',
       render: (variables: any) => (
-        <Tag>{variables ? Object.keys(variables).length : 0} {t('admin.environment.variablesCount')}</Tag>
+        <Tag>
+          {variables ? Object.keys(variables).length : 0} {t('admin.environment.variablesCount')}
+        </Tag>
       ),
     },
     {
@@ -379,7 +411,12 @@ const EnvironmentManagement: React.FC = () => {
           <Button type="link" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
             {t('common.edit')}
           </Button>
-          <Button type="link" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record._id)}>
+          <Button
+            type="link"
+            danger
+            icon={<DeleteOutlined />}
+            onClick={() => handleDelete(record._id)}
+          >
             {t('common.delete')}
           </Button>
         </Space>
@@ -406,16 +443,21 @@ const EnvironmentManagement: React.FC = () => {
                 </Option>
               ))}
             </Select>
-            <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate} style={{ color: '#ffffff' }}>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={handleCreate}
+              style={{ color: '#ffffff' }}
+            >
               {t('admin.environment.create')}
             </Button>
           </Space>
         }
       >
-        <Table 
-          columns={columns} 
-          dataSource={environments || []} 
-          rowKey={(record) => record._id || `${record.project_id}-${record.name}`} 
+        <Table
+          columns={columns}
+          dataSource={environments || []}
+          rowKey={record => record._id || `${record.project_id}-${record.name}`}
           loading={loading}
           locale={{
             emptyText: t('common.empty'),
@@ -465,19 +507,19 @@ const EnvironmentManagement: React.FC = () => {
           <Form.Item name="description" label={t('common.description')}>
             <TextArea rows={2} placeholder={t('admin.environment.descriptionPlaceholder')} />
           </Form.Item>
-          
-          <Form.Item 
-            name="variables" 
+
+          <Form.Item
+            name="variables"
             label={
               <Space>
                 <span>{t('admin.environment.variables')}</span>
-                <Radio.Group 
-                  size="small" 
-                  value={variablesFormat} 
-                  onChange={(e) => {
+                <Radio.Group
+                  size="small"
+                  value={variablesFormat}
+                  onChange={e => {
                     const newFormat = e.target.value;
                     const currentValue = form.getFieldValue('variables') || '';
-                    
+
                     if (newFormat === 'keyvalue') {
                       // 从 JSON 转换为 key=value
                       try {
@@ -504,28 +546,28 @@ const EnvironmentManagement: React.FC = () => {
               </Space>
             }
           >
-            <TextArea 
-              rows={6} 
+            <TextArea
+              rows={6}
               placeholder={
-                variablesFormat === 'json' 
-                  ? '{"key1": "value1", "key2": "value2"}' 
+                variablesFormat === 'json'
+                  ? '{"key1": "value1", "key2": "value2"}'
                   : 'key1=value1\nkey2=value2'
               }
             />
           </Form.Item>
-          
-          <Form.Item 
-            name="headers" 
+
+          <Form.Item
+            name="headers"
             label={
               <Space>
                 <span>Headers</span>
-                <Radio.Group 
-                  size="small" 
-                  value={headersFormat} 
-                  onChange={(e) => {
+                <Radio.Group
+                  size="small"
+                  value={headersFormat}
+                  onChange={e => {
                     const newFormat = e.target.value;
                     const currentValue = form.getFieldValue('headers') || '';
-                    
+
                     if (newFormat === 'keyvalue') {
                       // 从 JSON 转换为 key=value
                       try {
@@ -552,16 +594,20 @@ const EnvironmentManagement: React.FC = () => {
               </Space>
             }
           >
-            <TextArea 
-              rows={6} 
+            <TextArea
+              rows={6}
               placeholder={
-                headersFormat === 'json' 
-                  ? '{"Authorization": "Bearer token", "Content-Type": "application/json"}' 
+                headersFormat === 'json'
+                  ? '{"Authorization": "Bearer token", "Content-Type": "application/json"}'
                   : 'Authorization=Bearer token\nContent-Type=application/json'
               }
             />
           </Form.Item>
-          <Form.Item name="is_default" valuePropName="checked" label={t('admin.environment.setAsDefault')}>
+          <Form.Item
+            name="is_default"
+            valuePropName="checked"
+            label={t('admin.environment.setAsDefault')}
+          >
             <Switch />
           </Form.Item>
         </Form>
@@ -571,4 +617,3 @@ const EnvironmentManagement: React.FC = () => {
 };
 
 export default EnvironmentManagement;
-

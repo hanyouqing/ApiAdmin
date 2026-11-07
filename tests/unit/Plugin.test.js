@@ -134,4 +134,3 @@ describe('Plugin Controller', () => {
     });
   });
 });
-

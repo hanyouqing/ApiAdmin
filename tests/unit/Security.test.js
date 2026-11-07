@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { generateSecureToken, hashToken, sanitizeHtml, validateUrl, escapeRegex, assertSafeOutboundUrl, isPrivateOrLocalHost } from '../../Server/Utils/security.js';
+import {
+  generateSecureToken,
+  hashToken,
+  sanitizeHtml,
+  validateUrl,
+  escapeRegex,
+  assertSafeOutboundUrl,
+  isPrivateOrLocalHost,
+} from '../../Server/Utils/security.js';
 
 describe('Security Utils', () => {
   describe('generateSecureToken', () => {
@@ -47,7 +55,9 @@ describe('Security Utils', () => {
 
   describe('sanitizeHtml', () => {
     it('should escape HTML special characters', () => {
-      expect(sanitizeHtml('<script>alert("xss")</script>')).toBe('&lt;script&gt;alert(&quot;xss&quot;)&lt;&#x2F;script&gt;');
+      expect(sanitizeHtml('<script>alert("xss")</script>')).toBe(
+        '&lt;script&gt;alert(&quot;xss&quot;)&lt;&#x2F;script&gt;'
+      );
       expect(sanitizeHtml('<div>Hello</div>')).toBe('&lt;div&gt;Hello&lt;&#x2F;div&gt;');
     });
 
@@ -127,4 +137,3 @@ describe('Security Utils', () => {
     });
   });
 });
-

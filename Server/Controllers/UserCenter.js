@@ -6,7 +6,9 @@ import OperationLog from '../Models/OperationLog.js';
 import ProjectMember from '../Models/ProjectMember.js';
 
 class UserCenterController extends BaseController {
-  static get ControllerName() { return 'UserCenterController'; }
+  static get ControllerName() {
+    return 'UserCenterController';
+  }
 
   static async getUserProjects(ctx) {
     try {
@@ -17,10 +19,7 @@ class UserCenterController extends BaseController {
       // 1. 作为项目负责人的项目
       // 2. 作为项目成员的项目
       const query = {
-        $or: [
-          { uid: user._id },
-          { members: { $elemMatch: { uid: user._id } } },
-        ],
+        $or: [{ uid: user._id }, { members: { $elemMatch: { uid: user._id } } }],
       };
 
       if (role) {
@@ -142,10 +141,7 @@ class UserCenterController extends BaseController {
 
       // 获取项目贡献数
       const projectsContributed = await Project.countDocuments({
-        $or: [
-          { uid: user._id },
-          { members: { $elemMatch: { uid: user._id } } },
-        ],
+        $or: [{ uid: user._id }, { members: { $elemMatch: { uid: user._id } } }],
       });
 
       // 获取创建的接口数
@@ -183,5 +179,3 @@ class UserCenterController extends BaseController {
 }
 
 export default UserCenterController;
-
-

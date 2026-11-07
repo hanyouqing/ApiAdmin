@@ -1,6 +1,6 @@
 import mongoose, { Schema, Model } from 'mongoose';
 
-export type ActivityAction = 
+export type ActivityAction =
   | 'project.created'
   | 'project.updated'
   | 'project.deleted'

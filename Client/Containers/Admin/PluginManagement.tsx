@@ -90,17 +90,14 @@ const PluginManagement: React.FC = () => {
       title: t('admin.plugin.category'),
       dataIndex: 'category',
       key: 'category',
-      render: (category: string) => category ? <Tag>{category}</Tag> : '-',
+      render: (category: string) => (category ? <Tag>{category}</Tag> : '-'),
     },
     {
       title: t('admin.plugin.status'),
       dataIndex: 'enabled',
       key: 'enabled',
       render: (enabled: boolean, record: Plugin) => (
-        <Switch
-          checked={enabled}
-          onChange={(checked) => handleEnable(record._id, checked)}
-        />
+        <Switch checked={enabled} onChange={checked => handleEnable(record._id, checked)} />
       ),
     },
     {
@@ -112,7 +109,12 @@ const PluginManagement: React.FC = () => {
           <Button type="link" icon={<SettingOutlined />}>
             {t('admin.plugin.configure')}
           </Button>
-          <Button type="link" danger icon={<DeleteOutlined />} onClick={() => handleUninstall(record._id)}>
+          <Button
+            type="link"
+            danger
+            icon={<DeleteOutlined />}
+            onClick={() => handleUninstall(record._id)}
+          >
             {t('admin.plugin.uninstall')}
           </Button>
         </Space>
@@ -144,4 +146,3 @@ const PluginManagement: React.FC = () => {
 };
 
 export default PluginManagement;
-

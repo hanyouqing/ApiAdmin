@@ -19,6 +19,7 @@
 ### 2.2 第二阶段：核心功能开发
 
 #### 2.2.1 用户与权限模块
+
 - [ ] 用户注册/登录功能
 - [ ] JWT 认证机制
 - [ ] 权限中间件
@@ -26,12 +27,14 @@
 - [ ] 密码重置功能
 
 #### 2.2.2 分组管理模块
+
 - [ ] 分组 CRUD
 - [ ] 分组成员管理
 - [ ] 分组权限控制
 - [ ] 分组列表和搜索
 
 #### 2.2.3 项目管理模块
+
 - [ ] 项目 CRUD
 - [ ] 项目设置（环境、Token、全局 Mock）
 - [ ] 项目成员管理
@@ -39,6 +42,7 @@
 - [ ] 项目动态日志
 
 #### 2.2.4 接口管理模块
+
 - [ ] 接口分类管理
 - [ ] 接口 CRUD
 - [ ] 接口编辑（请求参数、返回数据）
@@ -110,9 +114,10 @@
 #### 3.1.1 后端实现
 
 **文件**: `Server/Controllers/User.js`
+
 ```javascript
 // 用户注册
-router.post('/api/user/register', async (ctx) => {
+router.post('/api/user/register', async ctx => {
   // 1. 验证邮箱格式
   // 2. 检查邮箱是否已存在
   // 3. 密码加密
@@ -121,7 +126,7 @@ router.post('/api/user/register', async (ctx) => {
 });
 
 // 用户登录
-router.post('/api/user/login', async (ctx) => {
+router.post('/api/user/login', async ctx => {
   // 1. 验证邮箱和密码
   // 2. 生成 JWT Token
   // 3. 设置 Cookie
@@ -130,6 +135,7 @@ router.post('/api/user/login', async (ctx) => {
 ```
 
 **文件**: `Server/Middleware/Auth.js` (新建)
+
 ```javascript
 // 权限验证中间件
 async function checkAuth(ctx, next) {
@@ -144,6 +150,7 @@ async function checkAuth(ctx, next) {
 #### 3.1.2 前端实现
 
 **文件**: `Client/Containers/Login/Login.tsx`
+
 ```typescript
 // 登录页面组件
 const Login: React.FC = () => {
@@ -155,6 +162,7 @@ const Login: React.FC = () => {
 ```
 
 **文件**: `Client/Components/AuthenticatedComponent.tsx`
+
 ```typescript
 // 路由守卫组件
 const AuthenticatedComponent: React.FC = ({ children }) => {
@@ -169,9 +177,10 @@ const AuthenticatedComponent: React.FC = ({ children }) => {
 #### 3.2.1 后端实现
 
 **文件**: `Server/Controllers/Interface.js`
+
 ```javascript
 // 创建接口
-router.post('/api/interface/add', async (ctx) => {
+router.post('/api/interface/add', async ctx => {
   // 1. 验证项目权限
   // 2. 验证接口名称唯一性
   // 3. 创建接口
@@ -180,7 +189,7 @@ router.post('/api/interface/add', async (ctx) => {
 });
 
 // 更新接口
-router.put('/api/interface/up', async (ctx) => {
+router.put('/api/interface/up', async ctx => {
   // 1. 验证权限
   // 2. 更新接口信息
   // 3. WebSocket 通知其他用户
@@ -191,6 +200,7 @@ router.put('/api/interface/up', async (ctx) => {
 #### 3.2.2 前端实现
 
 **文件**: `Client/Containers/Project/Interface/InterfaceList/InterfaceEditForm.tsx`
+
 ```typescript
 // 接口编辑表单
 const InterfaceEditForm: React.FC = () => {
@@ -203,6 +213,7 @@ const InterfaceEditForm: React.FC = () => {
 ```
 
 **文件**: `Client/Containers/Project/Interface/InterfaceList/Run/Run.tsx`
+
 ```typescript
 // 接口运行组件
 const Run: React.FC = () => {
@@ -219,6 +230,7 @@ const Run: React.FC = () => {
 #### 3.3.1 Mock 引擎实现
 
 **文件**: `Server/Middleware/mockServer.js`
+
 ```javascript
 // Mock 服务中间件
 async function mockServer(ctx, next) {
@@ -233,17 +245,18 @@ async function mockServer(ctx, next) {
 ```
 
 **文件**: `Core/mockExtra.js`
+
 ```javascript
 // Mock 数据生成器
 class MockGenerator {
   // 基于 Mockjs 生成
-  generateFromMockjs(template) { }
-  
+  generateFromMockjs(template) {}
+
   // 基于 JSON Schema 生成
-  generateFromSchema(schema) { }
-  
+  generateFromSchema(schema) {}
+
   // 处理变量替换
-  replaceVariables(data, request) { }
+  replaceVariables(data, request) {}
 }
 ```
 
@@ -252,9 +265,10 @@ class MockGenerator {
 #### 3.4.1 测试引擎实现
 
 **文件**: `Server/Controllers/Test.js`
+
 ```javascript
 // 运行测试
-router.post('/api/test/run', async (ctx) => {
+router.post('/api/test/run', async ctx => {
   // 1. 获取测试集合
   // 2. 按顺序执行测试用例
   // 3. 解析变量参数
@@ -266,6 +280,7 @@ router.post('/api/test/run', async (ctx) => {
 ```
 
 **文件**: `Core/testRunner.js` (新建)
+
 ```javascript
 // 测试运行器
 class TestRunner {
@@ -277,12 +292,12 @@ class TestRunner {
     // 4. 执行断言
     // 5. 返回结果
   }
-  
+
   // 解析变量表达式
   resolveVariable(expression, context) {
     // 支持 $.key.params.path 和 $.key.body.path
   }
-  
+
   // 执行断言脚本
   executeAssertions(script, response, context) {
     // 使用 vm2 安全执行脚本
@@ -293,6 +308,7 @@ class TestRunner {
 ## 4. 开发规范
 
 ### 4.1 代码规范
+
 - 使用 TypeScript（前端）
 - 遵循 ESLint 规则
 - 使用 Prettier 格式化
@@ -300,6 +316,7 @@ class TestRunner {
 - 使用 Redux Toolkit 进行状态管理
 
 ### 4.2 命名规范
+
 - 组件：PascalCase（如 `InterfaceEditForm.tsx`）
 - 文件：kebab-case 或 PascalCase（与组件名一致）
 - 变量/函数：camelCase
@@ -307,6 +324,7 @@ class TestRunner {
 - API 路由：kebab-case（如 `/api/user/login`）
 
 ### 4.3 Git 提交规范
+
 ```
 feat: 新功能
 fix: 修复 bug
@@ -318,6 +336,7 @@ chore: 构建/工具相关
 ```
 
 ### 4.4 组件开发规范
+
 - 每个组件一个文件
 - 使用 TypeScript 定义 Props 类型
 - 使用 React.memo 优化性能（如需要）
@@ -333,12 +352,14 @@ chore: 构建/工具相关
 **工具**: Vitest + React Testing Library
 
 **测试范围**:
+
 - 工具函数测试
 - Redux Reducer 测试
 - 组件渲染测试
 - Hooks 测试
 
 **示例配置** (vitest.config.ts):
+
 ```typescript
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
@@ -352,17 +373,14 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      exclude: [
-        'node_modules/',
-        'tests/',
-        '**/*.d.ts',
-      ],
+      exclude: ['node_modules/', 'tests/', '**/*.d.ts'],
     },
   },
 });
 ```
 
 **测试示例**:
+
 ```typescript
 // tests/utils/format.test.ts
 import { describe, it, expect } from 'vitest';
@@ -392,12 +410,14 @@ describe('Button', () => {
 **工具**: Vitest + Supertest
 
 **测试范围**:
+
 - 工具函数测试
 - 控制器测试
 - 模型测试
 - 中间件测试
 
 **测试示例**:
+
 ```javascript
 // tests/utils/commons.test.js
 import { describe, it, expect } from 'vitest';
@@ -422,12 +442,14 @@ describe('formatResponse', () => {
 **工具**: Supertest + Jest/Vitest
 
 **测试范围**:
+
 - API 端点测试
 - 认证授权测试
 - 数据流测试
 - 错误处理测试
 
 **测试示例**:
+
 ```javascript
 // tests/api/user.test.js
 import request from 'supertest';
@@ -460,11 +482,13 @@ describe('User API', () => {
 **工具**: MongoDB Memory Server (测试环境)
 
 **测试范围**:
+
 - 数据模型测试
 - 数据库操作测试
 - 事务测试
 
 **测试示例**:
+
 ```javascript
 // tests/models/user.test.js
 import { MongoMemoryServer } from 'mongodb-memory-server';
@@ -503,6 +527,7 @@ describe('User Model', () => {
 **工具**: Playwright
 
 **测试范围**:
+
 - 用户注册登录流程
 - 接口创建编辑流程
 - Mock 数据生成流程
@@ -510,6 +535,7 @@ describe('User Model', () => {
 - 权限管理流程
 
 **配置文件** (playwright.config.ts):
+
 ```typescript
 import { defineConfig, devices } from '@playwright/test';
 
@@ -539,17 +565,18 @@ export default defineConfig({
 ```
 
 **测试示例**:
+
 ```typescript
 // e2e/login.spec.ts
 import { test, expect } from '@playwright/test';
 
 test('user login flow', async ({ page }) => {
   await page.goto('/login');
-  
+
   await page.fill('input[name="email"]', 'test@example.com');
   await page.fill('input[name="password"]', 'password123');
   await page.click('button[type="submit"]');
-  
+
   await expect(page).toHaveURL('/home');
   await expect(page.locator('.user-name')).toContainText('test');
 });
@@ -560,6 +587,7 @@ test('user login flow', async ({ page }) => {
 **工具**: Newman (Postman CLI) 或自定义测试脚本
 
 **测试范围**:
+
 - 完整 API 流程测试
 - 跨服务集成测试
 - 性能测试
@@ -569,14 +597,15 @@ test('user login flow', async ({ page }) => {
 #### 5.4.1 GitHub Actions 配置
 
 **.github/workflows/test.yml**:
+
 ```yaml
 name: Test
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
 
 jobs:
   test:
@@ -594,36 +623,36 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
           cache: 'npm'
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Run unit tests
         run: npm run test:unit
-      
+
       - name: Run integration tests
         run: npm run test:integration
         env:
           MONGODB_URL: mongodb://localhost:27017/apiadmin_test
           REDIS_URL: redis://localhost:6379
-      
+
       - name: Generate coverage report
         run: npm run test:coverage
-      
+
       - name: Upload coverage
         uses: codecov/codecov-action@v3
         with:
           files: ./coverage/lcov.info
-      
+
       - name: Run E2E tests
         run: npm run test:e2e
-      
+
       - name: Upload test results
         uses: actions/upload-artifact@v3
         if: always()
@@ -635,6 +664,7 @@ jobs:
 #### 5.4.2 GitLab CI 配置
 
 **.gitlab-ci.yml**:
+
 ```yaml
 stages:
   - test
@@ -642,7 +672,7 @@ stages:
   - deploy
 
 variables:
-  NODE_VERSION: "18"
+  NODE_VERSION: '18'
 
 unit_test:
   stage: test
@@ -668,8 +698,8 @@ integration_test:
     - npm ci
     - npm run test:integration
   variables:
-    MONGODB_URL: "mongodb://mongo:27017/apiadmin_test"
-    REDIS_URL: "redis://redis:6379"
+    MONGODB_URL: 'mongodb://mongo:27017/apiadmin_test'
+    REDIS_URL: 'redis://redis:6379'
 
 e2e_test:
   stage: test
@@ -722,11 +752,13 @@ npm run test:ci
 **工具**: k6 或 Artillery
 
 **测试场景**:
+
 - API 接口并发测试
 - Mock 服务压力测试
 - 数据库查询性能测试
 
 **示例配置** (k6-load-test.js):
+
 ```javascript
 import http from 'k6/http';
 import { check, sleep } from 'k6';
@@ -744,8 +776,8 @@ export const options = {
 export default function () {
   const res = http.get('http://localhost:3000/api/project/list');
   check(res, {
-    'status is 200': (r) => r.status === 200,
-    'response time < 500ms': (r) => r.timings.duration < 500,
+    'status is 200': r => r.status === 200,
+    'response time < 500ms': r => r.timings.duration < 500,
   });
   sleep(1);
 }
@@ -756,6 +788,7 @@ export default function () {
 **工具**: Autocannon 或 wrk
 
 **测试指标**:
+
 - 请求吞吐量 (QPS)
 - 响应时间 (P50, P95, P99)
 - 错误率
@@ -764,6 +797,7 @@ export default function () {
 ## 6. 部署流程
 
 ### 6.1 开发环境
+
 ```bash
 # 1. 安装依赖
 npm install
@@ -780,6 +814,7 @@ npm run dev
 ```
 
 ### 6.2 生产环境
+
 ```bash
 # 1. 构建前端
 npm run build
@@ -794,6 +829,7 @@ pm2 start Server/app.js --name api-admin
 ## 7. 里程碑
 
 ### 里程碑 1：MVP 版本（4 周）
+
 - 用户注册登录
 - 分组和项目管理
 - 接口 CRUD
@@ -801,6 +837,7 @@ pm2 start Server/app.js --name api-admin
 - 接口运行/调试
 
 ### 里程碑 2：v0.0.1 版本（8 周）
+
 - 完整权限管理
 - 高级 Mock 功能
 - 自动化测试
@@ -808,6 +845,7 @@ pm2 start Server/app.js --name api-admin
 - 插件系统基础
 
 ### 里程碑 3：V2.0 版本（12 周）
+
 - 完整插件系统
 - 代码生成
 - 统计分析
@@ -817,14 +855,17 @@ pm2 start Server/app.js --name api-admin
 ## 8. 风险与应对
 
 ### 8.1 技术风险
+
 - **风险**：WebSocket 实时协作稳定性
 - **应对**：使用成熟的 WebSocket 库，添加重连机制
 
 ### 8.2 性能风险
+
 - **风险**：大量接口数据加载慢
 - **应对**：分页加载、虚拟滚动、缓存策略
 
 ### 8.3 安全风险
+
 - **风险**：Mock 脚本执行安全
 - **应对**：使用 vm2 沙箱环境，限制脚本权限
 
@@ -855,4 +896,3 @@ pm2 start Server/app.js --name api-admin
 **文档版本**：v0.0.1
 **创建日期**：2025-01-27  
 **最后更新**：2025-01-27
-
