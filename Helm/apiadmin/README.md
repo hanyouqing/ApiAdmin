@@ -9,16 +9,25 @@ This Helm chart deploys ApiAdmin API Management Platform on a Kubernetes cluster
 - MongoDB (can be deployed with this chart or use external)
 - Redis (can be deployed with this chart or use external)
 
+Version tags on `main` publish this chart to GitHub Pages:
+
+```bash
+helm repo add apiadmin https://hanyouqing.github.io/ApiAdmin
+helm repo update
+```
+
 ## Installation
 
-### Prerequisites secrets (required)
+### Prerequisites secrets
 
-Before install, prepare strong values:
+A lab install generates JWT, MongoDB, and Redis passwords into the release Secret when they are left empty. Read them from the NOTES output after install.
+
+Production installs must set `config.requireExplicitSecrets=true` and pass real values. Start from `values-examples.yaml` (external MongoDB and Redis):
 
 ```bash
 export JWT_SECRET="$(openssl rand -base64 48)"
-export MONGO_PASSWORD="$(openssl rand -base64 24)"
-export REDIS_PASSWORD="$(openssl rand -base64 24)"
+export MONGO_URL='mongodb://apiadmin:PASSWORD@mongo.internal:27017/apiadmin?authSource=admin'
+export REDIS_URL='redis://:PASSWORD@redis.internal:6379'
 ```
 
 ### Quick Start
@@ -34,7 +43,7 @@ helm install apiadmin ./Helm/apiadmin \
   --set image.tag=0.0.1
 ```
 
-Chart validation will fail if `jwtSecret` / Mongo / Redis passwords are empty, or if `CORS_ORIGIN` is `*`.
+With `config.requireExplicitSecrets=true`, rendering fails when `jwtSecret` is shorter than 32 characters, when `CORS_ORIGIN` is `*`, or when the MongoDB / Redis password or external URL is missing.
 
 ### Custom Installation
 
@@ -54,7 +63,7 @@ helm install apiadmin ./Helm/apiadmin \
 ```bash
 # Edit values.yaml with your configuration
 # Then install
-helm install apiadmin ./helm/apiadmin \
+helm install apiadmin ./Helm/apiadmin \
   --namespace apiadmin \
   --create-namespace \
   -f values.yaml
@@ -64,36 +73,36 @@ helm install apiadmin ./helm/apiadmin \
 
 The following table lists the configurable parameters and their default values:
 
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `replicaCount` | Number of replicas | `2` |
-| `image.repository` | Image repository | `apiadmin/apiadmin` |
-| `image.tag` | Image tag | `latest` |
-| `image.pullPolicy` | Image pull policy | `IfNotPresent` |
-| `service.type` | Service type | `ClusterIP` |
-| `service.port` | Service port | `3000` |
-| `ingress.enabled` | Enable ingress | `true` |
-| `ingress.className` | Ingress class name | `nginx` |
-| `ingress.hosts` | Ingress hosts | `apiadmin.example.com` |
-| `resources.limits.cpu` | CPU limit | `1000m` |
-| `resources.limits.memory` | Memory limit | `2Gi` |
-| `resources.requests.cpu` | CPU request | `500m` |
-| `resources.requests.memory` | Memory request | `1Gi` |
-| `autoscaling.enabled` | Enable HPA | `true` |
-| `autoscaling.minReplicas` | Min replicas | `2` |
-| `autoscaling.maxReplicas` | Max replicas | `10` |
-| `mongodb.enabled` | Deploy MongoDB | `true` |
-| `mongodb.auth.rootPassword` | MongoDB root password | `change-me` |
-| `redis.enabled` | Deploy Redis | `true` |
-| `redis.auth.password` | Redis password | `change-me` |
-| `persistence.enabled` | Enable PVC | `true` |
-| `persistence.size` | PVC size | `10Gi` |
+| Parameter                   | Description           | Default                       |
+| --------------------------- | --------------------- | ----------------------------- |
+| `replicaCount`              | Number of replicas    | `2`                           |
+| `image.repository`          | Image repository      | `ghcr.io/hanyouqing/apiadmin` |
+| `image.tag`                 | Image tag             | `0.0.1`                       |
+| `image.pullPolicy`          | Image pull policy     | `IfNotPresent`                |
+| `service.type`              | Service type          | `ClusterIP`                   |
+| `service.port`              | Service port          | `3000`                        |
+| `ingress.enabled`           | Enable ingress        | `true`                        |
+| `ingress.className`         | Ingress class name    | `nginx`                       |
+| `ingress.hosts`             | Ingress hosts         | `apiadmin.example.com`        |
+| `resources.limits.cpu`      | CPU limit             | `1000m`                       |
+| `resources.limits.memory`   | Memory limit          | `2Gi`                         |
+| `resources.requests.cpu`    | CPU request           | `500m`                        |
+| `resources.requests.memory` | Memory request        | `1Gi`                         |
+| `autoscaling.enabled`       | Enable HPA            | `true`                        |
+| `autoscaling.minReplicas`   | Min replicas          | `2`                           |
+| `autoscaling.maxReplicas`   | Max replicas          | `10`                          |
+| `mongodb.enabled`           | Deploy MongoDB        | `true`                        |
+| `mongodb.auth.rootPassword` | MongoDB root password | generated when empty          |
+| `redis.enabled`             | Deploy Redis          | `true`                        |
+| `redis.auth.password`       | Redis password        | generated when empty          |
+| `persistence.enabled`       | Enable PVC            | `true`                        |
+| `persistence.size`          | PVC size              | `10Gi`                        |
 
 ## Upgrading
 
 ```bash
 # Upgrade the release
-helm upgrade apiadmin ./helm/apiadmin \
+helm upgrade apiadmin ./Helm/apiadmin \
   --namespace apiadmin \
   --set image.tag=v1.1.0
 ```
@@ -134,8 +143,6 @@ kubectl get ingress -n apiadmin
 ## Support
 
 For issues and questions, please visit:
+
 - GitHub: https://github.com/hanyouqing/ApiAdmin
 - Documentation: https://docs.apiadmin.com
-
-
-

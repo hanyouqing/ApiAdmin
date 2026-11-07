@@ -1,0 +1,12 @@
+# Generated into the module working dir as imports.tf on terragrunt init/plan/apply.
+# Repo name comes from clone path ~/github.com/<owner>/<Repo> (see root.hcl).
+
+import {
+  to = github_repository.this["${repo}"]
+  id = "${repo}"
+}
+
+import {
+  to = github_repository_environment.this["${repo}/production"]
+  id = "${repo}:production"
+}

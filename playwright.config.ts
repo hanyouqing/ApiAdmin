@@ -36,7 +36,7 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { 
+      use: {
         ...devices['Desktop Chrome'],
         channel: 'chrome', // Use system-installed Chrome
       },
@@ -65,6 +65,6 @@ export default defineConfig({
       command: 'cd Client && npm run dev',
       url: 'http://localhost:3001',
       reuseExistingServer: !process.env.CI,
-    }
+    },
   ],
 });

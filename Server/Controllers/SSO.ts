@@ -4,7 +4,12 @@ import { validateObjectId, sanitizeInput } from '../Utils/validation.js';
 import { logger } from '../Utils/logger.js';
 import SSOProvider from '../Models/SSOProvider.js';
 import { logLogin } from '../Utils/loginLogger.js';
-import { encryptSsoConfig, decryptSsoConfig, maskSecret, isEncryptedSecret } from '../Utils/secretCrypto.js';
+import {
+  encryptSsoConfig,
+  decryptSsoConfig,
+  maskSecret,
+  isEncryptedSecret,
+} from '../Utils/secretCrypto.js';
 
 function sanitizeProviderForClient(provider, { maskSecrets = true } = {}) {
   const obj = provider.toObject ? provider.toObject() : { ...provider };
@@ -25,21 +30,23 @@ function sanitizeProviderForClient(provider, { maskSecrets = true } = {}) {
 }
 
 class SSOController extends BaseController {
-  static get ControllerName() { return 'SSOController'; }
+  static get ControllerName() {
+    return 'SSOController';
+  }
 
   static async listProviders(ctx: Koa.Context) {
     try {
       const { enabled } = ctx.query;
       const query: any = {};
       if (enabled !== undefined) {
-        query.enabled = (enabled === 'true' || (enabled as any) === true);
+        query.enabled = enabled === 'true' || (enabled as any) === true;
       }
 
       const providers = await SSOProvider.find(query)
         .populate('createdBy', 'username')
         .sort({ createdAt: -1 });
 
-      ctx.body = SSOController.success(providers.map((p) => sanitizeProviderForClient(p)));
+      ctx.body = SSOController.success(providers.map(p => sanitizeProviderForClient(p)));
     } catch (error: any) {
       logger.error({ error }, 'List SSO providers error');
       ctx.status = 500;
@@ -96,7 +103,8 @@ class SSOController extends BaseController {
   static async createProvider(ctx: Koa.Context) {
     try {
       const user = ctx.state.user;
-      let { name, type, enabled, description, config, roleMapping, autoCreateUser } = ctx.request.body as any;
+      let { name, type, enabled, description, config, roleMapping, autoCreateUser } = ctx.request
+        .body as any;
 
       if (!name || !type || !config) {
         ctx.status = 400;
@@ -139,7 +147,8 @@ class SSOController extends BaseController {
         return;
       }
 
-      const { name, type, enabled, description, config, roleMapping, autoCreateUser } = ctx.request.body as any;
+      const { name, type, enabled, description, config, roleMapping, autoCreateUser } = ctx.request
+        .body as any;
 
       if (name !== undefined) provider.name = sanitizeInput(name);
       if (type !== undefined) provider.type = type;
@@ -151,7 +160,10 @@ class SSOController extends BaseController {
         const merged = { ...(provider.config || {}), ...config };
         // Skip masked placeholders
         for (const key of Object.keys(merged)) {
-          if (typeof merged[key] === 'string' && (merged[key] === '********' || merged[key].endsWith('...'))) {
+          if (
+            typeof merged[key] === 'string' &&
+            (merged[key] === '********' || merged[key].endsWith('...'))
+          ) {
             merged[key] = provider.config?.[key];
           }
         }
@@ -213,10 +225,10 @@ class SSOController extends BaseController {
         config: decryptSsoConfig(provider.config),
       };
 
-      const { initiateSAMLAuth, initiateOAuth2Auth, initiateCASAuth } = await import('../Utils/ssoService.js');
+      const { initiateSAMLAuth, initiateOAuth2Auth, initiateCASAuth } =
+        await import('../Utils/ssoService.js');
 
-      const postLoginRedirect =
-        (typeof redirectUrl === 'string' && redirectUrl.trim()) || '/login';
+      const postLoginRedirect = (typeof redirectUrl === 'string' && redirectUrl.trim()) || '/login';
       ctx.cookies.set('sso_redirect', postLoginRedirect, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -226,12 +238,22 @@ class SSOController extends BaseController {
 
       let result: any;
       switch (provider.type) {
-        case 'saml': result = await initiateSAMLAuth(decrypted, redirectUrl); break;
+        case 'saml':
+          result = await initiateSAMLAuth(decrypted, redirectUrl);
+          break;
         case 'oauth2':
-        case 'oidc': result = await initiateOAuth2Auth(decrypted, redirectUrl); break;
-        case 'cas': result = await initiateCASAuth(decrypted, redirectUrl); break;
+        case 'oidc':
+          result = await initiateOAuth2Auth(decrypted, redirectUrl);
+          break;
+        case 'cas':
+          result = await initiateCASAuth(decrypted, redirectUrl);
+          break;
         case 'ldap':
-          ctx.body = SSOController.success({ type: 'ldap', requiresForm: true, providerId: provider._id.toString() });
+          ctx.body = SSOController.success({
+            type: 'ldap',
+            requiresForm: true,
+            providerId: provider._id.toString(),
+          });
           return;
         default:
           ctx.status = 400;
@@ -251,10 +273,7 @@ class SSOController extends BaseController {
       const { providerId } = ctx.params;
       const query = { ...(ctx.query as any), ...((ctx.request.body as any) || {}) };
       const { code, state, SAMLResponse, ticket, RelayState } = query;
-      const redirect =
-        query.redirect ||
-        ctx.cookies.get('sso_redirect') ||
-        '/login';
+      const redirect = query.redirect || ctx.cookies.get('sso_redirect') || '/login';
       const { username, password } = (ctx.request.body as any) || {};
 
       const provider = await SSOProvider.findById(providerId);
@@ -268,19 +287,34 @@ class SSOController extends BaseController {
         config: decryptSsoConfig(provider.config),
       };
 
-      const { handleSAMLCallback, handleOAuth2Callback, handleCASCallback, handleLDAPAuth, processSSOAuthResult } = await import('../Utils/ssoService.js');
+      const {
+        handleSAMLCallback,
+        handleOAuth2Callback,
+        handleCASCallback,
+        handleLDAPAuth,
+        processSSOAuthResult,
+      } = await import('../Utils/ssoService.js');
       const ip = ctx.ip || '';
       const userAgent = ctx.headers['user-agent'] || '';
 
       let userInfo: any;
       try {
         switch (provider.type) {
-          case 'saml': userInfo = await handleSAMLCallback(decrypted, SAMLResponse, RelayState); break;
+          case 'saml':
+            userInfo = await handleSAMLCallback(decrypted, SAMLResponse, RelayState);
+            break;
           case 'oauth2':
-          case 'oidc': userInfo = await handleOAuth2Callback(decrypted, code, state); break;
-          case 'cas': userInfo = await handleCASCallback(decrypted, ticket); break;
-          case 'ldap': userInfo = await handleLDAPAuth(decrypted, username, password); break;
-          default: throw new Error('Unsupported SSO type');
+          case 'oidc':
+            userInfo = await handleOAuth2Callback(decrypted, code, state);
+            break;
+          case 'cas':
+            userInfo = await handleCASCallback(decrypted, ticket);
+            break;
+          case 'ldap':
+            userInfo = await handleLDAPAuth(decrypted, username, password);
+            break;
+          default:
+            throw new Error('Unsupported SSO type');
         }
 
         const { token } = await processSSOAuthResult(provider, userInfo, ip, userAgent);

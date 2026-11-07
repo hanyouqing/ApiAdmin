@@ -50,7 +50,7 @@ export const themeColor = '#1a365d';
 // Logo 渐变颜色
 export const logoColors = {
   start: '#1a365d', // 深蓝
-  end: '#16a34a',   // 绿色
+  end: '#16a34a', // 绿色
 };
 
 // Ant Design 主题配置
@@ -62,7 +62,7 @@ export const antdTheme = {
     colorWarning: warningColors[600],
     colorError: '#ef4444',
     colorInfo: techColors[600],
-    
+
     // 文本颜色
     colorText: darkColors[800],
     colorTextSecondary: darkColors[600],
@@ -70,26 +70,27 @@ export const antdTheme = {
     colorTextQuaternary: darkColors[400],
     // Primary 按钮文字颜色（白色）
     colorTextLightSolid: '#ffffff',
-    
+
     // 背景色
     colorBgContainer: '#ffffff',
     colorBgElevated: '#ffffff',
     colorBgLayout: darkColors[50],
     colorBgSpotlight: darkColors[100],
-    
+
     // 边框颜色
     colorBorder: darkColors[200],
     colorBorderSecondary: darkColors[100],
-    
+
     // 字体
-    fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+    fontFamily:
+      'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
     fontFamilyCode: 'JetBrains Mono, "Fira Code", Consolas, "Courier New", monospace',
-    
+
     // 圆角
     borderRadius: 8,
     borderRadiusLG: 12,
     borderRadiusSM: 6,
-    
+
     // 阴影
     boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
     boxShadowSecondary: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)',
@@ -144,7 +145,7 @@ export const cssVariables = {
   '--color-primary-500': primaryColors[500],
   '--color-primary-600': primaryColors[600],
   '--color-primary-700': primaryColors[700],
-  
+
   '--color-dark-50': darkColors[50],
   '--color-dark-100': darkColors[100],
   '--color-dark-200': darkColors[200],
@@ -153,24 +154,23 @@ export const cssVariables = {
   '--color-dark-700': darkColors[700],
   '--color-dark-800': darkColors[800],
   '--color-dark-900': darkColors[900],
-  
+
   '--color-tech-100': techColors[100],
   '--color-tech-400': techColors[400],
   '--color-tech-500': techColors[500],
   '--color-tech-600': techColors[600],
-  
+
   '--color-warning-100': warningColors[100],
   '--color-warning-600': warningColors[600],
-  
+
   '--color-theme': themeColor,
   '--color-logo-start': logoColors.start,
   '--color-logo-end': logoColors.end,
-  
+
   '--font-family': 'Inter, system-ui, sans-serif',
   '--font-family-code': 'JetBrains Mono, "Fira Code", monospace',
-  
+
   '--border-radius': '8px',
   '--border-radius-lg': '12px',
   '--border-radius-sm': '6px',
 };
-

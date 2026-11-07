@@ -5,7 +5,9 @@ import { validateObjectId, sanitizeInput } from '../Utils/validation.js';
 import { logger } from '../Utils/logger.js';
 
 class MockExpectationController extends BaseController {
-  static get ControllerName() { return 'MockExpectationController'; }
+  static get ControllerName() {
+    return 'MockExpectationController';
+  }
   static async list(ctx) {
     try {
       const { interface_id } = ctx.query;
@@ -16,16 +18,18 @@ class MockExpectationController extends BaseController {
         return;
       }
 
-      const expectations = await MockExpectation.find({ interface_id })
-        .sort({ priority: -1, created_at: -1 });
+      const expectations = await MockExpectation.find({ interface_id }).sort({
+        priority: -1,
+        created_at: -1,
+      });
 
       ctx.body = MockExpectationController.success(expectations);
     } catch (error) {
       logger.error({ error }, 'MockExpectation list error');
       ctx.status = 500;
       ctx.body = MockExpectationController.error(
-        process.env.NODE_ENV === 'production' 
-          ? '获取Mock期望列表失败' 
+        process.env.NODE_ENV === 'production'
+          ? '获取Mock期望列表失败'
           : error.message || '获取Mock期望列表失败'
       );
     }
@@ -34,7 +38,16 @@ class MockExpectationController extends BaseController {
   static async add(ctx) {
     try {
       const user = ctx.state.user;
-      const { interface_id, name, ip_filter, query_filter, body_filter, response, enabled, priority } = ctx.request.body;
+      const {
+        interface_id,
+        name,
+        ip_filter,
+        query_filter,
+        body_filter,
+        response,
+        enabled,
+        priority,
+      } = ctx.request.body;
 
       if (!interface_id || !name) {
         ctx.status = 400;
@@ -82,9 +95,7 @@ class MockExpectationController extends BaseController {
       logger.error({ error }, 'MockExpectation add error');
       ctx.status = 500;
       ctx.body = MockExpectationController.error(
-        process.env.NODE_ENV === 'production' 
-          ? '创建失败' 
-          : error.message || '创建失败'
+        process.env.NODE_ENV === 'production' ? '创建失败' : error.message || '创建失败'
       );
     }
   }
@@ -121,9 +132,7 @@ class MockExpectationController extends BaseController {
       logger.error({ error }, 'MockExpectation update error');
       ctx.status = 500;
       ctx.body = MockExpectationController.error(
-        process.env.NODE_ENV === 'production' 
-          ? '更新失败' 
-          : error.message || '更新失败'
+        process.env.NODE_ENV === 'production' ? '更新失败' : error.message || '更新失败'
       );
     }
   }
@@ -155,13 +164,10 @@ class MockExpectationController extends BaseController {
       logger.error({ error }, 'MockExpectation delete error');
       ctx.status = 500;
       ctx.body = MockExpectationController.error(
-        process.env.NODE_ENV === 'production' 
-          ? '删除失败' 
-          : error.message || '删除失败'
+        process.env.NODE_ENV === 'production' ? '删除失败' : error.message || '删除失败'
       );
     }
   }
 }
 
 export default MockExpectationController;
-

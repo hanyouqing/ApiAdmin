@@ -16,7 +16,11 @@ export async function connectTestDB() {
     }
   }
 
-  if (mongoose.connection.readyState === 0 || mongoose.connection.readyState === 99 || !isConnected) {
+  if (
+    mongoose.connection.readyState === 0 ||
+    mongoose.connection.readyState === 99 ||
+    !isConnected
+  ) {
     const mongoUrl =
       process.env.MONGODB_URL ||
       process.env.TEST_MONGODB_URL ||
@@ -48,7 +52,7 @@ export async function connectTestDB() {
             resolve();
           });
 
-          mongoose.connection.once('error', (err) => {
+          mongoose.connection.once('error', err => {
             clearTimeout(timeout);
             reject(err);
           });
@@ -99,7 +103,7 @@ export async function ensureConnection() {
         await connectTestDB();
         await mongoose.connection.db.admin().ping();
       } else {
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
     }
   }

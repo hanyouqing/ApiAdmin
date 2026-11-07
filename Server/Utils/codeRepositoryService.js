@@ -19,7 +19,7 @@ class CodeRepositoryService {
   async getFileContent(repository, filePath, branch = null) {
     try {
       const branchName = branch || repository.branch || 'main';
-      
+
       switch (repository.provider) {
         case 'github':
           return await this.getGitHubFileContent(repository, filePath, branchName);
@@ -31,7 +31,10 @@ class CodeRepositoryService {
           throw new Error(`不支持的代码仓库提供商: ${repository.provider}`);
       }
     } catch (error) {
-      logger.error({ error, repository: repository.provider, filePath }, 'Failed to get file content from repository');
+      logger.error(
+        { error, repository: repository.provider, filePath },
+        'Failed to get file content from repository'
+      );
       throw error;
     }
   }
@@ -46,29 +49,29 @@ class CodeRepositoryService {
       if (!urlMatch) {
         throw new Error('无效的 GitHub 仓库 URL');
       }
-      
+
       const owner = urlMatch[1];
       const repo = urlMatch[2].replace(/\.git$/, '');
-      
+
       const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`;
       const headers = {
-        'Accept': 'application/vnd.github.v3+json',
+        Accept: 'application/vnd.github.v3+json',
       };
-      
+
       if (repository.access_token) {
         headers['Authorization'] = `token ${repository.access_token}`;
       }
-      
+
       const response = await axios.get(apiUrl, {
         headers,
         params: { ref: branch },
         timeout: 10000,
       });
-      
+
       if (response.data.encoding === 'base64') {
         return Buffer.from(response.data.content, 'base64').toString('utf-8');
       }
-      
+
       return response.data.content;
     } catch (error) {
       if (error.response?.status === 404) {
@@ -88,22 +91,22 @@ class CodeRepositoryService {
       if (!urlMatch) {
         throw new Error('无效的 GitLab 仓库 URL');
       }
-      
+
       const projectPath = encodeURIComponent(urlMatch[1].replace(/\.git$/, ''));
-      
+
       const apiUrl = `https://gitlab.com/api/v4/projects/${projectPath}/repository/files/${encodeURIComponent(filePath)}/raw`;
       const headers = {};
-      
+
       if (repository.access_token) {
         headers['PRIVATE-TOKEN'] = repository.access_token;
       }
-      
+
       const response = await axios.get(apiUrl, {
         headers,
         params: { ref: branch },
         timeout: 10000,
       });
-      
+
       return response.data;
     } catch (error) {
       if (error.response?.status === 404) {
@@ -123,27 +126,27 @@ class CodeRepositoryService {
       if (!urlMatch) {
         throw new Error('无效的 Gitee 仓库 URL');
       }
-      
+
       const owner = urlMatch[1];
       const repo = urlMatch[2].replace(/\.git$/, '');
-      
+
       const apiUrl = `https://gitee.com/api/v5/repos/${owner}/${repo}/contents/${filePath}`;
       const headers = {};
-      
+
       if (repository.access_token) {
         headers['Authorization'] = `token ${repository.access_token}`;
       }
-      
+
       const response = await axios.get(apiUrl, {
         headers,
         params: { ref: branch },
         timeout: 10000,
       });
-      
+
       if (response.data.encoding === 'base64') {
         return Buffer.from(response.data.content, 'base64').toString('utf-8');
       }
-      
+
       return response.data.content;
     } catch (error) {
       if (error.response?.status === 404) {
@@ -171,14 +174,14 @@ class CodeRepositoryService {
     // 例如: /api/users -> src/routes/users.js 或 controllers/users.js
     const pathParts = interfacePath.split('/').filter(p => p);
     const basePath = projectBasePath || 'src';
-    
+
     const possiblePaths = [
       `${basePath}/routes/${pathParts.join('/')}.js`,
       `${basePath}/controllers/${pathParts.join('/')}.js`,
       `${basePath}/api/${pathParts.join('/')}.js`,
       `${basePath}/handlers/${pathParts.join('/')}.js`,
     ];
-    
+
     return possiblePaths;
   }
 
@@ -188,28 +191,29 @@ class CodeRepositoryService {
   async cloneRepository(repository, targetPath = null) {
     try {
       const repoPath = targetPath || join(tmpdir(), `repo-${repository.project_id}-${Date.now()}`);
-      
+
       // 确保目录存在
       await mkdir(repoPath, { recursive: true });
 
       let repoUrl = repository.repository_url;
-      
+
       // 根据认证方式构建URL
       if (repository.auth_type === 'ssh' && repository.ssh_private_key) {
         // SSH方式：使用SSH URL
         repoUrl = this.convertToSSHUrl(repository.repository_url);
-        
+
         // 写入SSH私钥
         const sshKeyPath = join(repoPath, 'id_rsa');
         await writeFile(sshKeyPath, repository.ssh_private_key, { mode: 0o600 });
-        
+
         // 配置SSH
         const sshConfigPath = join(repoPath, 'ssh_config');
-        await writeFile(sshConfigPath, 
+        await writeFile(
+          sshConfigPath,
           `Host *\n  StrictHostKeyChecking no\n  UserKnownHostsFile /dev/null\n  IdentityFile ${sshKeyPath}\n`,
           { mode: 0o644 }
         );
-        
+
         // 构建SSH命令，如果私钥有密码则使用sshpass
         let sshCommand = `ssh -F ${sshConfigPath} -i ${sshKeyPath}`;
         if (repository.ssh_private_key_password) {
@@ -220,23 +224,25 @@ class CodeRepositoryService {
             .replace(/'/g, "'\\''");
           sshCommand = `sshpass -p '${escapedPassword}' ${sshCommand}`;
         }
-        
+
         // 使用SSH配置克隆
         const env = {
           ...process.env,
           GIT_SSH_COMMAND: sshCommand,
         };
-        
+
         try {
           await execAsync(`git clone ${repoUrl} .`, { cwd: repoPath, env });
         } catch (error) {
           // 如果失败且使用了sshpass，可能是sshpass未安装
           if (repository.ssh_private_key_password && error.message.includes('sshpass')) {
-            throw new Error('SSH私钥密码功能需要系统安装sshpass工具。请安装sshpass或使用无密码的SSH私钥。');
+            throw new Error(
+              'SSH私钥密码功能需要系统安装sshpass工具。请安装sshpass或使用无密码的SSH私钥。'
+            );
           }
           throw error;
         }
-        
+
         // 清理SSH密钥文件
         await rm(sshKeyPath, { force: true });
         await rm(sshConfigPath, { force: true });
@@ -254,12 +260,15 @@ class CodeRepositoryService {
         try {
           await execAsync(`git checkout ${repository.branch}`, { cwd: repoPath });
         } catch (error) {
-          logger.warn({ branch: repository.branch, error }, 'Failed to checkout branch, using default');
+          logger.warn(
+            { branch: repository.branch, error },
+            'Failed to checkout branch, using default'
+          );
         }
       }
 
       logger.info({ projectId: repository.project_id, repoPath }, 'Repository cloned successfully');
-      
+
       return repoPath;
     } catch (error) {
       logger.error({ error, repository: repository.provider }, 'Failed to clone repository');
@@ -273,12 +282,14 @@ class CodeRepositoryService {
   async pullRepository(repository, repoPath) {
     try {
       // 获取当前分支
-      const { stdout: currentBranch } = await execAsync('git rev-parse --abbrev-ref HEAD', { cwd: repoPath });
+      const { stdout: currentBranch } = await execAsync('git rev-parse --abbrev-ref HEAD', {
+        cwd: repoPath,
+      });
       const branch = repository.branch || currentBranch.trim() || 'main';
 
       // 拉取最新代码
       await execAsync(`git pull origin ${branch}`, { cwd: repoPath });
-      
+
       logger.info({ projectId: repository.project_id, branch }, 'Repository pulled successfully');
     } catch (error) {
       logger.error({ error, repoPath }, 'Failed to pull repository');
@@ -364,10 +375,13 @@ class CodeRepositoryService {
     };
     const branch = `${payload.branchPrefix || 'apiadmin-fix'}-${Date.now()}`;
 
-    const refRes = await axios.get(`https://api.github.com/repos/${owner}/${repo}/git/ref/heads/${base}`, {
-      headers,
-      timeout: 15000,
-    });
+    const refRes = await axios.get(
+      `https://api.github.com/repos/${owner}/${repo}/git/ref/heads/${base}`,
+      {
+        headers,
+        timeout: 15000,
+      }
+    );
     const baseSha = refRes.data.object.sha;
 
     await axios.post(
@@ -487,4 +501,3 @@ class CodeRepositoryService {
 
 export const codeRepositoryService = new CodeRepositoryService();
 export default codeRepositoryService;
-

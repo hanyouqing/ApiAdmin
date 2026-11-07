@@ -69,10 +69,7 @@ async function findOrCreateUser({
 }) {
   try {
     let user = await User.findOne({
-      $or: [
-        { email: email?.toLowerCase() },
-        { ssoId, ssoProvider: provider },
-      ],
+      $or: [{ email: email?.toLowerCase() }, { ssoId, ssoProvider: provider }],
     });
 
     if (user) {
@@ -139,7 +136,9 @@ export async function initiateSAMLAuth(provider, redirectUrl) {
       throw new Error('SAML configuration missing entryPoint or issuer');
     }
 
-    const callback = callbackUrl || `${process.env.APP_URL || 'http://localhost:3000'}/api/sso/auth/${provider._id}/callback`;
+    const callback =
+      callbackUrl ||
+      `${process.env.APP_URL || 'http://localhost:3000'}/api/sso/auth/${provider._id}/callback`;
 
     const samlOptions = {
       entryPoint,
@@ -175,7 +174,9 @@ export async function handleSAMLCallback(provider, samlResponse, relayState) {
       throw new Error('SAML response is required');
     }
 
-    const callback = callbackUrl || `${process.env.APP_URL || 'http://localhost:3000'}/api/sso/auth/${provider._id}/callback`;
+    const callback =
+      callbackUrl ||
+      `${process.env.APP_URL || 'http://localhost:3000'}/api/sso/auth/${provider._id}/callback`;
 
     const samlOptions = {
       entryPoint: entryPoint || '',
@@ -197,8 +198,16 @@ export async function handleSAMLCallback(provider, samlResponse, relayState) {
       throw new Error('SAML profile is empty');
     }
 
-    const email = profile.email || profile.mail || profile['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'] || profile.nameID;
-    const username = profile.username || profile.name || profile['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] || email?.split('@')[0];
+    const email =
+      profile.email ||
+      profile.mail ||
+      profile['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'] ||
+      profile.nameID;
+    const username =
+      profile.username ||
+      profile.name ||
+      profile['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] ||
+      email?.split('@')[0];
     const name = profile.displayName || profile.name || profile.cn || username;
 
     if (!email && !profile.nameID) {
@@ -231,7 +240,9 @@ export async function initiateOAuth2Auth(provider, redirectUrl) {
     }
 
     const state = crypto.randomBytes(16).toString('hex');
-    const redirectUri = callbackUrl || `${process.env.APP_URL || 'http://localhost:3000'}/api/sso/auth/${provider._id}/callback`;
+    const redirectUri =
+      callbackUrl ||
+      `${process.env.APP_URL || 'http://localhost:3000'}/api/sso/auth/${provider._id}/callback`;
 
     const params = new URLSearchParams({
       response_type: 'code',
@@ -269,7 +280,9 @@ export async function handleOAuth2Callback(provider, code, state) {
       throw new Error('OAuth2 callback missing authorization code');
     }
 
-    const redirectUri = callbackUrl || `${process.env.APP_URL || 'http://localhost:3000'}/api/sso/auth/${provider._id}/callback`;
+    const redirectUri =
+      callbackUrl ||
+      `${process.env.APP_URL || 'http://localhost:3000'}/api/sso/auth/${provider._id}/callback`;
 
     const tokenResponse = await axios.post(
       tokenUrl,
@@ -318,8 +331,12 @@ export async function handleOAuth2Callback(provider, code, state) {
       }
     }
 
-    const email = userInfo.email || userInfo.mail || userInfo['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'];
-    const username = userInfo.username || userInfo.login || userInfo.preferred_username || userInfo.name;
+    const email =
+      userInfo.email ||
+      userInfo.mail ||
+      userInfo['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'];
+    const username =
+      userInfo.username || userInfo.login || userInfo.preferred_username || userInfo.name;
     const name = userInfo.name || userInfo.displayName || userInfo.display_name || username;
     const avatar = userInfo.avatar_url || userInfo.avatar || userInfo.picture || userInfo.photo;
     const ssoId = userInfo.id?.toString() || userInfo.sub || userInfo.user_id || email;
@@ -364,7 +381,7 @@ export async function handleLDAPAuth(provider, username, password) {
       const bindUser = bindDN || `uid=${username},${baseDN}`;
       const bindPass = bindPassword || password;
 
-      client.bind(bindUser, bindPass, (bindErr) => {
+      client.bind(bindUser, bindPass, bindErr => {
         if (bindErr) {
           client.unbind();
           logger.warn({ error: bindErr, username }, 'LDAP bind failed');
@@ -389,17 +406,17 @@ export async function handleLDAPAuth(provider, username, password) {
           let userAttributes = null;
           let entryCount = 0;
 
-          res.on('searchEntry', (entry) => {
+          res.on('searchEntry', entry => {
             entryCount++;
             userAttributes = entry.object;
           });
 
-          res.on('error', (err) => {
+          res.on('error', err => {
             client.unbind();
             reject(new Error(`LDAP search error: ${err.message}`));
           });
 
-          res.on('end', (result) => {
+          res.on('end', result => {
             client.unbind();
 
             if (!userAttributes || entryCount === 0) {
@@ -408,9 +425,14 @@ export async function handleLDAPAuth(provider, username, password) {
             }
 
             const email = userAttributes.mail || userAttributes.email || `${username}@${host}`;
-            const name = userAttributes.cn || userAttributes.displayName || userAttributes.name || username;
+            const name =
+              userAttributes.cn || userAttributes.displayName || userAttributes.name || username;
             const ssoId = userAttributes.uid || userAttributes.sAMAccountName || username;
-            const groups = Array.isArray(userAttributes.memberOf) ? userAttributes.memberOf : (userAttributes.memberOf ? [userAttributes.memberOf] : []);
+            const groups = Array.isArray(userAttributes.memberOf)
+              ? userAttributes.memberOf
+              : userAttributes.memberOf
+                ? [userAttributes.memberOf]
+                : [];
 
             resolve({
               email,
@@ -444,7 +466,9 @@ export async function initiateCASAuth(provider, redirectUrl) {
       throw new Error('CAS configuration missing serverUrl');
     }
 
-    const service = redirectUrl || `${process.env.APP_URL || 'http://localhost:3000'}/api/sso/auth/${provider._id}/callback`;
+    const service =
+      redirectUrl ||
+      `${process.env.APP_URL || 'http://localhost:3000'}/api/sso/auth/${provider._id}/callback`;
     const casUrl = `${serverUrl}/login?service=${encodeURIComponent(service)}`;
 
     return {
@@ -479,15 +503,17 @@ export async function handleCASCallback(provider, ticket) {
     });
 
     const xml = response.data;
-    
+
     if (xml.includes('<cas:authenticationFailure')) {
-      const errorMatch = xml.match(/<cas:authenticationFailure[^>]*>(.*?)<\/cas:authenticationFailure>/);
+      const errorMatch = xml.match(
+        /<cas:authenticationFailure[^>]*>(.*?)<\/cas:authenticationFailure>/
+      );
       const errorCode = errorMatch ? errorMatch[1] : 'Unknown error';
       throw new Error(`CAS validation failed: ${errorCode}`);
     }
 
     const userMatch = xml.match(/<cas:user>(.*?)<\/cas:user>/);
-    
+
     if (!userMatch) {
       throw new Error('CAS validation failed: no user in response');
     }
@@ -562,4 +588,3 @@ export async function processSSOAuthResult(provider, userInfo, ip, userAgent) {
     throw error;
   }
 }
-

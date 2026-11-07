@@ -90,6 +90,9 @@ documentVersionSchema.index({ project_id: 1, version_number: -1 });
 documentVersionSchema.index({ project_id: 1, is_current: 1 });
 documentVersionSchema.index({ project_id: 1, published: 1 });
 
-const DocumentVersion = mongoose.model<IDocumentVersion, DocumentVersionModel>('DocumentVersion', documentVersionSchema);
+const DocumentVersion = mongoose.model<IDocumentVersion, DocumentVersionModel>(
+  'DocumentVersion',
+  documentVersionSchema
+);
 
 export default DocumentVersion;

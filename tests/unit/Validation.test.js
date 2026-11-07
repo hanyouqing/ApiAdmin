@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { validateEmail, validatePassword, sanitizeString, sanitizeInput } from '../../Utils/validation.js';
+import {
+  validateEmail,
+  validatePassword,
+  sanitizeString,
+  sanitizeInput,
+} from '../../Utils/validation.js';
 
 describe('Validation Utils', () => {
   describe('validateEmail', () => {
@@ -30,10 +35,10 @@ describe('Validation Utils', () => {
     it('should validate strong passwords', () => {
       const result1 = validatePassword('Test1234');
       expect(result1.valid).toBe(true);
-      
+
       const result2 = validatePassword('MyP@ssw0rd');
       expect(result2.valid).toBe(true);
-      
+
       const result3 = validatePassword('Complex#Pass123');
       expect(result3.valid).toBe(true);
     });
@@ -41,13 +46,13 @@ describe('Validation Utils', () => {
     it('should reject weak passwords', () => {
       const result1 = validatePassword('short');
       expect(result1.valid).toBe(false);
-      
+
       const result2 = validatePassword('12345678');
       expect(result2.valid).toBe(false);
-      
+
       const result3 = validatePassword('abcdefgh');
       expect(result3.valid).toBe(false);
-      
+
       const result4 = validatePassword('ABCDEFGH');
       expect(result4.valid).toBe(false);
     });
@@ -115,6 +120,3 @@ describe('Validation Utils', () => {
     });
   });
 });
-
-
-

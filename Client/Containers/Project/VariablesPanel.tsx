@@ -54,7 +54,7 @@ const VariablesPanel: React.FC<Props> = ({ projectId }) => {
 
   const entriesToMap = (entries: VariableEntry[]) => {
     const out: Record<string, string> = {};
-    entries.forEach((e) => {
+    entries.forEach(e => {
       if (e.enabled !== false && e.key?.trim()) out[e.key.trim()] = e.value ?? '';
     });
     return out;
@@ -92,7 +92,7 @@ const VariablesPanel: React.FC<Props> = ({ projectId }) => {
 
   const handleSelectEnv = (id: string) => {
     setSelectedEnvId(id);
-    const env = environments.find((e) => e._id === id);
+    const env = environments.find(e => e._id === id);
     setEnvBaseUrl(env?.base_url || '');
     setEnvVariables(mapToEntries(env?.variables || {}));
   };
@@ -172,7 +172,11 @@ const VariablesPanel: React.FC<Props> = ({ projectId }) => {
           >
             <Input placeholder={t('project.environment.hostPlaceholder')} />
           </Form.Item>
-          <Form.Item name="is_default" label={t('project.environment.setAsDefault')} valuePropName="checked">
+          <Form.Item
+            name="is_default"
+            label={t('project.environment.setAsDefault')}
+            valuePropName="checked"
+          >
             <Switch />
           </Form.Item>
         </Form>
@@ -199,7 +203,7 @@ const VariablesPanel: React.FC<Props> = ({ projectId }) => {
       render: (_: any, __: any, index: number) => (
         <Input
           value={rows[index]?.key}
-          onChange={(e) => {
+          onChange={e => {
             const next = [...rows];
             next[index] = { ...next[index], key: e.target.value };
             setRows(next);
@@ -214,7 +218,7 @@ const VariablesPanel: React.FC<Props> = ({ projectId }) => {
         <Input.Password
           visibilityToggle
           value={record.value}
-          onChange={(e) => {
+          onChange={e => {
             const next = [...rows];
             next[index] = { ...next[index], value: e.target.value };
             setRows(next);
@@ -229,7 +233,7 @@ const VariablesPanel: React.FC<Props> = ({ projectId }) => {
       render: (enabled: boolean, _: any, index: number) => (
         <Switch
           checked={enabled !== false}
-          onChange={(checked) => {
+          onChange={checked => {
             const next = [...rows];
             next[index] = { ...next[index], enabled: checked };
             setRows(next);
@@ -296,7 +300,7 @@ const VariablesPanel: React.FC<Props> = ({ projectId }) => {
               placeholder={t('project.variables.selectEnvironment')}
               value={selectedEnvId}
               onChange={handleSelectEnv}
-              options={environments.map((e) => ({
+              options={environments.map(e => ({
                 value: e._id,
                 label: `${e.name}${e.is_default ? ' (default)' : ''}`,
               }))}
@@ -321,7 +325,7 @@ const VariablesPanel: React.FC<Props> = ({ projectId }) => {
           <Form.Item label={t('project.environment.host')}>
             <Input
               value={envBaseUrl}
-              onChange={(e) => setEnvBaseUrl(e.target.value)}
+              onChange={e => setEnvBaseUrl(e.target.value)}
               disabled={!selectedEnvId}
               placeholder={t('project.environment.hostPlaceholder')}
             />
@@ -356,7 +360,9 @@ const VariablesPanel: React.FC<Props> = ({ projectId }) => {
           {t('project.variables.legacyHint')}
         </Text>
         <Space style={{ marginBottom: 12 }}>
-          <Tag>{legacyEnv.length} {t('project.variables.legacyCount')}</Tag>
+          <Tag>
+            {legacyEnv.length} {t('project.variables.legacyCount')}
+          </Tag>
           <Button icon={<SyncOutlined />} onClick={syncLegacy} disabled={!legacyEnv.length}>
             {t('project.variables.syncLegacy')}
           </Button>
@@ -378,7 +384,9 @@ const VariablesPanel: React.FC<Props> = ({ projectId }) => {
               title: t('project.environment.variables'),
               dataIndex: 'variables',
               render: (variables: any) => (
-                <Tag>{Object.keys(variables || {}).length} {t('project.environment.variablesCount')}</Tag>
+                <Tag>
+                  {Object.keys(variables || {}).length} {t('project.environment.variablesCount')}
+                </Tag>
               ),
             },
           ]}

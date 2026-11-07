@@ -66,7 +66,7 @@ describe('Interface Model', () => {
     const interface_ = new Interface({
       title: 'Test Interface',
     });
-    
+
     await expect(interface_.save()).rejects.toThrow();
   });
 

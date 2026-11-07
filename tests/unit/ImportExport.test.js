@@ -56,7 +56,7 @@ describe('ImportExport Utils', () => {
             get: {
               summary: 'Test endpoint',
               responses: {
-                '200': {
+                200: {
                   description: 'Success',
                 },
               },
@@ -107,4 +107,3 @@ describe('ImportExport Utils', () => {
     });
   });
 });
-

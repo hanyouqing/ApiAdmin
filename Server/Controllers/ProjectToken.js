@@ -5,7 +5,9 @@ import ProjectToken from '../Models/ProjectToken.js';
 import Project from '../Models/Project.js';
 
 class ProjectTokenController extends BaseController {
-  static get ControllerName() { return 'ProjectTokenController'; }
+  static get ControllerName() {
+    return 'ProjectTokenController';
+  }
 
   static async generateToken(ctx) {
     try {
@@ -49,16 +51,22 @@ class ProjectTokenController extends BaseController {
 
       await projectToken.save();
 
-      logger.info({ userId: user._id, projectId, tokenId: projectToken._id }, 'Project token generated');
+      logger.info(
+        { userId: user._id, projectId, tokenId: projectToken._id },
+        'Project token generated'
+      );
 
-      ctx.body = ProjectTokenController.success({
-        id: projectToken._id,
-        token, // 仅返回一次明文
-        tokenPrefix: projectToken.tokenPrefix,
-        name: projectToken.name,
-        expiresAt: projectToken.expiresAt,
-        createdAt: projectToken.createdAt,
-      }, '项目 Token 生成成功');
+      ctx.body = ProjectTokenController.success(
+        {
+          id: projectToken._id,
+          token, // 仅返回一次明文
+          tokenPrefix: projectToken.tokenPrefix,
+          name: projectToken.name,
+          expiresAt: projectToken.expiresAt,
+          createdAt: projectToken.createdAt,
+        },
+        '项目 Token 生成成功'
+      );
     } catch (error) {
       logger.error({ error }, 'Generate project token error');
       ctx.status = 500;
@@ -156,6 +164,3 @@ class ProjectTokenController extends BaseController {
 }
 
 export default ProjectTokenController;
-
-
-

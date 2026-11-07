@@ -8,12 +8,12 @@ let currentConfig = null;
 const initEmailService = (emailConfig = null) => {
   // Use provided config or fall back to environment variables
   const provider = emailConfig?.provider || config.EMAIL_PROVIDER || 'smtp';
-  
+
   if (provider === 'oci') {
     const region = emailConfig?.oci?.region || config.OCI_EMAIL_REGION;
     const user = emailConfig?.oci?.user || config.OCI_EMAIL_USER;
     const pass = emailConfig?.oci?.pass || config.OCI_EMAIL_PASS;
-    
+
     if (region && user && pass) {
       const ociHost = `smtp.email.${region}.oci.oraclecloud.com`;
       transporter = nodemailer.createTransport({
@@ -27,20 +27,28 @@ const initEmailService = (emailConfig = null) => {
         },
       });
 
-      logger.info({ provider: 'oci', region, host: ociHost }, 'OCI Email Delivery service initialized');
+      logger.info(
+        { provider: 'oci', region, host: ociHost },
+        'OCI Email Delivery service initialized'
+      );
       currentConfig = emailConfig || { provider: 'oci', oci: { region, user, pass } };
       return;
     } else {
-      logger.warn('OCI Email Delivery not configured. OCI_EMAIL_REGION, OCI_EMAIL_USER, and OCI_EMAIL_PASS are required.');
+      logger.warn(
+        'OCI Email Delivery not configured. OCI_EMAIL_REGION, OCI_EMAIL_USER, and OCI_EMAIL_PASS are required.'
+      );
     }
   } else if (provider === 'smtp') {
     const smtpConfig = emailConfig?.smtp || {};
     const host = smtpConfig.host || config.SMTP_HOST;
     const port = smtpConfig.port || parseInt(config.SMTP_PORT) || 587;
-    const secure = smtpConfig.secure !== undefined ? smtpConfig.secure : (config.SMTP_SECURE === 'true' || config.SMTP_PORT === '465');
+    const secure =
+      smtpConfig.secure !== undefined
+        ? smtpConfig.secure
+        : config.SMTP_SECURE === 'true' || config.SMTP_PORT === '465';
     const user = smtpConfig.auth?.user || config.SMTP_USER;
     const pass = smtpConfig.auth?.pass || config.SMTP_PASS;
-    
+
     if (host && user && pass) {
       transporter = nodemailer.createTransport({
         host,
@@ -53,7 +61,10 @@ const initEmailService = (emailConfig = null) => {
       });
 
       logger.info({ provider: 'smtp', host, port }, 'Email service initialized');
-      currentConfig = emailConfig || { provider: 'smtp', smtp: { host, port, secure, auth: { user, pass } } };
+      currentConfig = emailConfig || {
+        provider: 'smtp',
+        smtp: { host, port, secure, auth: { user, pass } },
+      };
       return;
     } else {
       logger.warn('Email service not configured. SMTP settings missing.');
@@ -62,7 +73,7 @@ const initEmailService = (emailConfig = null) => {
     // SendGrid uses SMTP with specific settings
     const sendgridConfig = emailConfig?.sendgrid || {};
     const apiKey = sendgridConfig.apiKey || config.SENDGRID_API_KEY;
-    
+
     if (apiKey) {
       transporter = nodemailer.createTransport({
         host: 'smtp.sendgrid.net',
@@ -90,7 +101,7 @@ const initEmailService = (emailConfig = null) => {
     // Resend uses SMTP with specific settings
     const resendConfig = emailConfig?.resend || {};
     const apiKey = resendConfig.apiKey;
-    
+
     if (apiKey) {
       transporter = nodemailer.createTransport({
         host: 'smtp.resend.com',
@@ -109,12 +120,19 @@ const initEmailService = (emailConfig = null) => {
       logger.warn('Resend not configured. API key is required.');
     }
   }
-  
+
   transporter = null;
   currentConfig = null;
 };
 
-export const sendEmail = async (to, subject, html, text, emailConfig = null, attachments = null) => {
+export const sendEmail = async (
+  to,
+  subject,
+  html,
+  text,
+  emailConfig = null,
+  attachments = null
+) => {
   // If new config provided, reinitialize
   if (emailConfig && JSON.stringify(emailConfig) !== JSON.stringify(currentConfig)) {
     initEmailService(emailConfig);
@@ -127,9 +145,10 @@ export const sendEmail = async (to, subject, html, text, emailConfig = null, att
   }
 
   try {
-    const provider = currentConfig?.provider || emailConfig?.provider || config.EMAIL_PROVIDER || 'smtp';
+    const provider =
+      currentConfig?.provider || emailConfig?.provider || config.EMAIL_PROVIDER || 'smtp';
     let fromEmail;
-    
+
     // Priority: emailConfig > currentConfig > environment variables
     if (emailConfig?.from?.email) {
       fromEmail = emailConfig.from.email;
@@ -142,11 +161,11 @@ export const sendEmail = async (to, subject, html, text, emailConfig = null, att
     } else {
       fromEmail = config.SMTP_FROM || config.SMTP_USER;
     }
-    
+
     if (!fromEmail) {
       throw new Error('Email "from" address is not configured');
     }
-    
+
     const mailOptions = {
       from: fromEmail,
       to,
@@ -159,10 +178,13 @@ export const sendEmail = async (to, subject, html, text, emailConfig = null, att
     if (attachments && Array.isArray(attachments) && attachments.length > 0) {
       mailOptions.attachments = attachments;
     }
-    
+
     const info = await transporter.sendMail(mailOptions);
 
-    logger.info({ to, subject, messageId: info.messageId, hasAttachments: !!attachments?.length }, 'Email sent');
+    logger.info(
+      { to, subject, messageId: info.messageId, hasAttachments: !!attachments?.length },
+      'Email sent'
+    );
     return info;
   } catch (error) {
     logger.error({ error, to, subject }, 'Failed to send email');
@@ -205,4 +227,3 @@ export const sendVerificationCodeEmail = async (email, code) => {
 };
 
 initEmailService();
-

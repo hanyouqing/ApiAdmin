@@ -25,7 +25,7 @@ export class PluginManager {
   async init() {
     try {
       const enabledPlugins = await Plugin.find({ enabled: true, installed: true });
-      
+
       for (const pluginData of enabledPlugins) {
         try {
           await this.loadPlugin(pluginData);
@@ -46,14 +46,14 @@ export class PluginManager {
   async loadPlugin(pluginData) {
     try {
       const pluginPath = path.join(__dirname, '../../Plugins', pluginData.name);
-      
-      if (!await this.pathExists(pluginPath)) {
+
+      if (!(await this.pathExists(pluginPath))) {
         logger.warn({ pluginName: pluginData.name }, 'Plugin directory not found');
         return;
       }
 
       const manifestPath = path.join(pluginPath, 'manifest.json');
-      if (!await this.pathExists(manifestPath)) {
+      if (!(await this.pathExists(manifestPath))) {
         logger.warn({ pluginName: pluginData.name }, 'Plugin manifest not found');
         return;
       }
@@ -65,7 +65,7 @@ export class PluginManager {
       if (entry.server) {
         const serverEntryPath = path.join(pluginPath, entry.server);
         const resolvedPath = path.resolve(serverEntryPath);
-        
+
         if (await this.pathExists(resolvedPath)) {
           try {
             const pluginModule = await import(`file://${resolvedPath}`);
@@ -81,7 +81,10 @@ export class PluginManager {
               });
             }
           } catch (error) {
-            logger.warn({ error, pluginName: pluginData.name, entryPath: resolvedPath }, 'Failed to load plugin server entry');
+            logger.warn(
+              { error, pluginName: pluginData.name, entryPath: resolvedPath },
+              'Failed to load plugin server entry'
+            );
           }
         }
       }
@@ -184,7 +187,7 @@ export class PluginManager {
 
     for (const handler of handlers) {
       try {
-        if (!await this.pathExists(handler.hookPath)) {
+        if (!(await this.pathExists(handler.hookPath))) {
           logger.warn({ hookPath: handler.hookPath }, 'Hook file not found');
           continue;
         }
@@ -271,4 +274,3 @@ export class PluginManager {
 }
 
 export const pluginManager = new PluginManager();
-

@@ -31,15 +31,34 @@ make start
 
 - UI: http://localhost:3001 (or Client Vite port)
 - API: http://localhost:3000
+- OpenAPI JSON (always): http://localhost:3000/swagger.json  
+  Swagger UI (optional): `SWAGGER_ENABLED=true` → http://localhost:3000/swagger
+
+When importing a Swagger URL, you can paste `http://localhost:3000/swagger` — the server maps it to `/swagger.json`. External private hosts need `ALLOW_PRIVATE_OUTBOUND=true`.
 
 ### Optional: seed demo data
 
-With MongoDB running and `MONGODB_URL` set:
+With MongoDB running (`make mongo-up` or your own instance):
 
 ```bash
 make seed-demo
 # creates demo@apiadmin.local / Demo1234! + project "ApiAdmin Demo"
 # imports examples/openapi-petstore-mini.json
+```
+
+### Reset / recover a local password
+
+Local accounts always need a non-empty password (SSO users are separate). To reset:
+
+```bash
+# demo account → Demo1234!
+make reset-password
+
+# any user
+make reset-password EMAIL=user@example.com PASSWORD='NewPass123!'
+
+# create the user as super_admin if missing
+make reset-password EMAIL=admin@example.com PASSWORD='NewPass123!' CREATE=1
 ```
 
 Or create the first super-admin via UI register (if `ALLOW_PUBLIC_REGISTRATION=true`) or follow `Docs/SUPER_ADMIN_SETUP.md`.
@@ -57,6 +76,7 @@ Or create the first super-admin via UI register (if `ALLOW_PUBLIC_REGISTRATION=t
    # npm run cli -- run-collection --help
    ```
 7. **API Monitor** — sidebar → create probe → Run now → Suggest code fix on failing runs.
+8. **Bugs** — sidebar → 缺陷管理；或从 Monitor 失败运行点「登记缺陷」。
 
 ## 4. Verify install
 

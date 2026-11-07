@@ -4,7 +4,9 @@ import { logger } from '../Utils/logger.js';
 import OperationLog from '../Models/OperationLog.js';
 
 class OperationLogController extends BaseController {
-  static get ControllerName() { return 'OperationLogController'; }
+  static get ControllerName() {
+    return 'OperationLogController';
+  }
 
   static async listLogs(ctx) {
     try {
@@ -224,4 +226,3 @@ class OperationLogController extends BaseController {
 }
 
 export default OperationLogController;
-

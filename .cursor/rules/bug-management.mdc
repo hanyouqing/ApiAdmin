@@ -1,0 +1,8 @@
+# Bug / defect management
+
+- Product bugs = `Bug` model + `/api/bugs*` + UI `/bugs` (sidebar) — not GitHub Issues.
+- Soft-delete via `deleted_at`; restore / purge only from recycle view.
+- Link optionally to `interface_id`, `test_case_id`, `auto_test_result_id`, `monitor_id`, `monitor_run_id`.
+- Third-party trackers: store `external_url` only (no silent dual-write / sync plugins unless explicitly built).
+- OperationLog stays in existing enum (`test`) for bug CRUD.
+- Monitor failing runs may deep-link to `/bugs?project_id&monitor_id&monitor_run_id&title&description`.

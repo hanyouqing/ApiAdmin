@@ -90,6 +90,9 @@ const mockExpectationSchema = new Schema<IMockExpectation>(
 mockExpectationSchema.index({ interface_id: 1, priority: -1, enabled: 1 });
 mockExpectationSchema.index({ project_id: 1 });
 
-const MockExpectation = mongoose.model<IMockExpectation, MockExpectationModel>('MockExpectation', mockExpectationSchema);
+const MockExpectation = mongoose.model<IMockExpectation, MockExpectationModel>(
+  'MockExpectation',
+  mockExpectationSchema
+);
 
 export default MockExpectation;

@@ -1,6 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Form, Switch, Input, Button, Tabs, Space, App, Typography } from 'antd';
-import { MailOutlined, AppstoreOutlined, LinkOutlined, MessageOutlined, DingtalkOutlined, SlackOutlined } from '@ant-design/icons';
+import {
+  MailOutlined,
+  AppstoreOutlined,
+  LinkOutlined,
+  MessageOutlined,
+  DingtalkOutlined,
+  SlackOutlined,
+} from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../Utils/api';
 
@@ -160,7 +167,9 @@ const NotificationSettings: React.FC = () => {
       await api.put('/notifications/settings', settings);
       messageApi.success(t('user.notificationSettings.updateSuccess'));
     } catch (error: any) {
-      messageApi.error(error.response?.data?.message || t('user.notificationSettings.updateFailed'));
+      messageApi.error(
+        error.response?.data?.message || t('user.notificationSettings.updateFailed')
+      );
     } finally {
       setLoading(false);
     }
@@ -342,7 +351,10 @@ const NotificationSettings: React.FC = () => {
             name="dingtalk.webhookUrl"
             label={t('user.notificationSettings.dingtalk.webhookUrl')}
             rules={[
-              { required: true, message: t('user.notificationSettings.dingtalk.webhookUrlRequired') },
+              {
+                required: true,
+                message: t('user.notificationSettings.dingtalk.webhookUrlRequired'),
+              },
               { type: 'url', message: t('user.notificationSettings.dingtalk.webhookUrlInvalid') },
             ]}
           >
@@ -353,7 +365,9 @@ const NotificationSettings: React.FC = () => {
             label={t('user.notificationSettings.dingtalk.secret')}
             tooltip={t('user.notificationSettings.dingtalk.secretTooltip')}
           >
-            <Input.Password placeholder={t('user.notificationSettings.dingtalk.secretPlaceholder')} />
+            <Input.Password
+              placeholder={t('user.notificationSettings.dingtalk.secretPlaceholder')}
+            />
           </Form.Item>
           <Form.Item
             name="dingtalk.interfaceChange"
@@ -522,4 +536,3 @@ const NotificationSettings: React.FC = () => {
 };
 
 export default NotificationSettings;
-

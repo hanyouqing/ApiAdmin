@@ -94,6 +94,9 @@ const notificationSettingsSchema = new Schema<INotificationSettings>(
   }
 );
 
-const NotificationSettings = mongoose.model<INotificationSettings, NotificationSettingsModel>('NotificationSettings', notificationSettingsSchema);
+const NotificationSettings = mongoose.model<INotificationSettings, NotificationSettingsModel>(
+  'NotificationSettings',
+  notificationSettingsSchema
+);
 
 export default NotificationSettings;

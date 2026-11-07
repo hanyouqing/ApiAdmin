@@ -57,9 +57,9 @@ const interfaceCatSlice = createSlice({
   name: 'interfaceCat',
   initialState,
   reducers: {},
-  extraReducers: (builder) => {
+  extraReducers: builder => {
     builder
-      .addCase(fetchInterfaceCats.pending, (state) => {
+      .addCase(fetchInterfaceCats.pending, state => {
         state.loading = true;
       })
       .addCase(fetchInterfaceCats.fulfilled, (state, action) => {
@@ -74,16 +74,15 @@ const interfaceCatSlice = createSlice({
         state.cats.push(action.payload);
       })
       .addCase(updateInterfaceCat.fulfilled, (state, action) => {
-        const index = state.cats.findIndex((c) => c._id === action.payload._id);
+        const index = state.cats.findIndex(c => c._id === action.payload._id);
         if (index !== -1) {
           state.cats[index] = action.payload;
         }
       })
       .addCase(deleteInterfaceCat.fulfilled, (state, action) => {
-        state.cats = state.cats.filter((c) => c._id !== action.payload);
+        state.cats = state.cats.filter(c => c._id !== action.payload);
       });
   },
 });
 
 export default interfaceCatSlice.reducer;
-

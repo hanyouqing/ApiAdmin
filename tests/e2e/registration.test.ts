@@ -21,7 +21,7 @@ test.describe('Registration', () => {
 
     // After registration, it should redirect to login
     await expect(page).toHaveURL(/.*\/login/);
-    
+
     // Optional: verify login with new credentials
     await page.getByPlaceholder('Email').fill(email);
     await page.getByPlaceholder('Password').fill(password);

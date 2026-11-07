@@ -13,17 +13,23 @@ export const unique = <T>(arr: T[]): T[] => {
 /**
  * 数组分组
  */
-export const groupBy = <T>(arr: T[], key: keyof T | ((item: T) => string | number)): Record<string, T[]> => {
+export const groupBy = <T>(
+  arr: T[],
+  key: keyof T | ((item: T) => string | number)
+): Record<string, T[]> => {
   if (!Array.isArray(arr)) return {};
-  
-  return arr.reduce((result, item) => {
-    const groupKey = typeof key === 'function' ? String(key(item)) : String(item[key]);
-    if (!result[groupKey]) {
-      result[groupKey] = [];
-    }
-    result[groupKey].push(item);
-    return result;
-  }, {} as Record<string, T[]>);
+
+  return arr.reduce(
+    (result, item) => {
+      const groupKey = typeof key === 'function' ? String(key(item)) : String(item[key]);
+      if (!result[groupKey]) {
+        result[groupKey] = [];
+      }
+      result[groupKey].push(item);
+      return result;
+    },
+    {} as Record<string, T[]>
+  );
 };
 
 /**
@@ -31,11 +37,11 @@ export const groupBy = <T>(arr: T[], key: keyof T | ((item: T) => string | numbe
  */
 export const sortBy = <T>(arr: T[], key: keyof T, order: 'asc' | 'desc' = 'asc'): T[] => {
   if (!Array.isArray(arr)) return [];
-  
+
   return [...arr].sort((a, b) => {
     const aVal = a[key];
     const bVal = b[key];
-    
+
     if (aVal < bVal) return order === 'asc' ? -1 : 1;
     if (aVal > bVal) return order === 'asc' ? 1 : -1;
     return 0;
@@ -47,7 +53,7 @@ export const sortBy = <T>(arr: T[], key: keyof T, order: 'asc' | 'desc' = 'asc')
  */
 export const paginate = <T>(arr: T[], page: number = 1, pageSize: number = 10): T[] => {
   if (!Array.isArray(arr)) return [];
-  
+
   const start = (page - 1) * pageSize;
   const end = start + pageSize;
   return arr.slice(start, end);
@@ -60,6 +66,3 @@ export const flatten = <T>(arr: T[], depth: number = Infinity): T[] => {
   if (!Array.isArray(arr)) return [];
   return arr.flat(depth) as T[];
 };
-
-
-

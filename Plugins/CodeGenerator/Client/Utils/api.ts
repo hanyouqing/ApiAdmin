@@ -18,10 +18,7 @@ export interface GenerateCodeResponse {
   message?: string;
 }
 
-export async function generateCode(
-  params: GenerateCodeParams
-): Promise<GenerateCodeResponse> {
+export async function generateCode(params: GenerateCodeParams): Promise<GenerateCodeResponse> {
   const response = await axios.post(`${API_BASE}/generate`, params);
   return response.data;
 }
-

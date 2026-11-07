@@ -1,4 +1,4 @@
-export const checkPermission = (requiredRole) => {
+export const checkPermission = requiredRole => {
   return async (ctx, next) => {
     const user = ctx.state.user;
 
@@ -67,8 +67,9 @@ async function resolveProjectId(ctx) {
   }
 
   // Resolve via interface _id / interface_id
-  const interfaceId = resolveResourceId(ctx, 'interface_id', 'interfaceId')
-    || (path.includes('/interface/') ? resolveResourceId(ctx, '_id') : null);
+  const interfaceId =
+    resolveResourceId(ctx, 'interface_id', 'interfaceId') ||
+    (path.includes('/interface/') ? resolveResourceId(ctx, '_id') : null);
   if (interfaceId) {
     const Interface = (await import('../Models/Interface.js')).default;
     const iface = await Interface.findById(interfaceId).select('project_id').lean();
@@ -117,6 +118,15 @@ async function resolveProjectId(ctx) {
     }
   }
 
+  // Resolve via Bug id
+  if (path.includes('/api/bugs/') && ctx.params?.id) {
+    const Bug = (await import('../Models/Bug.js')).default;
+    const bug = await Bug.findById(ctx.params.id).select('project_id').lean();
+    if (bug?.project_id) {
+      return bug.project_id.toString();
+    }
+  }
+
   // CLI token scoped project
   if (ctx.state?.projectId) {
     return ctx.state.projectId.toString();
@@ -151,9 +161,7 @@ export const checkGroupPermission = async (ctx, next) => {
   }
 
   const isOwner = group.uid.toString() === user._id.toString();
-  const isMember = group.member.some(
-    (memberId) => memberId.toString() === user._id.toString()
-  );
+  const isMember = group.member.some(memberId => memberId.toString() === user._id.toString());
   const isSuperAdmin = user.role === 'super_admin';
 
   if (!isOwner && !isSuperAdmin && !isMember) {
@@ -195,9 +203,7 @@ export const checkProjectPermission = async (ctx, next) => {
   }
 
   const isOwner = project.uid.toString() === user._id.toString();
-  const isMember = project.member.some(
-    (memberId) => memberId.toString() === user._id.toString()
-  );
+  const isMember = project.member.some(memberId => memberId.toString() === user._id.toString());
   const isSuperAdmin = user.role === 'super_admin';
 
   if (!isOwner && !isSuperAdmin && !isMember) {

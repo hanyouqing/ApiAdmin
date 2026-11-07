@@ -65,7 +65,7 @@ describe('TestCollection Model', () => {
     const collection = new TestCollection({
       description: 'Test Description',
     });
-    
+
     await expect(collection.save()).rejects.toThrow();
   });
 });

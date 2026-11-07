@@ -5,6 +5,14 @@ import { assertSafeOutboundUrl } from './security.js';
 import AutoTestResult from '../Models/AutoTestResult.js';
 import AutoTestTask from '../Models/AutoTestTask.js';
 import Interface from '../Models/Interface.js';
+import {
+  normalizeStepType,
+  clampWaitMs,
+  clampLoopCount,
+  evaluateStepCondition,
+  resolvePassStatus,
+  sleep,
+} from './scenarioSteps.js';
 
 export class AutoTestRunner {
   constructor() {
@@ -48,7 +56,10 @@ export class AutoTestRunner {
     );
 
     if (!updated) {
-      logger.warn({ resultId }, 'AutoTestResult missing during persist (deleted or never committed)');
+      logger.warn(
+        { resultId },
+        'AutoTestResult missing during persist (deleted or never committed)'
+      );
       return null;
     }
 
@@ -67,7 +78,10 @@ export class AutoTestRunner {
       return emailAddresses.filter(e => e && typeof e === 'string');
     }
     if (typeof emailAddresses === 'string') {
-      return emailAddresses.split(',').map(e => e.trim()).filter(e => e);
+      return emailAddresses
+        .split(',')
+        .map(e => e.trim())
+        .filter(e => e);
     }
     return [];
   }
@@ -80,10 +94,10 @@ export class AutoTestRunner {
    */
   static shouldSendNotification(notification, status) {
     if (!notification?.enabled) return false;
-    
+
     const onFailureEnabled = notification.on_failure !== false; // 默认 true
     const onSuccessEnabled = notification.on_success === true; // 默认 false
-    
+
     return (
       (onSuccessEnabled && status === 'passed') ||
       (onFailureEnabled && (status === 'failed' || status === 'error'))
@@ -99,12 +113,15 @@ export class AutoTestRunner {
    */
   static async sendNotifications(task, result, resultId, loggerContext = {}) {
     if (!task?.notification?.enabled) {
-      logger.debug({ 
-        taskId: task?._id, 
-        taskName: task?.name,
-        resultId,
-        ...loggerContext
-      }, 'Notifications not enabled for this task');
+      logger.debug(
+        {
+          taskId: task?._id,
+          taskName: task?.name,
+          resultId,
+          ...loggerContext,
+        },
+        'Notifications not enabled for this task'
+      );
       return;
     }
 
@@ -112,93 +129,119 @@ export class AutoTestRunner {
     const shouldNotify = AutoTestRunner.shouldSendNotification(task.notification, status);
 
     if (!shouldNotify) {
-      logger.warn({ 
-        taskId: task._id, 
-        taskName: task.name,
-        resultId,
-        status,
-        onSuccess: task.notification.on_success,
-        onFailure: task.notification.on_failure,
-        ...loggerContext
-      }, 'Notification conditions not met, skipping notifications');
+      logger.warn(
+        {
+          taskId: task._id,
+          taskName: task.name,
+          resultId,
+          status,
+          onSuccess: task.notification.on_success,
+          onFailure: task.notification.on_failure,
+          ...loggerContext,
+        },
+        'Notification conditions not met, skipping notifications'
+      );
       return;
     }
 
     try {
-      logger.info({ 
-        taskId: task._id, 
-        taskName: task.name,
-        resultId,
-        status,
-        emailEnabled: task.notification.email_enabled,
-        hasEmailAddresses: !!task.notification.email_addresses,
-        hasWebhook: !!task.notification.webhook_url,
-        ...loggerContext
-      }, 'Preparing to send test notifications');
-      
+      logger.info(
+        {
+          taskId: task._id,
+          taskName: task.name,
+          resultId,
+          status,
+          emailEnabled: task.notification.email_enabled,
+          hasEmailAddresses: !!task.notification.email_addresses,
+          hasWebhook: !!task.notification.webhook_url,
+          ...loggerContext,
+        },
+        'Preparing to send test notifications'
+      );
+
       // 重新获取完整的测试结果数据（包含所有测试用例详情）
       const fullResult = await AutoTestResult.findById(resultId)
         .populate('task_id', 'name project_id')
         .lean();
-      
+
       if (!fullResult) {
-        logger.warn({ taskId: task._id, resultId }, 'Full result not found, skipping notifications');
+        logger.warn(
+          { taskId: task._id, resultId },
+          'Full result not found, skipping notifications'
+        );
         return;
       }
 
       // 发送邮件通知
       if (task.notification.email_enabled && task.notification.email_addresses) {
-        const emailAddresses = AutoTestRunner.parseEmailAddresses(task.notification.email_addresses);
-        
+        const emailAddresses = AutoTestRunner.parseEmailAddresses(
+          task.notification.email_addresses
+        );
+
         if (emailAddresses.length > 0) {
-          logger.info({ 
-            taskId: task._id, 
-            taskName: task.name,
-            resultId,
-            emailCount: emailAddresses.length 
-          }, 'Sending email notifications');
-          
+          logger.info(
+            {
+              taskId: task._id,
+              taskName: task.name,
+              resultId,
+              emailCount: emailAddresses.length,
+            },
+            'Sending email notifications'
+          );
+
           const { sendTestNotificationEmail } = await import('./notificationService.js');
           await sendTestNotificationEmail(task, fullResult, emailAddresses);
         } else {
-          logger.warn({ 
-            taskId: task._id, 
-            taskName: task.name,
-            resultId,
-            emailAddressesRaw: task.notification.email_addresses
-          }, 'Email notifications enabled but no valid email addresses found');
+          logger.warn(
+            {
+              taskId: task._id,
+              taskName: task.name,
+              resultId,
+              emailAddressesRaw: task.notification.email_addresses,
+            },
+            'Email notifications enabled but no valid email addresses found'
+          );
         }
       } else {
-        logger.debug({ 
-          taskId: task._id, 
-          taskName: task.name,
-          resultId,
-          emailEnabled: task.notification.email_enabled,
-          hasEmailAddresses: !!task.notification.email_addresses
-        }, 'Email notifications skipped (not enabled or no addresses)');
+        logger.debug(
+          {
+            taskId: task._id,
+            taskName: task.name,
+            resultId,
+            emailEnabled: task.notification.email_enabled,
+            hasEmailAddresses: !!task.notification.email_addresses,
+          },
+          'Email notifications skipped (not enabled or no addresses)'
+        );
       }
 
       // 发送 webhook 通知
       if (task.notification.webhook_url) {
-        logger.info({ 
-          taskId: task._id, 
-          taskName: task.name,
-          resultId,
-          webhookUrl: task.notification.webhook_url 
-        }, 'Sending webhook notification');
-        
+        logger.info(
+          {
+            taskId: task._id,
+            taskName: task.name,
+            resultId,
+            webhookUrl: task.notification.webhook_url,
+          },
+          'Sending webhook notification'
+        );
+
         const { sendWebhookNotification } = await import('./notificationService.js');
         await sendWebhookNotification(task, fullResult, task.notification.webhook_url);
       }
     } catch (error) {
-      logger.error({ 
-        error: error.message || error, 
-        stack: error.stack,
-        taskId: task._id, 
-        taskName: task.name,
-        resultId,
-        ...loggerContext
-      }, 'Failed to send notification');
+      logger.error(
+        {
+          error: error.message || error,
+          stack: error.stack,
+          taskId: task._id,
+          taskName: task.name,
+          resultId,
+          ...loggerContext,
+        },
+        'Failed to send notification'
+      );
       // 不抛出错误，避免影响测试流程
     }
   }
@@ -211,16 +254,19 @@ export class AutoTestRunner {
 
     try {
       // 记录任务和环境信息用于调试
-      logger.info({ 
-        taskId: task._id,
-        taskName: task.name,
-        testCasesCount: task.test_cases?.length || 0,
-        hasEnvironment: !!environment,
-        environmentId: environment?._id,
-        environmentName: environment?.name,
-        environmentBaseUrl: environment?.base_url,
-      }, 'Starting auto test task execution');
-      
+      logger.info(
+        {
+          taskId: task._id,
+          taskName: task.name,
+          testCasesCount: task.test_cases?.length || 0,
+          hasEnvironment: !!environment,
+          environmentId: environment?._id,
+          environmentName: environment?.name,
+          environmentBaseUrl: environment?.base_url,
+        },
+        'Starting auto test task execution'
+      );
+
       // 准备环境变量
       const envVars = environment?.variables || {};
       const envHeaders = environment?.headers || {};
@@ -229,36 +275,45 @@ export class AutoTestRunner {
       // 因为任务的 base_url 是针对特定流水线的配置，应该优先于环境变量的通用配置
       // 处理 Mongoose 文档：使用 .get() 方法或直接访问属性
       const taskBaseUrl = task?.base_url || (task?.get ? task.get('base_url') : null) || '';
-      const envBaseUrl = environment?.base_url || (environment?.get ? environment.get('base_url') : null) || '';
+      const envBaseUrl =
+        environment?.base_url || (environment?.get ? environment.get('base_url') : null) || '';
       let baseUrl = (taskBaseUrl || envBaseUrl || '').trim();
-      
+
       // 如果 base_url 为空，使用主机地址作为默认值
       if (!baseUrl) {
         const config = (await import('./config.js')).default;
         // 优先使用 APP_URL，如果没有则使用 localhost:PORT
         baseUrl = config.APP_URL || `http://localhost:${config.PORT || 3000}`;
-        logger.info({ 
-          taskId: task._id,
-          defaultBaseUrl: baseUrl
-        }, 'Using default host address as base_url');
+        logger.info(
+          {
+            taskId: task._id,
+            defaultBaseUrl: baseUrl,
+          },
+          'Using default host address as base_url'
+        );
       }
-      
+
       // 记录环境信息用于调试
-      logger.info({ 
-        taskId: task._id, 
-        environmentId: environment?._id,
-        environmentName: environment?.name,
-        hasEnvironment: !!environment,
-        taskBaseUrl: taskBaseUrl || '(empty)',
-        environmentBaseUrl: envBaseUrl || '(empty)',
-        rawBaseUrl: baseUrl || '(empty)',
-        environmentData: environment ? {
-          _id: environment._id,
-          name: environment.name,
-          base_url: environment.base_url,
-        } : null
-      }, 'Auto test runner starting with environment');
-      
+      logger.info(
+        {
+          taskId: task._id,
+          environmentId: environment?._id,
+          environmentName: environment?.name,
+          hasEnvironment: !!environment,
+          taskBaseUrl: taskBaseUrl || '(empty)',
+          environmentBaseUrl: envBaseUrl || '(empty)',
+          rawBaseUrl: baseUrl || '(empty)',
+          environmentData: environment
+            ? {
+                _id: environment._id,
+                name: environment.name,
+                base_url: environment.base_url,
+              }
+            : null,
+        },
+        'Auto test runner starting with environment'
+      );
+
       // 规范化 baseUrl
       if (baseUrl) {
         // 如果baseUrl只是 localhost:3000 这样的格式，添加协议
@@ -278,16 +333,21 @@ export class AutoTestRunner {
         .sort((a, b) => a.order - b.order);
 
       result.summary.total = sortedCases.length;
-      
+
       // 检查接口是否已经被 populate（从 task 中）
       // 如果已经被 populate，直接使用；否则需要查询
       const interfaceMap = new Map();
       const interfaceIdsToQuery = [];
-      
+
       for (const tc of sortedCases) {
+        const stepType = normalizeStepType(tc);
+        if (stepType !== 'request' || !tc.interface_id) {
+          continue;
+        }
+
         let interfaceId = null;
         let interfaceData = null;
-        
+
         // 检查是否已经被 populate
         if (tc.interface_id && typeof tc.interface_id === 'object' && tc.interface_id._id) {
           // 已经被 populate，直接使用
@@ -297,7 +357,9 @@ export class AutoTestRunner {
         } else {
           // 需要查询
           if (typeof tc.interface_id === 'object') {
-            interfaceId = tc.interface_id._id ? tc.interface_id._id.toString() : tc.interface_id.toString();
+            interfaceId = tc.interface_id._id
+              ? tc.interface_id._id.toString()
+              : tc.interface_id.toString();
           } else {
             interfaceId = tc.interface_id.toString();
           }
@@ -306,12 +368,12 @@ export class AutoTestRunner {
           }
         }
       }
-      
+
       // 查询未 populate 的接口
       if (interfaceIdsToQuery.length > 0) {
         const mongoose = (await import('mongoose')).default;
         const validIds = interfaceIdsToQuery.filter(id => mongoose.Types.ObjectId.isValid(id));
-        
+
         if (validIds.length > 0) {
           // 使用 populate 获取 project_id，以便后续路径参数解析
           const interfaces = await Interface.find({ _id: { $in: validIds } })
@@ -322,100 +384,127 @@ export class AutoTestRunner {
           }
         }
       }
-      
-      logger.info({ 
-        taskId: task._id,
-        totalCases: sortedCases.length,
-        populatedInterfaces: interfaceMap.size - interfaceIdsToQuery.length,
-        queriedInterfaces: interfaceIdsToQuery.length,
-        totalInterfaces: interfaceMap.size,
-      }, 'Interfaces prepared for test cases');
+
+      logger.info(
+        {
+          taskId: task._id,
+          totalCases: sortedCases.length,
+          populatedInterfaces: interfaceMap.size - interfaceIdsToQuery.length,
+          queriedInterfaces: interfaceIdsToQuery.length,
+          totalInterfaces: interfaceMap.size,
+        },
+        'Interfaces prepared for test cases'
+      );
 
       // 初始化结果数组，确保所有必需字段都有值
       result.results = sortedCases.map((tc, index) => {
+        const stepType = normalizeStepType(tc);
         // 处理 interface_id 可能是对象的情况（populated）
         let interfaceIdStr = '';
         let interfaceIdObj = null;
-        
+
         if (tc.interface_id) {
           if (typeof tc.interface_id === 'object') {
             // 处理 populated 对象
             interfaceIdObj = tc.interface_id;
-            interfaceIdStr = tc.interface_id._id ? tc.interface_id._id.toString() : tc.interface_id.toString();
+            interfaceIdStr = tc.interface_id._id
+              ? tc.interface_id._id.toString()
+              : tc.interface_id.toString();
           } else {
             // 字符串或 ObjectId
             interfaceIdStr = tc.interface_id.toString();
           }
         }
-        
+
         const interfaceData = interfaceIdStr ? interfaceMap.get(interfaceIdStr) : null;
-        // 优先使用 title，如果没有则使用 method + path 的组合，最后才使用 'Unknown Interface'
-        const interfaceName = interfaceData 
-          ? (interfaceData.title || 
-             (interfaceData.method && interfaceData.path 
-               ? `${interfaceData.method} ${interfaceData.path}`.trim()
-               : interfaceData.path) ||
-             'Unknown Interface')
-          : 'Interface Not Found';
-        const method = interfaceData?.method?.toUpperCase() || 'GET';
-        let path = interfaceData?.path || '';
-        
-        // 记录接口信息用于调试
-        if (!interfaceData && interfaceIdStr) {
-          logger.error({ 
-            taskId: task._id,
-            testCaseIndex: index,
-            testCaseOrder: tc.order,
-            interfaceIdStr: interfaceIdStr,
-            interfaceIdObj: interfaceIdObj,
-            availableIds: Array.from(interfaceMap.keys()),
-            totalInterfaces: interfaceMap.size,
-          }, 'Interface not found in map during initialization');
+        let interfaceName;
+        if (stepType === 'wait') {
+          interfaceName = tc.step_name || `Wait ${clampWaitMs(tc.wait_ms)}ms`;
+        } else if (stepType === 'if') {
+          interfaceName = tc.step_name || `If: ${String(tc.condition || '').slice(0, 40)}`;
+        } else if (stepType === 'endif') {
+          interfaceName = tc.step_name || 'End If';
+        } else {
+          interfaceName = interfaceData
+            ? interfaceData.title ||
+              (interfaceData.method && interfaceData.path
+                ? `${interfaceData.method} ${interfaceData.path}`.trim()
+                : interfaceData.path) ||
+              'Unknown Interface'
+            : 'Interface Not Found';
         }
-        
+        const method =
+          stepType === 'request'
+            ? interfaceData?.method?.toUpperCase() || 'GET'
+            : stepType.toUpperCase();
+        let path = stepType === 'request' ? interfaceData?.path || '' : `/${stepType}`;
+
+        // 记录接口信息用于调试
+        if (stepType === 'request' && !interfaceData && interfaceIdStr) {
+          logger.error(
+            {
+              taskId: task._id,
+              testCaseIndex: index,
+              testCaseOrder: tc.order,
+              interfaceIdStr: interfaceIdStr,
+              interfaceIdObj: interfaceIdObj,
+              availableIds: Array.from(interfaceMap.keys()),
+              totalInterfaces: interfaceMap.size,
+            },
+            'Interface not found in map during initialization'
+          );
+        }
+
         // 确保 path 以 / 开头
         if (path && !path.startsWith('/')) {
           path = `/${path}`;
         }
-        
+
         // 如果 path 为空，记录警告
-        if (!path) {
+        if (!path && stepType === 'request') {
           if (interfaceData) {
-            logger.warn({ 
-              taskId: task._id,
-              interfaceId: interfaceIdStr,
-              interfaceName: interfaceName,
-              interfaceData: {
-                _id: interfaceData._id,
-                title: interfaceData.title,
-                path: interfaceData.path,
-                method: interfaceData.method,
+            logger.warn(
+              {
+                taskId: task._id,
+                interfaceId: interfaceIdStr,
+                interfaceName: interfaceName,
+                interfaceData: {
+                  _id: interfaceData._id,
+                  title: interfaceData.title,
+                  path: interfaceData.path,
+                  method: interfaceData.method,
+                },
               },
-            }, 'Interface path is empty');
+              'Interface path is empty'
+            );
           } else {
-            logger.error({ 
-              taskId: task._id,
-              interfaceId: interfaceIdStr,
-              testCaseOrder: tc.order,
-            }, 'Interface data not found, path will be empty');
+            logger.error(
+              {
+                taskId: task._id,
+                interfaceId: interfaceIdStr,
+                testCaseOrder: tc.order,
+              },
+              'Interface data not found, path will be empty'
+            );
           }
         }
-        
+
         // 构建 URL：如果接口未找到，使用 baseUrl 作为 URL（会导致 404，但至少可以测试连接）
-        const url = baseUrl 
-          ? (path ? `${baseUrl}${path}` : baseUrl)
-          : (path || '');
-        
-        logger.debug({ 
-          taskId: task._id,
-          testCaseIndex: index,
-          interfaceId: interfaceIdStr,
-          interfaceName: interfaceName,
-          method: method,
-          path: path || '(empty)',
-          baseUrl: baseUrl || '(empty)',
-          finalUrl: url,
-        }, 'Initialized test case result');
+        const url = baseUrl ? (path ? `${baseUrl}${path}` : baseUrl) : path || '';
+
+        logger.debug(
+          {
+            taskId: task._id,
+            testCaseIndex: index,
+            interfaceId: interfaceIdStr,
+            interfaceName: interfaceName,
+            method: method,
+            path: path || '(empty)',
+            baseUrl: baseUrl || '(empty)',
+            finalUrl: url,
+          },
+          'Initialized test case result'
+        );
 
         // 确保 interface_id 保存为字符串 ID
         let savedInterfaceId = interfaceIdStr;
@@ -426,9 +515,10 @@ export class AutoTestRunner {
             savedInterfaceId = tc.interface_id.toString();
           }
         }
-        
+
         return {
-          interface_id: savedInterfaceId,
+          step_type: stepType,
+          interface_id: savedInterfaceId || null,
           interface_name: interfaceName,
           order: tc.order,
           status: 'pending',
@@ -463,16 +553,105 @@ export class AutoTestRunner {
 
       await this.persistResult(result);
 
+      let skipDepth = 0;
+
       // 执行每个测试用例
       for (let i = 0; i < sortedCases.length; i++) {
         const testCase = sortedCases[i];
         const resultItem = result.results[i];
+        const stepType = normalizeStepType(testCase);
 
         try {
+          // --- Control steps: wait / if / endif ---
+          if (stepType === 'wait') {
+            resultItem.status = 'running';
+            resultItem.started_at = new Date();
+            await this.persistResult(result);
+            const ms = clampWaitMs(testCase.wait_ms);
+            const t0 = Date.now();
+            await sleep(ms);
+            resultItem.duration = Date.now() - t0;
+            resultItem.status = 'passed';
+            resultItem.assertion_result = {
+              passed: true,
+              message: `Waited ${ms}ms`,
+              errors: [],
+            };
+            resultItem.completed_at = new Date();
+            result.summary.passed++;
+            await this.persistResult(result);
+            continue;
+          }
+
+          if (stepType === 'if') {
+            resultItem.status = 'running';
+            resultItem.started_at = new Date();
+            await this.persistResult(result);
+            try {
+              const last = this.records.length ? this.records[this.records.length - 1] : null;
+              const ok = evaluateStepCondition(testCase.condition, {
+                env: envVars,
+                records: this.records,
+                last: last?.response || null,
+              });
+              if (!ok) {
+                skipDepth += 1;
+              }
+              resultItem.status = 'passed';
+              resultItem.assertion_result = {
+                passed: true,
+                message: ok ? 'Condition true — continue' : 'Condition false — skip until endif',
+                errors: [],
+              };
+              result.summary.passed++;
+            } catch (condErr) {
+              resultItem.status = 'error';
+              resultItem.error = {
+                message: condErr.message || 'Condition failed',
+                stack: condErr.stack || '',
+                code: condErr.code || 'CONDITION_ERROR',
+              };
+              result.summary.error++;
+            }
+            resultItem.completed_at = new Date();
+            await this.persistResult(result);
+            continue;
+          }
+
+          if (stepType === 'endif') {
+            if (skipDepth > 0) {
+              skipDepth -= 1;
+            }
+            resultItem.status = 'passed';
+            resultItem.assertion_result = {
+              passed: true,
+              message: 'End if',
+              errors: [],
+            };
+            resultItem.completed_at = new Date();
+            result.summary.passed++;
+            await this.persistResult(result);
+            continue;
+          }
+
+          if (skipDepth > 0) {
+            resultItem.status = 'skipped';
+            resultItem.assertion_result = {
+              passed: true,
+              message: 'Skipped by failed if condition',
+              errors: [],
+            };
+            resultItem.completed_at = new Date();
+            result.summary.skipped = (result.summary.skipped || 0) + 1;
+            await this.persistResult(result);
+            continue;
+          }
+
+          // --- Request step ---
           // 处理 interface_id 可能是对象的情况（populated）
           let interfaceIdStr = '';
           let interfaceData = null;
-          
+
           if (testCase.interface_id) {
             if (typeof testCase.interface_id === 'object' && testCase.interface_id._id) {
               // 已经被 populate，直接使用
@@ -488,38 +667,46 @@ export class AutoTestRunner {
               interfaceData = interfaceMap.get(interfaceIdStr);
             }
           }
-          
+
           // 如果还没有获取到接口数据，从 map 中查找
           if (!interfaceData && interfaceIdStr) {
             interfaceData = interfaceMap.get(interfaceIdStr);
           }
-          
+
           // 如果接口数据没有 populate project_id，尝试获取
           if (interfaceData && !interfaceData.project_id && interfaceIdStr) {
             try {
-              const populatedInterface = await Interface.findById(interfaceIdStr).populate('project_id', '_id').lean();
+              const populatedInterface = await Interface.findById(interfaceIdStr)
+                .populate('project_id', '_id')
+                .lean();
               if (populatedInterface && populatedInterface.project_id) {
                 interfaceData.project_id = populatedInterface.project_id;
               }
             } catch (e) {
-              logger.warn({ error: e.message, interfaceId: interfaceIdStr }, 'Failed to populate project_id for interface');
+              logger.warn(
+                { error: e.message, interfaceId: interfaceIdStr },
+                'Failed to populate project_id for interface'
+              );
             }
           }
-          
+
           if (!interfaceData) {
             const errorUrl = resultItem.request.url || baseUrl || 'unknown';
-            logger.error({ 
-              taskId: task._id,
-              testCaseIndex: i,
-              testCaseOrder: testCase.order,
-              interfaceIdStr: interfaceIdStr || '(empty)',
-              testCaseInterfaceId: testCase.interface_id,
-              interfaceIdType: typeof testCase.interface_id,
-              availableIds: Array.from(interfaceMap.keys()),
-              mapSize: interfaceMap.size,
-              errorUrl: errorUrl,
-            }, 'Interface not found during execution');
-            
+            logger.error(
+              {
+                taskId: task._id,
+                testCaseIndex: i,
+                testCaseOrder: testCase.order,
+                interfaceIdStr: interfaceIdStr || '(empty)',
+                testCaseInterfaceId: testCase.interface_id,
+                interfaceIdType: typeof testCase.interface_id,
+                availableIds: Array.from(interfaceMap.keys()),
+                mapSize: interfaceMap.size,
+                errorUrl: errorUrl,
+              },
+              'Interface not found during execution'
+            );
+
             resultItem.status = 'error';
             resultItem.error = {
               message: `Interface Not Found ${resultItem.request.method} ${errorUrl}`,
@@ -535,33 +722,39 @@ export class AutoTestRunner {
           // 更新接口名称（可能已更新）
           // 只有在接口名称未设置或者是占位符时才更新
           // 优先使用 title，如果没有则使用 method + path 的组合，最后才使用 'Unknown Interface'
-          if (!resultItem.interface_name || 
-              resultItem.interface_name === 'Unknown Interface' || 
-              resultItem.interface_name === 'Interface Not Found' ||
-              resultItem.interface_name === '未知接口') {
-            const interfaceName = interfaceData.title || 
-                                 (interfaceData.method && interfaceData.path 
-                                   ? `${interfaceData.method} ${interfaceData.path}`.trim()
-                                   : interfaceData.path) ||
-                                 'Unknown Interface';
+          if (
+            !resultItem.interface_name ||
+            resultItem.interface_name === 'Unknown Interface' ||
+            resultItem.interface_name === 'Interface Not Found' ||
+            resultItem.interface_name === '未知接口'
+          ) {
+            const interfaceName =
+              interfaceData.title ||
+              (interfaceData.method && interfaceData.path
+                ? `${interfaceData.method} ${interfaceData.path}`.trim()
+                : interfaceData.path) ||
+              'Unknown Interface';
             resultItem.interface_name = interfaceName;
-            
+
             // 记录接口名称设置情况，用于调试
             if (interfaceName === 'Unknown Interface') {
-              logger.warn({ 
-                taskId: task._id,
-                testCaseIndex: i,
-                interfaceId: interfaceIdStr,
-                interfaceData: {
-                  _id: interfaceData._id,
-                  title: interfaceData.title,
-                  path: interfaceData.path,
-                  method: interfaceData.method,
-                  hasTitle: !!interfaceData.title,
-                  hasPath: !!interfaceData.path,
-                  hasMethod: !!interfaceData.method
-                }
-              }, 'Interface name set to Unknown Interface - interface data may be incomplete');
+              logger.warn(
+                {
+                  taskId: task._id,
+                  testCaseIndex: i,
+                  interfaceId: interfaceIdStr,
+                  interfaceData: {
+                    _id: interfaceData._id,
+                    title: interfaceData.title,
+                    path: interfaceData.path,
+                    method: interfaceData.method,
+                    hasTitle: !!interfaceData.title,
+                    hasPath: !!interfaceData.path,
+                    hasMethod: !!interfaceData.method,
+                  },
+                },
+                'Interface name set to Unknown Interface - interface data may be incomplete'
+              );
             }
           }
           resultItem.status = 'running';
@@ -589,7 +782,7 @@ export class AutoTestRunner {
 
           // 替换路径参数
           const pathParams = this.resolveVariables(testCase.path_params || {}, envVars);
-          
+
           // 尝试从任务或接口数据中获取项目ID（如果路径参数需要projectId）
           let projectId = null;
           if (task.project_id) {
@@ -605,129 +798,169 @@ export class AutoTestRunner {
               projectId = interfaceData.project_id.toString();
             }
           }
-          
+
           // 对于未设置的路径参数，尝试从多个来源获取
           for (const paramName of pathParamNames) {
             // 检查参数是否存在且有效（不为空字符串）
-            if (!pathParams[paramName] || pathParams[paramName] === '' || pathParams[paramName] === null || pathParams[paramName] === undefined) {
+            if (
+              !pathParams[paramName] ||
+              pathParams[paramName] === '' ||
+              pathParams[paramName] === null ||
+              pathParams[paramName] === undefined
+            ) {
               let paramValue = null;
               let source = '';
-              
+
               // 1. 尝试从环境变量中获取（支持多种命名方式）
-              paramValue = envVars[paramName] || 
-                          envVars[paramName.toLowerCase()] || 
-                          envVars[paramName.toUpperCase()] ||
-                          envVars[`${paramName}Id`] ||
-                          envVars[`${paramName.toLowerCase()}Id`] ||
-                          envVars[`${paramName}_id`] ||
-                          envVars[`${paramName.toLowerCase()}_id`];
-              
+              paramValue =
+                envVars[paramName] ||
+                envVars[paramName.toLowerCase()] ||
+                envVars[paramName.toUpperCase()] ||
+                envVars[`${paramName}Id`] ||
+                envVars[`${paramName.toLowerCase()}Id`] ||
+                envVars[`${paramName}_id`] ||
+                envVars[`${paramName.toLowerCase()}_id`];
+
               if (paramValue !== undefined && paramValue !== null && paramValue !== '') {
                 source = 'environment variable';
               }
-              
+
               // 2. 如果是 projectId 且还没有值，尝试从任务或接口中获取
-              if (!paramValue && (paramName === 'projectId' || paramName === 'project_id' || paramName.toLowerCase() === 'projectid') && projectId) {
+              if (
+                !paramValue &&
+                (paramName === 'projectId' ||
+                  paramName === 'project_id' ||
+                  paramName.toLowerCase() === 'projectid') &&
+                projectId
+              ) {
                 paramValue = projectId;
                 source = 'task/interface project_id';
               }
-              
+
               if (paramValue !== undefined && paramValue !== null && paramValue !== '') {
                 pathParams[paramName] = String(paramValue);
-                logger.info({ 
-                  taskId: task._id,
-                  testCaseIndex: i,
-                  paramName, 
-                  value: String(paramValue).substring(0, 50),
-                  source: source
-                }, `Using path param ${paramName} from ${source}`);
+                logger.info(
+                  {
+                    taskId: task._id,
+                    testCaseIndex: i,
+                    paramName,
+                    value: String(paramValue).substring(0, 50),
+                    source: source,
+                  },
+                  `Using path param ${paramName} from ${source}`
+                );
               } else {
                 // 如果仍然没有值，记录错误
-                logger.error({ 
-                  taskId: task._id,
-                  testCaseIndex: i,
-                  paramName, 
-                  path, 
-                  availableEnvVars: Object.keys(envVars),
-                  testCasePathParams: Object.keys(testCase.path_params || {}),
-                  pathParams: pathParams,
-                  hasProjectId: !!projectId,
-                  projectId: projectId ? projectId.substring(0, 50) : null
-                }, `Path parameter ${paramName} not found in path_params or environment variables - request will fail`);
+                logger.error(
+                  {
+                    taskId: task._id,
+                    testCaseIndex: i,
+                    paramName,
+                    path,
+                    availableEnvVars: Object.keys(envVars),
+                    testCasePathParams: Object.keys(testCase.path_params || {}),
+                    pathParams: pathParams,
+                    hasProjectId: !!projectId,
+                    projectId: projectId ? projectId.substring(0, 50) : null,
+                  },
+                  `Path parameter ${paramName} not found in path_params or environment variables - request will fail`
+                );
               }
             } else {
-              logger.debug({ 
-                taskId: task._id,
-                testCaseIndex: i,
-                paramName,
-                value: String(pathParams[paramName]).substring(0, 50),
-                source: 'test case path_params'
-              }, 'Using path param from test case');
+              logger.debug(
+                {
+                  taskId: task._id,
+                  testCaseIndex: i,
+                  paramName,
+                  value: String(pathParams[paramName]).substring(0, 50),
+                  source: 'test case path_params',
+                },
+                'Using path param from test case'
+              );
             }
           }
-          
+
           // 使用全局替换确保所有匹配的参数都被替换
-          Object.keys(pathParams).forEach((key) => {
+          Object.keys(pathParams).forEach(key => {
             const value = pathParams[key];
             if (value !== undefined && value !== null && value !== '') {
               path = path.replace(new RegExp(`\\{${key}\\}`, 'g'), String(value));
               path = path.replace(new RegExp(`:${key}`, 'g'), String(value));
             }
           });
-          
+
           // 检查是否还有未替换的参数
           const remainingParams = path.match(/\{(\w+)\}/g);
           if (remainingParams && remainingParams.length > 0) {
-            logger.warn({ 
-              taskId: task._id,
-              testCaseIndex: i,
-              remainingParams, 
-              path, 
-              pathParams,
-              hasProjectId: !!projectId,
-              projectId: projectId ? projectId.substring(0, 50) : null
-            }, 'Some path parameters were not replaced');
-            
+            logger.warn(
+              {
+                taskId: task._id,
+                testCaseIndex: i,
+                remainingParams,
+                path,
+                pathParams,
+                hasProjectId: !!projectId,
+                projectId: projectId ? projectId.substring(0, 50) : null,
+              },
+              'Some path parameters were not replaced'
+            );
+
             // 尝试从环境变量或任务数据中获取缺失的参数（支持多种命名方式）
             for (const paramMatch of remainingParams) {
               const paramName = paramMatch.replace(/[{}]/g, '');
               let paramValue = null;
-              
+
               // 1. 尝试从环境变量中获取（支持多种命名方式）
-              paramValue = envVars[paramName] || 
-                          envVars[paramName.toLowerCase()] || 
-                          envVars[paramName.toUpperCase()] ||
-                          envVars[`${paramName}Id`] ||
-                          envVars[`${paramName.toLowerCase()}Id`] ||
-                          envVars[`${paramName}_id`] ||
-                          envVars[`${paramName.toLowerCase()}_id`];
-              
+              paramValue =
+                envVars[paramName] ||
+                envVars[paramName.toLowerCase()] ||
+                envVars[paramName.toUpperCase()] ||
+                envVars[`${paramName}Id`] ||
+                envVars[`${paramName.toLowerCase()}Id`] ||
+                envVars[`${paramName}_id`] ||
+                envVars[`${paramName.toLowerCase()}_id`];
+
               // 2. 如果是 projectId 且还没有值，尝试从任务或接口中获取
-              if (!paramValue && (paramName === 'projectId' || paramName === 'project_id' || paramName.toLowerCase() === 'projectid') && projectId) {
+              if (
+                !paramValue &&
+                (paramName === 'projectId' ||
+                  paramName === 'project_id' ||
+                  paramName.toLowerCase() === 'projectid') &&
+                projectId
+              ) {
                 paramValue = projectId;
               }
-              
+
               if (paramValue !== undefined && paramValue !== null && paramValue !== '') {
                 path = path.replace(new RegExp(`\\{${paramName}\\}`, 'g'), String(paramValue));
                 pathParams[paramName] = String(paramValue);
-                logger.info({ 
-                  taskId: task._id,
-                  testCaseIndex: i,
-                  paramName, 
-                  value: String(paramValue).substring(0, 50),
-                  source: paramValue === projectId ? 'task/interface project_id (fallback)' : 'environment variable (fallback)'
-                }, `Using path param ${paramName} from fallback source`);
+                logger.info(
+                  {
+                    taskId: task._id,
+                    testCaseIndex: i,
+                    paramName,
+                    value: String(paramValue).substring(0, 50),
+                    source:
+                      paramValue === projectId
+                        ? 'task/interface project_id (fallback)'
+                        : 'environment variable (fallback)',
+                  },
+                  `Using path param ${paramName} from fallback source`
+                );
               } else {
-                logger.error({ 
-                  taskId: task._id,
-                  testCaseIndex: i,
-                  paramName, 
-                  path, 
-                  availableEnvVars: Object.keys(envVars),
-                  testCasePathParams: Object.keys(testCase.path_params || {}),
-                  hasProjectId: !!projectId,
-                  projectId: projectId ? projectId.substring(0, 50) : null
-                }, `Cannot find value for path parameter ${paramName} - URL will contain placeholder`);
+                logger.error(
+                  {
+                    taskId: task._id,
+                    testCaseIndex: i,
+                    paramName,
+                    path,
+                    availableEnvVars: Object.keys(envVars),
+                    testCasePathParams: Object.keys(testCase.path_params || {}),
+                    hasProjectId: !!projectId,
+                    projectId: projectId ? projectId.substring(0, 50) : null,
+                  },
+                  `Cannot find value for path parameter ${paramName} - URL will contain placeholder`
+                );
               }
             }
           }
@@ -752,14 +985,17 @@ export class AutoTestRunner {
             try {
               customHeaders = JSON.parse(customHeaders);
             } catch (e) {
-              logger.warn({ taskId: task._id, testCaseIndex: i, error: e.message }, 'Failed to parse custom_headers as JSON');
+              logger.warn(
+                { taskId: task._id, testCaseIndex: i, error: e.message },
+                'Failed to parse custom_headers as JSON'
+              );
               customHeaders = {};
             }
           }
-          
+
           // 先处理环境变量和自定义请求头，准备移除占位符
           const resolvedCustomHeaders = this.resolveVariables(customHeaders, envVars);
-          
+
           // 获取任务的通用 headers
           let commonHeaders = task.common_headers || {};
           // 如果 common_headers 是字符串，尝试解析为对象
@@ -767,12 +1003,15 @@ export class AutoTestRunner {
             try {
               commonHeaders = JSON.parse(commonHeaders);
             } catch (e) {
-              logger.warn({ taskId: task._id, testCaseIndex: i, error: e.message }, 'Failed to parse task common_headers as JSON');
+              logger.warn(
+                { taskId: task._id, testCaseIndex: i, error: e.message },
+                'Failed to parse task common_headers as JSON'
+              );
               commonHeaders = {};
             }
           }
           const resolvedCommonHeaders = this.resolveVariables(commonHeaders, envVars);
-          
+
           // 合并请求头：环境变量头 -> 通用头 -> 自定义头（自定义头优先级最高）
           const headers = {
             ...envHeaders,
@@ -788,13 +1027,13 @@ export class AutoTestRunner {
               headers['Content-Type'] = 'application/json';
             }
           }
-          
+
           // 处理 Authorization 头（不区分大小写）
           // 检查所有可能的 Authorization 头键名
-          const authHeaderKeys = Object.keys(headers).filter(key => 
-            key.toLowerCase() === 'authorization'
+          const authHeaderKeys = Object.keys(headers).filter(
+            key => key.toLowerCase() === 'authorization'
           );
-          
+
           for (const key of authHeaderKeys) {
             const authValue = headers[key];
             // 移除以下占位符值：
@@ -803,96 +1042,124 @@ export class AutoTestRunner {
             // - 'token'
             // - 空字符串或只包含空白字符
             const authValueStr = String(authValue || '');
-            const shouldRemove = (
-              !authValue || 
+            const shouldRemove =
+              !authValue ||
               authValueStr === '' ||
               authValueStr === 'Bearer token' ||
               authValueStr === 'Bearer <token>' ||
               authValueStr === 'token' ||
               authValueStr.trim() === '' ||
               authValueStr.toLowerCase() === 'bearer token' ||
-              authValueStr.toLowerCase().trim() === 'bearer'
-            );
-            
+              authValueStr.toLowerCase().trim() === 'bearer';
+
             if (shouldRemove) {
               delete headers[key];
-              logger.debug({ 
-                taskId: task._id, 
-                testCaseIndex: i,
-                removedHeader: key,
-                removedValue: authValue 
-              }, 'Removed placeholder Authorization header');
-              
+              logger.debug(
+                {
+                  taskId: task._id,
+                  testCaseIndex: i,
+                  removedHeader: key,
+                  removedValue: authValue,
+                },
+                'Removed placeholder Authorization header'
+              );
+
               // 尝试从环境变量中获取认证令牌
-              let tokenFromEnv = envVars.token || envVars.authToken || envVars.AUTH_TOKEN || envVars.TOKEN;
-              
+              let tokenFromEnv =
+                envVars.token || envVars.authToken || envVars.AUTH_TOKEN || envVars.TOKEN;
+
               // 如果环境变量中没有，尝试从通用 headers 中获取
-              if (!tokenFromEnv && resolvedCommonHeaders && resolvedCommonHeaders['Authorization']) {
+              if (
+                !tokenFromEnv &&
+                resolvedCommonHeaders &&
+                resolvedCommonHeaders['Authorization']
+              ) {
                 const commonAuth = resolvedCommonHeaders['Authorization'];
                 const commonAuthStr = String(commonAuth || '');
                 // 检查通用 headers 中的 Authorization 是否是有效的 token（不是占位符）
-                if (commonAuthStr && 
-                    commonAuthStr !== 'Bearer token' && 
-                    commonAuthStr !== 'Bearer <token>' &&
-                    !commonAuthStr.toLowerCase().includes('token') &&
-                    commonAuthStr.trim() !== '') {
+                if (
+                  commonAuthStr &&
+                  commonAuthStr !== 'Bearer token' &&
+                  commonAuthStr !== 'Bearer <token>' &&
+                  !commonAuthStr.toLowerCase().includes('token') &&
+                  commonAuthStr.trim() !== ''
+                ) {
                   tokenFromEnv = commonAuthStr.replace(/^Bearer\s+/i, '');
                 }
               }
-              
+
               if (tokenFromEnv) {
-                headers['Authorization'] = tokenFromEnv.startsWith('Bearer ') 
-                  ? tokenFromEnv 
+                headers['Authorization'] = tokenFromEnv.startsWith('Bearer ')
+                  ? tokenFromEnv
                   : `Bearer ${tokenFromEnv}`;
-                logger.debug({ 
-                  taskId: task._id,
-                  testCaseIndex: i,
-                  source: tokenFromEnv === (envVars.token || envVars.authToken || envVars.AUTH_TOKEN || envVars.TOKEN) 
-                    ? 'environment variable' 
-                    : 'common headers'
-                }, 'Using authentication token');
+                logger.debug(
+                  {
+                    taskId: task._id,
+                    testCaseIndex: i,
+                    source:
+                      tokenFromEnv ===
+                      (envVars.token || envVars.authToken || envVars.AUTH_TOKEN || envVars.TOKEN)
+                        ? 'environment variable'
+                        : 'common headers',
+                  },
+                  'Using authentication token'
+                );
               } else {
-                logger.warn({ 
-                  taskId: task._id,
-                  testCaseIndex: i,
-                  availableEnvVars: Object.keys(envVars),
-                  availableHeaders: Object.keys(envHeaders),
-                  hasCommonHeaders: !!resolvedCommonHeaders && Object.keys(resolvedCommonHeaders).length > 0,
-                  commonHeadersAuth: resolvedCommonHeaders?.['Authorization'] ? 'present' : 'missing'
-                }, 'No authentication token found');
+                logger.warn(
+                  {
+                    taskId: task._id,
+                    testCaseIndex: i,
+                    availableEnvVars: Object.keys(envVars),
+                    availableHeaders: Object.keys(envHeaders),
+                    hasCommonHeaders:
+                      !!resolvedCommonHeaders && Object.keys(resolvedCommonHeaders).length > 0,
+                    commonHeadersAuth: resolvedCommonHeaders?.['Authorization']
+                      ? 'present'
+                      : 'missing',
+                  },
+                  'No authentication token found'
+                );
               }
             }
           }
-          
+
           // 如果没有 Authorization 头，尝试从环境变量或通用 headers 中添加
           if (!headers['Authorization'] && !headers['authorization']) {
-            let tokenFromEnv = envVars.token || envVars.authToken || envVars.AUTH_TOKEN || envVars.TOKEN;
-            
+            let tokenFromEnv =
+              envVars.token || envVars.authToken || envVars.AUTH_TOKEN || envVars.TOKEN;
+
             // 如果环境变量中没有，尝试从通用 headers 中获取
             if (!tokenFromEnv && resolvedCommonHeaders && resolvedCommonHeaders['Authorization']) {
               const commonAuth = resolvedCommonHeaders['Authorization'];
               const commonAuthStr = String(commonAuth || '');
               // 检查通用 headers 中的 Authorization 是否是有效的 token（不是占位符）
-              if (commonAuthStr && 
-                  commonAuthStr !== 'Bearer token' && 
-                  commonAuthStr !== 'Bearer <token>' &&
-                  !commonAuthStr.toLowerCase().includes('token') &&
-                  commonAuthStr.trim() !== '') {
+              if (
+                commonAuthStr &&
+                commonAuthStr !== 'Bearer token' &&
+                commonAuthStr !== 'Bearer <token>' &&
+                !commonAuthStr.toLowerCase().includes('token') &&
+                commonAuthStr.trim() !== ''
+              ) {
                 tokenFromEnv = commonAuthStr.replace(/^Bearer\s+/i, '');
               }
             }
-            
+
             if (tokenFromEnv) {
-              headers['Authorization'] = tokenFromEnv.startsWith('Bearer ') 
-                ? tokenFromEnv 
+              headers['Authorization'] = tokenFromEnv.startsWith('Bearer ')
+                ? tokenFromEnv
                 : `Bearer ${tokenFromEnv}`;
-              logger.debug({ 
-                taskId: task._id,
-                testCaseIndex: i,
-                source: tokenFromEnv === (envVars.token || envVars.authToken || envVars.AUTH_TOKEN || envVars.TOKEN) 
-                  ? 'environment variable' 
-                  : 'common headers'
-              }, 'Added authentication token');
+              logger.debug(
+                {
+                  taskId: task._id,
+                  testCaseIndex: i,
+                  source:
+                    tokenFromEnv ===
+                    (envVars.token || envVars.authToken || envVars.AUTH_TOKEN || envVars.TOKEN)
+                      ? 'environment variable'
+                      : 'common headers',
+                },
+                'Added authentication token'
+              );
             }
           }
 
@@ -902,39 +1169,48 @@ export class AutoTestRunner {
           if (!baseUrl) {
             const config = (await import('./config.js')).default;
             baseUrl = config.APP_URL || `http://localhost:${config.PORT || 3000}`;
-            logger.info({ 
-              taskId: task._id, 
-              interfaceId: interfaceData._id,
-              defaultBaseUrl: baseUrl
-            }, 'Using default host address as base_url');
+            logger.info(
+              {
+                taskId: task._id,
+                interfaceId: interfaceData._id,
+                defaultBaseUrl: baseUrl,
+              },
+              'Using default host address as base_url'
+            );
           }
-          
-            // 如果 path 为空，使用 baseUrl（会导致 404，但至少可以测试连接）
-            url = path ? `${baseUrl}${path}` : baseUrl;
-            
-            // 如果 path 为空，记录警告
-            if (!path) {
-              logger.warn({ 
-                taskId: task._id, 
+
+          // 如果 path 为空，使用 baseUrl（会导致 404，但至少可以测试连接）
+          url = path ? `${baseUrl}${path}` : baseUrl;
+
+          // 如果 path 为空，记录警告
+          if (!path) {
+            logger.warn(
+              {
+                taskId: task._id,
                 interfaceId: interfaceData._id,
                 interfaceName: interfaceData.title || interfaceData.path,
                 baseUrl: baseUrl,
                 url: url,
-              }, 'Interface path is empty, using baseUrl only');
+              },
+              'Interface path is empty, using baseUrl only'
+            );
           }
-          
+
           // 记录构建的URL和请求头用于调试
-          logger.info({ 
-            taskId: task._id, 
-            interfaceId: interfaceData._id,
-            taskBaseUrl: task?.base_url || '(empty)',
-            environmentBaseUrl: environment?.base_url || '(empty)',
-            currentBaseUrl: baseUrl,
-            path: path,
-            finalUrl: url,
-            headers: headers,
-            hasAuthHeader: !!(headers['Authorization'] || headers['authorization'])
-          }, 'Built request URL and headers');
+          logger.info(
+            {
+              taskId: task._id,
+              interfaceId: interfaceData._id,
+              taskBaseUrl: task?.base_url || '(empty)',
+              environmentBaseUrl: environment?.base_url || '(empty)',
+              currentBaseUrl: baseUrl,
+              path: path,
+              finalUrl: url,
+              headers: headers,
+              hasAuthHeader: !!(headers['Authorization'] || headers['authorization']),
+            },
+            'Built request URL and headers'
+          );
 
           // 保存请求信息（使用最终处理后的请求头）
           resultItem.request = {
@@ -967,7 +1243,11 @@ export class AutoTestRunner {
 
             // 对于 GET、HEAD、OPTIONS 等请求，不应该发送 body
             // 只有 POST、PUT、PATCH、DELETE 等需要 body 的方法才设置 data
-            if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) && requestBody !== null && requestBody !== undefined) {
+            if (
+              ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) &&
+              requestBody !== null &&
+              requestBody !== undefined
+            ) {
               axiosConfig.data = requestBody;
             }
 
@@ -977,23 +1257,30 @@ export class AutoTestRunner {
 
             // 确保 status_code 是数字类型
             const statusCode = Number(response.status) || 0;
-            
+
             // 记录请求和响应的详细信息用于调试
-            logger.info({ 
-              taskId: task._id,
-              testCaseIndex: i,
-              url: url,
-              method: method,
-              requestHeaders: headers,
-              responseStatus: response.status,
-              responseStatusType: typeof response.status,
-              responseStatusCode: statusCode,
-              responseHeaders: response.headers,
-              responseData: response.data,
-              responseDataType: typeof response.data,
-              hasAssertionScript: !!(testCase.assertion_script && testCase.assertion_script.trim()),
-              assertionScriptLength: testCase.assertion_script ? testCase.assertion_script.length : 0,
-            }, 'HTTP request completed');
+            logger.info(
+              {
+                taskId: task._id,
+                testCaseIndex: i,
+                url: url,
+                method: method,
+                requestHeaders: headers,
+                responseStatus: response.status,
+                responseStatusType: typeof response.status,
+                responseStatusCode: statusCode,
+                responseHeaders: response.headers,
+                responseData: response.data,
+                responseDataType: typeof response.data,
+                hasAssertionScript: !!(
+                  testCase.assertion_script && testCase.assertion_script.trim()
+                ),
+                assertionScriptLength: testCase.assertion_script
+                  ? testCase.assertion_script.length
+                  : 0,
+              },
+              'HTTP request completed'
+            );
 
             resultItem.response = {
               status_code: statusCode,
@@ -1005,98 +1292,133 @@ export class AutoTestRunner {
             resultItem.duration = duration;
 
             // 记录响应信息用于调试
-            logger.info({ 
-              taskId: task._id,
-              testCaseIndex: i,
-              interfaceId: interfaceData._id,
-              url: url,
-              method: method,
-              statusCode: statusCode,
-              statusCodeType: typeof statusCode,
-              responseBody: typeof response.data === 'object' ? JSON.stringify(response.data).substring(0, 200) : String(response.data).substring(0, 200),
-            }, 'Test case response received');
+            logger.info(
+              {
+                taskId: task._id,
+                testCaseIndex: i,
+                interfaceId: interfaceData._id,
+                url: url,
+                method: method,
+                statusCode: statusCode,
+                statusCodeType: typeof statusCode,
+                responseBody:
+                  typeof response.data === 'object'
+                    ? JSON.stringify(response.data).substring(0, 200)
+                    : String(response.data).substring(0, 200),
+              },
+              'Test case response received'
+            );
 
             // 执行断言
             // 检查是否有有效的断言脚本（非空且非空白字符）
-            const hasAssertionScript = testCase.assertion_script && 
-                                      typeof testCase.assertion_script === 'string' && 
-                                      testCase.assertion_script.trim().length > 0;
-            
-            logger.info({ 
-              taskId: task._id,
-              testCaseIndex: i,
-              hasAssertionScript: hasAssertionScript,
-              assertionScriptLength: testCase.assertion_script ? testCase.assertion_script.length : 0,
-              assertionScriptPreview: testCase.assertion_script ? testCase.assertion_script.substring(0, 100) : null,
-            }, 'Checking assertion script');
-            
-            if (hasAssertionScript) {
-              logger.debug({ 
+            const hasAssertionScript =
+              testCase.assertion_script &&
+              typeof testCase.assertion_script === 'string' &&
+              testCase.assertion_script.trim().length > 0;
+
+            logger.info(
+              {
                 taskId: task._id,
                 testCaseIndex: i,
-                assertionScript: testCase.assertion_script.substring(0, 200),
-              }, 'Executing custom assertion script');
-              
+                hasAssertionScript: hasAssertionScript,
+                assertionScriptLength: testCase.assertion_script
+                  ? testCase.assertion_script.length
+                  : 0,
+                assertionScriptPreview: testCase.assertion_script
+                  ? testCase.assertion_script.substring(0, 100)
+                  : null,
+              },
+              'Checking assertion script'
+            );
+
+            if (hasAssertionScript) {
+              logger.debug(
+                {
+                  taskId: task._id,
+                  testCaseIndex: i,
+                  assertionScript: testCase.assertion_script.substring(0, 200),
+                },
+                'Executing custom assertion script'
+              );
+
               const assertionResult = await this.executeAssertions(
                 testCase.assertion_script,
                 response,
                 resultItem.request
               );
-              
-              logger.info({ 
-                taskId: task._id,
-                testCaseIndex: i,
-                assertionPassed: assertionResult.passed,
-                assertionMessage: assertionResult.message,
-                assertionErrors: assertionResult.errors,
-                statusCode: statusCode,
-              }, 'Assertion result');
-              
+
+              logger.info(
+                {
+                  taskId: task._id,
+                  testCaseIndex: i,
+                  assertionPassed: assertionResult.passed,
+                  assertionMessage: assertionResult.message,
+                  assertionErrors: assertionResult.errors,
+                  statusCode: statusCode,
+                },
+                'Assertion result'
+              );
+
               resultItem.assertion_result = assertionResult;
               resultItem.status = assertionResult.passed ? 'passed' : 'failed';
             } else {
               // 默认断言：2xx 状态码为通过
               const passed = statusCode >= 200 && statusCode < 300;
-              
-              logger.info({ 
-                taskId: task._id,
-                testCaseIndex: i,
-                statusCode: statusCode,
-                statusCodeType: typeof statusCode,
-                passed: passed,
-                statusCheck: `${statusCode} >= 200 && ${statusCode} < 300`,
-                responseBody: typeof response.data === 'object' ? JSON.stringify(response.data).substring(0, 200) : String(response.data).substring(0, 200),
-              }, 'Default assertion check');
-              
+
+              logger.info(
+                {
+                  taskId: task._id,
+                  testCaseIndex: i,
+                  statusCode: statusCode,
+                  statusCodeType: typeof statusCode,
+                  passed: passed,
+                  statusCheck: `${statusCode} >= 200 && ${statusCode} < 300`,
+                  responseBody:
+                    typeof response.data === 'object'
+                      ? JSON.stringify(response.data).substring(0, 200)
+                      : String(response.data).substring(0, 200),
+                },
+                'Default assertion check'
+              );
+
               resultItem.assertion_result = {
                 passed,
                 message: passed ? 'Request succeeded' : `Request failed with status ${statusCode}`,
                 errors: passed ? [] : [`HTTP ${statusCode}`],
               };
               resultItem.status = passed ? 'passed' : 'failed';
-              
+
               // 如果失败，记录详细信息
               if (!passed) {
-                logger.warn({ 
-                  taskId: task._id,
-                  testCaseIndex: i,
-                  interfaceId: interfaceData._id,
-                  url: url,
-                  method: method,
-                  statusCode: statusCode,
-                  statusCodeType: typeof statusCode,
-                  originalStatus: response.status,
-                  responseBody: typeof response.data === 'object' ? JSON.stringify(response.data).substring(0, 500) : String(response.data).substring(0, 500),
-                  requestHeaders: headers,
-                  responseHeaders: response.headers,
-                }, 'Test case failed: non-2xx status code');
+                logger.warn(
+                  {
+                    taskId: task._id,
+                    testCaseIndex: i,
+                    interfaceId: interfaceData._id,
+                    url: url,
+                    method: method,
+                    statusCode: statusCode,
+                    statusCodeType: typeof statusCode,
+                    originalStatus: response.status,
+                    responseBody:
+                      typeof response.data === 'object'
+                        ? JSON.stringify(response.data).substring(0, 500)
+                        : String(response.data).substring(0, 500),
+                    requestHeaders: headers,
+                    responseHeaders: response.headers,
+                  },
+                  'Test case failed: non-2xx status code'
+                );
               } else {
-                logger.info({ 
-                  taskId: task._id,
-                  testCaseIndex: i,
-                  statusCode: statusCode,
-                  url: url,
-                }, 'Test case passed with default assertion');
+                logger.info(
+                  {
+                    taskId: task._id,
+                    testCaseIndex: i,
+                    statusCode: statusCode,
+                    url: url,
+                  },
+                  'Test case passed with default assertion'
+                );
               }
             }
 
@@ -1120,12 +1442,58 @@ export class AutoTestRunner {
           resultItem.completed_at = new Date();
 
           // 保存响应到记录中，供后续用例使用
+          const recordKey = testCase.interface_id
+            ? typeof testCase.interface_id === 'object' && testCase.interface_id._id
+              ? testCase.interface_id._id.toString()
+              : testCase.interface_id.toString()
+            : `step-${testCase.order}`;
           if (resultItem.response) {
             this.records.push({
-              key: testCase.interface_id.toString(),
+              key: recordKey,
               request: resultItem.request,
               response: resultItem.response,
             });
+          }
+
+          // Optional loop: re-issue the same HTTP request (updates summary; last response kept)
+          const extraLoops = clampLoopCount(testCase.loop_count) - 1;
+          for (let loopIdx = 0; loopIdx < extraLoops; loopIdx++) {
+            try {
+              assertSafeOutboundUrl(resultItem.request.url);
+              const loopResp = await axios({
+                method: resultItem.request.method,
+                url: resultItem.request.url,
+                headers: resultItem.request.headers || {},
+                data: resultItem.request.body,
+                params: resultItem.request.query,
+                timeout: 30000,
+                validateStatus: () => true,
+              });
+              const code = loopResp.status;
+              const ok = code >= 200 && code < 300;
+              if (ok) {
+                result.summary.passed++;
+                result.summary.total++;
+              } else {
+                result.summary.failed++;
+                result.summary.total++;
+              }
+              resultItem.response = {
+                status_code: code,
+                headers: loopResp.headers || {},
+                body: loopResp.data,
+                duration: 0,
+              };
+              this.records.push({
+                key: `${recordKey}-iter-${loopIdx + 2}`,
+                request: resultItem.request,
+                response: resultItem.response,
+              });
+            } catch (loopErr) {
+              result.summary.error++;
+              result.summary.total++;
+              logger.warn({ error: loopErr.message, loopIdx }, 'Loop iteration failed');
+            }
           }
         } catch (error) {
           logger.error({ error, testCase: testCase.interface_id }, 'Test case execution error');
@@ -1142,8 +1510,8 @@ export class AutoTestRunner {
         await this.persistResult(result);
       }
 
-      // 更新最终状态
-      result.status = result.summary.failed > 0 || result.summary.error > 0 ? 'failed' : 'passed';
+      // 更新最终状态（可配置通过阈值）
+      result.status = resolvePassStatus(result.summary, task.pass_threshold);
       result.completed_at = new Date();
       result.duration = result.completed_at - result.started_at;
 
@@ -1156,7 +1524,10 @@ export class AutoTestRunner {
         return;
       }
 
-      logger.info({ taskId: task._id, resultId, status: result.status }, 'Auto test task completed');
+      logger.info(
+        { taskId: task._id, resultId, status: result.status },
+        'Auto test task completed'
+      );
 
       // 如果配置了代码仓库和AI配置，执行AI分析
       if (task.code_repository_id && task.ai_config_provider) {
@@ -1164,35 +1535,44 @@ export class AutoTestRunner {
           const { testPipelineAIService } = await import('./testPipelineAIService.js');
           await testPipelineAIService.analyzeTestResult(resultId, task);
         } catch (error) {
-          logger.error({ error, resultId, taskId: task._id }, 'Failed to run AI analysis after test completion');
+          logger.error(
+            { error, resultId, taskId: task._id },
+            'Failed to run AI analysis after test completion'
+          );
           // 不抛出错误，避免影响测试流程
         }
       }
 
       // 发送通知（如果配置了）
       await AutoTestRunner.sendNotifications(task, result, resultId, {
-        context: 'test_completed'
+        context: 'test_completed',
       });
     } catch (error) {
       // resultId 是函数参数，应该始终可用
       if (!resultId) {
-        logger.error({ 
-          error: error.message || error, 
-          stack: error.stack,
-          taskId: task?._id,
-          taskName: task?.name
-        }, 'Auto test task execution failed, but resultId is not available');
+        logger.error(
+          {
+            error: error.message || error,
+            stack: error.stack,
+            taskId: task?._id,
+            taskName: task?.name,
+          },
+          'Auto test task execution failed, but resultId is not available'
+        );
         return;
       }
 
-      logger.error({ 
-        error: error.message || error, 
-        stack: error.stack,
-        taskId: task?._id,
-        taskName: task?.name,
-        resultId 
-      }, 'Auto test task execution failed');
-      
+      logger.error(
+        {
+          error: error.message || error,
+          stack: error.stack,
+          taskId: task?._id,
+          taskName: task?.name,
+          resultId,
+        },
+        'Auto test task execution failed'
+      );
+
       const result = await AutoTestResult.findById(resultId);
       if (!result) {
         logger.error({ resultId }, 'Result not found in error handler, cannot send notifications');
@@ -1209,7 +1589,10 @@ export class AutoTestRunner {
       // 确保 task 对象可用，如果不可用则重新获取
       let taskForNotification = task;
       if (!task || !task._id) {
-        logger.warn({ resultId }, 'Task object not available in error handler, fetching from database');
+        logger.warn(
+          { resultId },
+          'Task object not available in error handler, fetching from database'
+        );
         const AutoTestTask = (await import('../Models/AutoTestTask.js')).default;
         taskForNotification = await AutoTestTask.findById(result.task_id).lean();
         if (!taskForNotification) {
@@ -1220,7 +1603,7 @@ export class AutoTestRunner {
 
       // 发送错误通知（使用统一的通知发送方法）
       await AutoTestRunner.sendNotifications(taskForNotification, result, resultId, {
-        context: 'test_error'
+        context: 'test_error',
       });
     }
   }
@@ -1229,7 +1612,7 @@ export class AutoTestRunner {
     if (typeof data === 'string') {
       return this.resolveVariableExpression(data, envVars);
     } else if (Array.isArray(data)) {
-      return data.map((item) => this.resolveVariables(item, envVars));
+      return data.map(item => this.resolveVariables(item, envVars));
     } else if (data && typeof data === 'object') {
       const resolved = {};
       for (const [key, value] of Object.entries(data)) {
@@ -1254,7 +1637,8 @@ export class AutoTestRunner {
     });
 
     // 替换前一个请求的响应数据 $.records[0].response.body.data.id
-    const recordPattern = /\$\.records\[(\d+)\]\.(request|response)\.(body|headers|query)\.([\w.]+)/g;
+    const recordPattern =
+      /\$\.records\[(\d+)\]\.(request|response)\.(body|headers|query)\.([\w.]+)/g;
     resolved = resolved.replace(recordPattern, (match, index, type, source, path) => {
       const record = this.records[parseInt(index)];
       if (!record) {
@@ -1329,7 +1713,8 @@ export class AutoTestRunner {
     // 因为任务的 base_url 是针对特定流水线的配置，应该优先于环境变量的通用配置
     // 处理 Mongoose 文档：使用 .get() 方法或直接访问属性
     const taskBaseUrl = task?.base_url || (task?.get ? task.get('base_url') : null) || '';
-    const envBaseUrl = environment?.base_url || (environment?.get ? environment.get('base_url') : null) || '';
+    const envBaseUrl =
+      environment?.base_url || (environment?.get ? environment.get('base_url') : null) || '';
     let baseUrl = (taskBaseUrl || envBaseUrl || '').trim();
 
     // 如果 base_url 为空，使用主机地址作为默认值
@@ -1337,11 +1722,14 @@ export class AutoTestRunner {
       const config = (await import('./config.js')).default;
       // 优先使用 APP_URL，如果没有则使用 localhost:PORT
       baseUrl = config.APP_URL || `http://localhost:${config.PORT || 3000}`;
-      logger.info({ 
-        taskId: task._id?.toString(),
-        testCaseIndex,
-        defaultBaseUrl: baseUrl
-      }, 'Using default host address as base_url');
+      logger.info(
+        {
+          taskId: task._id?.toString(),
+          testCaseIndex,
+          defaultBaseUrl: baseUrl,
+        },
+        'Using default host address as base_url'
+      );
     }
 
     // 规范化 baseUrl
@@ -1355,7 +1743,7 @@ export class AutoTestRunner {
     // 获取接口数据
     let interfaceData = null;
     let interfaceIdStr = '';
-    
+
     if (testCase.interface_id) {
       if (typeof testCase.interface_id === 'object' && testCase.interface_id._id) {
         interfaceData = testCase.interface_id;
@@ -1373,12 +1761,18 @@ export class AutoTestRunner {
     // 如果接口数据没有 populate project_id，尝试获取
     if (!interfaceData.project_id && interfaceIdStr) {
       try {
-        const populatedInterface = await Interface.findById(interfaceIdStr).populate('project_id', '_id');
+        const populatedInterface = await Interface.findById(interfaceIdStr).populate(
+          'project_id',
+          '_id'
+        );
         if (populatedInterface && populatedInterface.project_id) {
           interfaceData.project_id = populatedInterface.project_id;
         }
       } catch (e) {
-        logger.warn({ error: e.message, interfaceId: interfaceIdStr }, 'Failed to populate project_id for interface');
+        logger.warn(
+          { error: e.message, interfaceId: interfaceIdStr },
+          'Failed to populate project_id for interface'
+        );
       }
     }
 
@@ -1403,7 +1797,7 @@ export class AutoTestRunner {
 
     // 替换路径参数
     const pathParams = this.resolveVariables(testCase.path_params || {}, envVars);
-    
+
     // 尝试从任务或接口数据中获取项目ID（如果路径参数需要projectId）
     let projectId = null;
     if (task.project_id) {
@@ -1419,130 +1813,167 @@ export class AutoTestRunner {
         projectId = interfaceData.project_id.toString();
       }
     }
-    
+
     // 对于未设置的路径参数，尝试从多个来源获取
     for (const paramName of pathParamNames) {
       // 检查参数是否存在且有效（不为空字符串）
-      if (!pathParams[paramName] || pathParams[paramName] === '' || pathParams[paramName] === null || pathParams[paramName] === undefined) {
+      if (
+        !pathParams[paramName] ||
+        pathParams[paramName] === '' ||
+        pathParams[paramName] === null ||
+        pathParams[paramName] === undefined
+      ) {
         let paramValue = null;
         let source = '';
-        
+
         // 1. 尝试从环境变量中获取（支持多种命名方式）
-        paramValue = envVars[paramName] || 
-                    envVars[paramName.toLowerCase()] || 
-                    envVars[paramName.toUpperCase()] ||
-                    envVars[`${paramName}Id`] ||
-                    envVars[`${paramName.toLowerCase()}Id`] ||
-                    envVars[`${paramName}_id`] ||
-                    envVars[`${paramName.toLowerCase()}_id`];
-        
+        paramValue =
+          envVars[paramName] ||
+          envVars[paramName.toLowerCase()] ||
+          envVars[paramName.toUpperCase()] ||
+          envVars[`${paramName}Id`] ||
+          envVars[`${paramName.toLowerCase()}Id`] ||
+          envVars[`${paramName}_id`] ||
+          envVars[`${paramName.toLowerCase()}_id`];
+
         if (paramValue !== undefined && paramValue !== null && paramValue !== '') {
           source = 'environment variable';
         }
-        
+
         // 2. 如果是 projectId 且还没有值，尝试从任务或接口中获取
-        if (!paramValue && (paramName === 'projectId' || paramName === 'project_id' || paramName.toLowerCase() === 'projectid') && projectId) {
+        if (
+          !paramValue &&
+          (paramName === 'projectId' ||
+            paramName === 'project_id' ||
+            paramName.toLowerCase() === 'projectid') &&
+          projectId
+        ) {
           paramValue = projectId;
           source = 'task/interface project_id';
         }
-        
+
         if (paramValue !== undefined && paramValue !== null && paramValue !== '') {
           pathParams[paramName] = String(paramValue);
-          logger.info({ 
-            taskId: task._id?.toString(),
-            testCaseIndex,
-            paramName, 
-            value: String(paramValue).substring(0, 50),
-            source: source
-          }, `Using path param ${paramName} from ${source}`);
+          logger.info(
+            {
+              taskId: task._id?.toString(),
+              testCaseIndex,
+              paramName,
+              value: String(paramValue).substring(0, 50),
+              source: source,
+            },
+            `Using path param ${paramName} from ${source}`
+          );
         } else {
           // 如果仍然没有值，记录错误
-          logger.error({ 
-            taskId: task._id?.toString(),
-            testCaseIndex,
-            paramName, 
-            path, 
-            availableEnvVars: Object.keys(envVars),
-            testCasePathParams: Object.keys(testCase.path_params || {}),
-            pathParams: pathParams,
-            hasProjectId: !!projectId,
-            projectId: projectId ? projectId.substring(0, 50) : null
-          }, `Path parameter ${paramName} not found in path_params or environment variables - request will fail`);
+          logger.error(
+            {
+              taskId: task._id?.toString(),
+              testCaseIndex,
+              paramName,
+              path,
+              availableEnvVars: Object.keys(envVars),
+              testCasePathParams: Object.keys(testCase.path_params || {}),
+              pathParams: pathParams,
+              hasProjectId: !!projectId,
+              projectId: projectId ? projectId.substring(0, 50) : null,
+            },
+            `Path parameter ${paramName} not found in path_params or environment variables - request will fail`
+          );
         }
       } else {
-        logger.debug({ 
-          taskId: task._id?.toString(),
-          testCaseIndex,
-          paramName,
-          value: String(pathParams[paramName]).substring(0, 50),
-          source: 'test case path_params'
-        }, 'Using path param from test case');
+        logger.debug(
+          {
+            taskId: task._id?.toString(),
+            testCaseIndex,
+            paramName,
+            value: String(pathParams[paramName]).substring(0, 50),
+            source: 'test case path_params',
+          },
+          'Using path param from test case'
+        );
       }
     }
-    
-    Object.keys(pathParams).forEach((key) => {
+
+    Object.keys(pathParams).forEach(key => {
       const value = pathParams[key];
       if (value !== undefined && value !== null && value !== '') {
         path = path.replace(new RegExp(`\\{${key}\\}`, 'g'), String(value));
         path = path.replace(new RegExp(`:${key}`, 'g'), String(value));
       }
     });
-    
+
     // 检查是否还有未替换的参数
     const remainingParams = path.match(/\{(\w+)\}/g);
     if (remainingParams && remainingParams.length > 0) {
-      logger.error({ 
-        remainingParams, 
-        path, 
-        pathParams,
-        pathParamNames,
-        availableEnvVars: Object.keys(envVars)
-      }, 'Some path parameters were not replaced - this will cause request to fail');
-      
+      logger.error(
+        {
+          remainingParams,
+          path,
+          pathParams,
+          pathParamNames,
+          availableEnvVars: Object.keys(envVars),
+        },
+        'Some path parameters were not replaced - this will cause request to fail'
+      );
+
       // 尝试从环境变量或任务数据中获取缺失的参数（支持多种命名方式）
       for (const paramMatch of remainingParams) {
         const paramName = paramMatch.replace(/[{}]/g, '');
         let paramValue = null;
         let source = '';
-        
+
         // 1. 尝试从环境变量中获取
-        paramValue = envVars[paramName] || 
-                    envVars[paramName.toLowerCase()] || 
-                    envVars[paramName.toUpperCase()] ||
-                    envVars[`${paramName}Id`] ||
-                    envVars[`${paramName.toLowerCase()}Id`] ||
-                    envVars[`${paramName}_id`] ||
-                    envVars[`${paramName.toLowerCase()}_id`];
-        
+        paramValue =
+          envVars[paramName] ||
+          envVars[paramName.toLowerCase()] ||
+          envVars[paramName.toUpperCase()] ||
+          envVars[`${paramName}Id`] ||
+          envVars[`${paramName.toLowerCase()}Id`] ||
+          envVars[`${paramName}_id`] ||
+          envVars[`${paramName.toLowerCase()}_id`];
+
         if (paramValue !== undefined && paramValue !== null && paramValue !== '') {
           source = 'environment variable (fallback)';
         }
-        
+
         // 2. 如果是 projectId 且还没有值，尝试从任务或接口中获取
-        if (!paramValue && (paramName === 'projectId' || paramName === 'project_id' || paramName.toLowerCase() === 'projectid') && projectId) {
+        if (
+          !paramValue &&
+          (paramName === 'projectId' ||
+            paramName === 'project_id' ||
+            paramName.toLowerCase() === 'projectid') &&
+          projectId
+        ) {
           paramValue = projectId;
           source = 'task/interface project_id (fallback)';
         }
-        
+
         if (paramValue !== undefined && paramValue !== null && paramValue !== '') {
           path = path.replace(new RegExp(`\\{${paramName}\\}`, 'g'), String(paramValue));
           pathParams[paramName] = String(paramValue);
-          logger.info({ 
-            taskId: task._id?.toString(),
-            testCaseIndex,
-            paramName, 
-            value: String(paramValue).substring(0, 50),
-            source: source
-          }, `Replaced missing path parameter ${paramName} from ${source}`);
+          logger.info(
+            {
+              taskId: task._id?.toString(),
+              testCaseIndex,
+              paramName,
+              value: String(paramValue).substring(0, 50),
+              source: source,
+            },
+            `Replaced missing path parameter ${paramName} from ${source}`
+          );
         } else {
-          logger.error({ 
-            taskId: task._id?.toString(),
-            testCaseIndex,
-            paramName,
-            availableEnvVars: Object.keys(envVars),
-            hasProjectId: !!projectId,
-            projectId: projectId ? projectId.substring(0, 50) : null
-          }, `Cannot find value for path parameter ${paramName} - URL will contain placeholder`);
+          logger.error(
+            {
+              taskId: task._id?.toString(),
+              testCaseIndex,
+              paramName,
+              availableEnvVars: Object.keys(envVars),
+              hasProjectId: !!projectId,
+              projectId: projectId ? projectId.substring(0, 50) : null,
+            },
+            `Cannot find value for path parameter ${paramName} - URL will contain placeholder`
+          );
         }
       }
     }
@@ -1571,7 +2002,7 @@ export class AutoTestRunner {
     }
 
     const resolvedCustomHeaders = this.resolveVariables(customHeaders, envVars);
-    
+
     // 获取任务的通用 headers
     let commonHeaders = task.common_headers || {};
     // 如果 common_headers 是字符串，尝试解析为对象
@@ -1579,35 +2010,44 @@ export class AutoTestRunner {
       try {
         commonHeaders = JSON.parse(commonHeaders);
       } catch (e) {
-        logger.warn({ taskId: task._id, error: e.message }, 'Failed to parse task common_headers as JSON');
+        logger.warn(
+          { taskId: task._id, error: e.message },
+          'Failed to parse task common_headers as JSON'
+        );
         commonHeaders = {};
       }
     }
     const resolvedCommonHeaders = this.resolveVariables(commonHeaders, envVars);
-    
+
     // 合并请求头：环境变量头 -> 通用头 -> 自定义头（自定义头优先级最高）
     const headers = {
       ...envHeaders,
       ...resolvedCommonHeaders,
       ...resolvedCustomHeaders,
     };
-    
+
     // 调试日志：记录 headers 合并情况
-    logger.info({ 
-      taskId: task._id?.toString(),
-      testCaseIndex,
-      hasCommonHeaders: !!task.common_headers && Object.keys(commonHeaders).length > 0,
-      commonHeadersKeys: Object.keys(commonHeaders),
-      commonHeadersAuth: resolvedCommonHeaders?.['Authorization'] ? 
-        String(resolvedCommonHeaders['Authorization']).substring(0, 50) + '...' : 'none',
-      hasCustomHeaders: !!testCase.custom_headers && Object.keys(customHeaders).length > 0,
-      customHeadersKeys: Object.keys(customHeaders),
-      envHeadersKeys: Object.keys(envHeaders),
-      mergedHeaders: Object.keys(headers),
-      hasAuthHeader: !!(headers['Authorization'] || headers['authorization']),
-      authHeaderValue: headers['Authorization'] || headers['authorization'] ? 
-        String(headers['Authorization'] || headers['authorization']).substring(0, 50) + '...' : 'none'
-    }, 'Headers merged for single test case');
+    logger.info(
+      {
+        taskId: task._id?.toString(),
+        testCaseIndex,
+        hasCommonHeaders: !!task.common_headers && Object.keys(commonHeaders).length > 0,
+        commonHeadersKeys: Object.keys(commonHeaders),
+        commonHeadersAuth: resolvedCommonHeaders?.['Authorization']
+          ? String(resolvedCommonHeaders['Authorization']).substring(0, 50) + '...'
+          : 'none',
+        hasCustomHeaders: !!testCase.custom_headers && Object.keys(customHeaders).length > 0,
+        customHeadersKeys: Object.keys(customHeaders),
+        envHeadersKeys: Object.keys(envHeaders),
+        mergedHeaders: Object.keys(headers),
+        hasAuthHeader: !!(headers['Authorization'] || headers['authorization']),
+        authHeaderValue:
+          headers['Authorization'] || headers['authorization']
+            ? String(headers['Authorization'] || headers['authorization']).substring(0, 50) + '...'
+            : 'none',
+      },
+      'Headers merged for single test case'
+    );
 
     // 对于需要 body 的请求方法，设置 Content-Type
     // GET、HEAD、OPTIONS 等请求不需要 Content-Type
@@ -1619,138 +2059,165 @@ export class AutoTestRunner {
     }
 
     // 处理 Authorization 头
-    const authHeaderKeys = Object.keys(headers).filter(key => 
-      key.toLowerCase() === 'authorization'
+    const authHeaderKeys = Object.keys(headers).filter(
+      key => key.toLowerCase() === 'authorization'
     );
 
     for (const key of authHeaderKeys) {
       const authValue = headers[key];
       const authValueStr = String(authValue || '');
-      const shouldRemove = (
-        !authValue || 
+      const shouldRemove =
+        !authValue ||
         authValueStr === '' ||
         authValueStr === 'Bearer token' ||
         authValueStr === 'Bearer <token>' ||
         authValueStr === 'token' ||
         authValueStr.trim() === '' ||
         authValueStr.toLowerCase() === 'bearer token' ||
-        authValueStr.toLowerCase().trim() === 'bearer'
-      );
-      
+        authValueStr.toLowerCase().trim() === 'bearer';
+
       if (shouldRemove) {
         delete headers[key];
         // 尝试从环境变量中获取认证令牌
-        let tokenFromEnv = envVars.token || envVars.authToken || envVars.AUTH_TOKEN || envVars.TOKEN;
-        
+        let tokenFromEnv =
+          envVars.token || envVars.authToken || envVars.AUTH_TOKEN || envVars.TOKEN;
+
         // 如果环境变量中没有，尝试从通用 headers 中获取
         if (!tokenFromEnv && resolvedCommonHeaders && resolvedCommonHeaders['Authorization']) {
           const commonAuth = resolvedCommonHeaders['Authorization'];
           const commonAuthStr = String(commonAuth || '').trim();
           // 检查通用 headers 中的 Authorization 是否是有效的 token（不是占位符）
           // 排除常见的占位符值
-          const isPlaceholder = (
+          const isPlaceholder =
             !commonAuthStr ||
             commonAuthStr === 'Bearer token' ||
             commonAuthStr === 'Bearer <token>' ||
             commonAuthStr === 'token' ||
             commonAuthStr.toLowerCase() === 'bearer token' ||
             commonAuthStr.toLowerCase().trim() === 'bearer' ||
-            (commonAuthStr.toLowerCase().startsWith('bearer') && commonAuthStr.toLowerCase().trim() === 'bearer token')
-          );
-          
+            (commonAuthStr.toLowerCase().startsWith('bearer') &&
+              commonAuthStr.toLowerCase().trim() === 'bearer token');
+
           if (!isPlaceholder && commonAuthStr.length > 10) {
             // 提取 token（移除 Bearer 前缀）
             tokenFromEnv = commonAuthStr.replace(/^Bearer\s+/i, '').trim();
-            logger.debug({ 
-              taskId: task._id?.toString(),
-              testCaseIndex,
-              source: 'common headers',
-              hasToken: !!tokenFromEnv
-            }, 'Found token in common headers');
+            logger.debug(
+              {
+                taskId: task._id?.toString(),
+                testCaseIndex,
+                source: 'common headers',
+                hasToken: !!tokenFromEnv,
+              },
+              'Found token in common headers'
+            );
           }
         }
-        
+
         if (tokenFromEnv) {
-          headers['Authorization'] = tokenFromEnv.startsWith('Bearer ') 
-            ? tokenFromEnv 
+          headers['Authorization'] = tokenFromEnv.startsWith('Bearer ')
+            ? tokenFromEnv
             : `Bearer ${tokenFromEnv}`;
-          logger.debug({ 
-            source: tokenFromEnv === (envVars.token || envVars.authToken || envVars.AUTH_TOKEN || envVars.TOKEN) 
-              ? 'environment variable' 
-              : 'common headers'
-          }, 'Using authentication token');
+          logger.debug(
+            {
+              source:
+                tokenFromEnv ===
+                (envVars.token || envVars.authToken || envVars.AUTH_TOKEN || envVars.TOKEN)
+                  ? 'environment variable'
+                  : 'common headers',
+            },
+            'Using authentication token'
+          );
         } else {
-          logger.warn({ 
-            availableEnvVars: Object.keys(envVars),
-            availableHeaders: Object.keys(envHeaders),
-            hasCommonHeaders: !!resolvedCommonHeaders && Object.keys(resolvedCommonHeaders).length > 0,
-            commonHeadersAuth: resolvedCommonHeaders?.['Authorization'] ? 'present' : 'missing'
-          }, 'No authentication token found');
+          logger.warn(
+            {
+              availableEnvVars: Object.keys(envVars),
+              availableHeaders: Object.keys(envHeaders),
+              hasCommonHeaders:
+                !!resolvedCommonHeaders && Object.keys(resolvedCommonHeaders).length > 0,
+              commonHeadersAuth: resolvedCommonHeaders?.['Authorization'] ? 'present' : 'missing',
+            },
+            'No authentication token found'
+          );
         }
       }
     }
-    
+
     // 如果没有 Authorization 头，尝试从环境变量或通用 headers 中添加
     if (!headers['Authorization'] && !headers['authorization']) {
       let tokenFromEnv = envVars.token || envVars.authToken || envVars.AUTH_TOKEN || envVars.TOKEN;
-      
+
       // 如果环境变量中没有，尝试从通用 headers 中获取
       if (!tokenFromEnv && resolvedCommonHeaders && resolvedCommonHeaders['Authorization']) {
         const commonAuth = resolvedCommonHeaders['Authorization'];
         const commonAuthStr = String(commonAuth || '').trim();
         // 检查通用 headers 中的 Authorization 是否是有效的 token（不是占位符）
         // 排除常见的占位符值
-        const isPlaceholder = (
+        const isPlaceholder =
           !commonAuthStr ||
           commonAuthStr === 'Bearer token' ||
           commonAuthStr === 'Bearer <token>' ||
           commonAuthStr === 'token' ||
           commonAuthStr.toLowerCase() === 'bearer token' ||
           commonAuthStr.toLowerCase().trim() === 'bearer' ||
-          (commonAuthStr.toLowerCase().startsWith('bearer') && commonAuthStr.toLowerCase().trim() === 'bearer token')
-        );
-        
+          (commonAuthStr.toLowerCase().startsWith('bearer') &&
+            commonAuthStr.toLowerCase().trim() === 'bearer token');
+
         if (!isPlaceholder && commonAuthStr.length > 10) {
           // 提取 token（移除 Bearer 前缀）
           tokenFromEnv = commonAuthStr.replace(/^Bearer\s+/i, '').trim();
-          logger.info({ 
-            taskId: task._id?.toString(),
-            testCaseIndex,
-            source: 'common headers',
-            hasToken: !!tokenFromEnv,
-            tokenLength: tokenFromEnv ? tokenFromEnv.length : 0
-          }, 'Found token in common headers');
+          logger.info(
+            {
+              taskId: task._id?.toString(),
+              testCaseIndex,
+              source: 'common headers',
+              hasToken: !!tokenFromEnv,
+              tokenLength: tokenFromEnv ? tokenFromEnv.length : 0,
+            },
+            'Found token in common headers'
+          );
         } else {
-          logger.warn({ 
-            taskId: task._id?.toString(),
-            testCaseIndex,
-            commonAuthStr: commonAuthStr.substring(0, 50),
-            isPlaceholder,
-            length: commonAuthStr.length
-          }, 'Common headers Authorization is placeholder or invalid');
+          logger.warn(
+            {
+              taskId: task._id?.toString(),
+              testCaseIndex,
+              commonAuthStr: commonAuthStr.substring(0, 50),
+              isPlaceholder,
+              length: commonAuthStr.length,
+            },
+            'Common headers Authorization is placeholder or invalid'
+          );
         }
       }
-      
+
       if (tokenFromEnv) {
-        headers['Authorization'] = tokenFromEnv.startsWith('Bearer ') 
-          ? tokenFromEnv 
+        headers['Authorization'] = tokenFromEnv.startsWith('Bearer ')
+          ? tokenFromEnv
           : `Bearer ${tokenFromEnv}`;
-        logger.info({ 
-          taskId: task._id?.toString(),
-          testCaseIndex,
-          source: tokenFromEnv === (envVars.token || envVars.authToken || envVars.AUTH_TOKEN || envVars.TOKEN) 
-            ? 'environment variable' 
-            : 'common headers',
-          tokenLength: tokenFromEnv.length
-        }, 'Added authentication token to headers');
+        logger.info(
+          {
+            taskId: task._id?.toString(),
+            testCaseIndex,
+            source:
+              tokenFromEnv ===
+              (envVars.token || envVars.authToken || envVars.AUTH_TOKEN || envVars.TOKEN)
+                ? 'environment variable'
+                : 'common headers',
+            tokenLength: tokenFromEnv.length,
+          },
+          'Added authentication token to headers'
+        );
       } else {
-        logger.error({ 
-          taskId: task._id?.toString(),
-          testCaseIndex,
-          hasCommonHeaders: !!resolvedCommonHeaders && Object.keys(resolvedCommonHeaders).length > 0,
-          commonHeadersAuth: resolvedCommonHeaders?.['Authorization'] ? 'present' : 'missing',
-          availableEnvVars: Object.keys(envVars)
-        }, 'No authentication token found - request will fail with 401');
+        logger.error(
+          {
+            taskId: task._id?.toString(),
+            testCaseIndex,
+            hasCommonHeaders:
+              !!resolvedCommonHeaders && Object.keys(resolvedCommonHeaders).length > 0,
+            commonHeadersAuth: resolvedCommonHeaders?.['Authorization'] ? 'present' : 'missing',
+            availableEnvVars: Object.keys(envVars),
+          },
+          'No authentication token found - request will fail with 401'
+        );
       }
     }
 
@@ -1759,30 +2226,38 @@ export class AutoTestRunner {
     if (!baseUrl) {
       const config = (await import('./config.js')).default;
       baseUrl = config.APP_URL || `http://localhost:${config.PORT || 3000}`;
-      logger.warn({ 
-        taskId: task._id?.toString(),
-        testCaseIndex,
-        defaultBaseUrl: baseUrl
-      }, 'Base URL was empty, using default host address');
+      logger.warn(
+        {
+          taskId: task._id?.toString(),
+          testCaseIndex,
+          defaultBaseUrl: baseUrl,
+        },
+        'Base URL was empty, using default host address'
+      );
     }
 
     const url = path ? `${baseUrl}${path}` : baseUrl;
 
     // 最终日志：记录将要发送的请求信息
-    logger.info({ 
-      taskId: task._id?.toString(),
-      testCaseIndex,
-      method,
-      url,
-      originalPath: interfaceData.path,
-      pathParams: pathParams,
-      hasHeaders: !!headers && Object.keys(headers).length > 0,
-      headerKeys: headers ? Object.keys(headers) : [],
-      hasAuthHeader: !!(headers['Authorization'] || headers['authorization']),
-      authHeaderValue: headers['Authorization'] || headers['authorization'] ? 
-        (String(headers['Authorization'] || headers['authorization']).substring(0, 30) + '...') : 'none',
-      hasUnreplacedParams: url.includes('{') || url.includes('}')
-    }, 'Final request configuration before sending');
+    logger.info(
+      {
+        taskId: task._id?.toString(),
+        testCaseIndex,
+        method,
+        url,
+        originalPath: interfaceData.path,
+        pathParams: pathParams,
+        hasHeaders: !!headers && Object.keys(headers).length > 0,
+        headerKeys: headers ? Object.keys(headers) : [],
+        hasAuthHeader: !!(headers['Authorization'] || headers['authorization']),
+        authHeaderValue:
+          headers['Authorization'] || headers['authorization']
+            ? String(headers['Authorization'] || headers['authorization']).substring(0, 30) + '...'
+            : 'none',
+        hasUnreplacedParams: url.includes('{') || url.includes('}'),
+      },
+      'Final request configuration before sending'
+    );
 
     const request = {
       method,
@@ -1812,7 +2287,11 @@ export class AutoTestRunner {
 
       // 对于 GET、HEAD、OPTIONS 等请求，不应该发送 body
       // 只有 POST、PUT、PATCH、DELETE 等需要 body 的方法才设置 data
-      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) && requestBody !== null && requestBody !== undefined) {
+      if (
+        ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) &&
+        requestBody !== null &&
+        requestBody !== undefined
+      ) {
         axiosConfig.data = requestBody;
       }
 
@@ -1876,7 +2355,7 @@ export class AutoTestRunner {
     try {
       // 确保状态码是数字类型
       const statusCode = Number(response.status) || 0;
-      
+
       // 创建断言函数
       const assertFunctions = {
         equal: (actual, expected, message) => {
@@ -1925,13 +2404,19 @@ export class AutoTestRunner {
           warn: (...args) => logger.warn({ testAssertion: true }, ...args),
         },
       };
-      
-      logger.debug({ 
-        statusCode: statusCode,
-        statusType: typeof statusCode,
-        bodyType: typeof response.data,
-        bodyKeys: typeof response.data === 'object' && response.data !== null ? Object.keys(response.data) : null,
-      }, 'Assertion sandbox prepared');
+
+      logger.debug(
+        {
+          statusCode: statusCode,
+          statusType: typeof statusCode,
+          bodyType: typeof response.data,
+          bodyKeys:
+            typeof response.data === 'object' && response.data !== null
+              ? Object.keys(response.data)
+              : null,
+        },
+        'Assertion sandbox prepared'
+      );
 
       // 使用 Node vm 执行断言脚本（非安全边界，仅限受控脚本）
       const contextified = vm.createContext(sandbox, {
@@ -1972,4 +2457,3 @@ export class AutoTestRunner {
     }
   }
 }
-

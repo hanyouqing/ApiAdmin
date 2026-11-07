@@ -591,6 +591,3 @@ describe('PermissionController', () => {
     });
   });
 });
-
-
-

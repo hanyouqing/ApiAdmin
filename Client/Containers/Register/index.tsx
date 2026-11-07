@@ -41,46 +41,49 @@ const Register: React.FC = () => {
     >
       <Card
         style={{ width: 400 }}
-        styles={{ 
-          body: { padding: '32px' }
+        styles={{
+          body: { padding: '32px' },
         }}
       >
-        <div style={{ 
-          display: 'flex', 
-          flexDirection: 'column', 
-          alignItems: 'center', 
-          marginBottom: '32px' 
-        }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            marginBottom: '32px',
+          }}
+        >
           <Logo size={64} />
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '8px',
-            marginTop: '16px'
-          }}>
-            <h1 style={{ 
-              margin: 0,
-              fontSize: '24px', 
-              fontWeight: 'bold',
-              color: '#1a365d'
-            }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              marginTop: '16px',
+            }}
+          >
+            <h1
+              style={{
+                margin: 0,
+                fontSize: '24px',
+                fontWeight: 'bold',
+                color: '#1a365d',
+              }}
+            >
               {t('app.title')}
             </h1>
-            <span style={{ 
-              fontSize: '16px',
-              color: '#999',
-              fontWeight: 'normal'
-            }}>
+            <span
+              style={{
+                fontSize: '16px',
+                color: '#999',
+                fontWeight: 'normal',
+              }}
+            >
               {t('auth.register')}
             </span>
           </div>
         </div>
-        <Form
-          name="register"
-          onFinish={onFinish}
-          autoComplete="off"
-          size="large"
-        >
+        <Form name="register" onFinish={onFinish} autoComplete="off" size="large">
           <Form.Item
             name="username"
             rules={[
@@ -88,10 +91,7 @@ const Register: React.FC = () => {
               { min: 3, message: t('auth.usernameTooShort') },
             ]}
           >
-            <Input
-              prefix={<UserOutlined />}
-              placeholder={t('auth.username')}
-            />
+            <Input prefix={<UserOutlined />} placeholder={t('auth.username')} />
           </Form.Item>
 
           <Form.Item
@@ -101,10 +101,7 @@ const Register: React.FC = () => {
               { type: 'email', message: t('auth.emailInvalid') },
             ]}
           >
-            <Input
-              prefix={<MailOutlined />}
-              placeholder={t('auth.email')}
-            />
+            <Input prefix={<MailOutlined />} placeholder={t('auth.email')} />
           </Form.Item>
 
           <Form.Item
@@ -114,10 +111,7 @@ const Register: React.FC = () => {
               { min: 6, message: t('auth.passwordTooShort') },
             ]}
           >
-            <Input.Password
-              prefix={<LockOutlined />}
-              placeholder={t('auth.password')}
-            />
+            <Input.Password prefix={<LockOutlined />} placeholder={t('auth.password')} />
           </Form.Item>
 
           <Form.Item
@@ -135,14 +129,17 @@ const Register: React.FC = () => {
               }),
             ]}
           >
-            <Input.Password
-              prefix={<LockOutlined />}
-              placeholder={t('auth.confirmPassword')}
-            />
+            <Input.Password prefix={<LockOutlined />} placeholder={t('auth.confirmPassword')} />
           </Form.Item>
 
           <Form.Item>
-            <Button type="primary" htmlType="submit" block loading={loading} style={{ color: '#ffffff' }}>
+            <Button
+              type="primary"
+              htmlType="submit"
+              block
+              loading={loading}
+              style={{ color: '#ffffff' }}
+            >
               {t('auth.register')}
             </Button>
           </Form.Item>
@@ -159,4 +156,3 @@ const Register: React.FC = () => {
 };
 
 export default Register;
-

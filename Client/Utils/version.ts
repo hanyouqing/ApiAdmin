@@ -59,4 +59,3 @@ export const versionInfo = {
   commitId: getCommitId(),
   buildTime: getBuildTime(),
 };
-

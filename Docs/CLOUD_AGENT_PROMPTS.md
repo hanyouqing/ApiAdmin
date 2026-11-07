@@ -84,7 +84,7 @@ Do not change auth security defaults (keep strong JWT requirement in production)
 
 ## Human merge order
 
-1. `feat/ai-mock` (or local Gen Mock commit)  
-2. `feat/oss-demo`  
-3. `feat/ai-codefix`  
+1. `feat/ai-mock` (or local Gen Mock commit)
+2. `feat/oss-demo`
+3. `feat/ai-codefix`
 4. Tag `v0.1.0-oss`

@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { formatJUnitXML, normalizeReportForFormatters } from '../../Server/Utils/reportFormatters.js';
+import {
+  formatJUnitXML,
+  normalizeReportForFormatters,
+} from '../../Server/Utils/reportFormatters.js';
 
 describe('reportFormatters', () => {
   it('normalizes TestRunner flat report into summary + snake_case results', () => {

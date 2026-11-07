@@ -37,7 +37,9 @@ const initialState: MockExpectationState = {
 export const fetchMockExpectations = createAsyncThunk(
   'mockExpectation/fetchList',
   async (interfaceId: string) => {
-    const response = await api.get('/mock/expectation/list', { params: { interface_id: interfaceId } });
+    const response = await api.get('/mock/expectation/list', {
+      params: { interface_id: interfaceId },
+    });
     return response.data;
   }
 );
@@ -58,18 +60,21 @@ export const updateMockExpectation = createAsyncThunk(
   }
 );
 
-export const deleteMockExpectation = createAsyncThunk('mockExpectation/delete', async (id: string) => {
-  await api.delete('/mock/expectation/del', { params: { _id: id } });
-  return id;
-});
+export const deleteMockExpectation = createAsyncThunk(
+  'mockExpectation/delete',
+  async (id: string) => {
+    await api.delete('/mock/expectation/del', { params: { _id: id } });
+    return id;
+  }
+);
 
 const mockExpectationSlice = createSlice({
   name: 'mockExpectation',
   initialState,
   reducers: {},
-  extraReducers: (builder) => {
+  extraReducers: builder => {
     builder
-      .addCase(fetchMockExpectations.pending, (state) => {
+      .addCase(fetchMockExpectations.pending, state => {
         state.loading = true;
       })
       .addCase(fetchMockExpectations.fulfilled, (state, action) => {
@@ -84,18 +89,15 @@ const mockExpectationSlice = createSlice({
         state.expectations.push(action.payload);
       })
       .addCase(updateMockExpectation.fulfilled, (state, action) => {
-        const index = state.expectations.findIndex((e) => e._id === action.payload._id);
+        const index = state.expectations.findIndex(e => e._id === action.payload._id);
         if (index !== -1) {
           state.expectations[index] = action.payload;
         }
       })
       .addCase(deleteMockExpectation.fulfilled, (state, action) => {
-        state.expectations = state.expectations.filter((e) => e._id !== action.payload);
+        state.expectations = state.expectations.filter(e => e._id !== action.payload);
       });
   },
 });
 
 export default mockExpectationSlice.reducer;
-
-
-

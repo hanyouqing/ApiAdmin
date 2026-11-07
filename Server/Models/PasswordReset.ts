@@ -81,6 +81,9 @@ passwordResetSchema.statics.validateToken = async function (token) {
   return resetToken;
 };
 
-const PasswordReset = mongoose.model<IPasswordReset, PasswordResetModel>('PasswordReset', passwordResetSchema);
+const PasswordReset = mongoose.model<IPasswordReset, PasswordResetModel>(
+  'PasswordReset',
+  passwordResetSchema
+);
 
 export default PasswordReset;

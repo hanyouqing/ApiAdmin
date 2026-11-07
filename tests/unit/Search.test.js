@@ -102,7 +102,7 @@ describe('SearchController', () => {
         path: '/api/search',
         method: 'GET',
         project_id: testProject._id,
-      uid: testUser._id,
+        uid: testUser._id,
       });
 
       const ctx = createMockCtx({}, { q: 'Search', type: 'interface' }, {}, testUser);
@@ -160,7 +160,7 @@ describe('SearchController', () => {
         path: '/api/exact',
         method: 'GET',
         project_id: testProject._id,
-      uid: testUser._id,
+        uid: testUser._id,
       });
 
       await Interface.create({
@@ -168,7 +168,7 @@ describe('SearchController', () => {
         path: '/api/something',
         method: 'GET',
         project_id: testProject._id,
-      uid: testUser._id,
+        uid: testUser._id,
       });
 
       const ctx = createMockCtx({}, { q: 'Test', type: 'interface' }, {}, testUser);
@@ -177,7 +177,9 @@ describe('SearchController', () => {
       expect(ctx.status).toBe(200);
       expect(ctx.body.success).toBe(true);
       if (ctx.body.data.results.length > 1) {
-        expect(ctx.body.data.results[0].score).toBeGreaterThanOrEqual(ctx.body.data.results[1].score);
+        expect(ctx.body.data.results[0].score).toBeGreaterThanOrEqual(
+          ctx.body.data.results[1].score
+        );
       }
     });
 
@@ -188,11 +190,16 @@ describe('SearchController', () => {
           path: `/api/test${i}`,
           method: 'GET',
           project_id: testProject._id,
-      uid: testUser._id,
+          uid: testUser._id,
         });
       }
 
-      const ctx = createMockCtx({}, { q: 'Test', type: 'interface', page: 1, pageSize: 10 }, {}, testUser);
+      const ctx = createMockCtx(
+        {},
+        { q: 'Test', type: 'interface', page: 1, pageSize: 10 },
+        {},
+        testUser
+      );
       await SearchController.search(ctx);
 
       expect(ctx.status).toBe(200);
@@ -256,7 +263,7 @@ describe('SearchController', () => {
         path: '/api/suggestion',
         method: 'GET',
         project_id: testProject._id,
-      uid: testUser._id,
+        uid: testUser._id,
       });
 
       const ctx = createMockCtx({}, { q: 'Test' }, {}, testUser);
@@ -283,7 +290,7 @@ describe('SearchController', () => {
           path: `/api/test${i}`,
           method: 'GET',
           project_id: testProject._id,
-      uid: testUser._id,
+          uid: testUser._id,
         });
       }
 
@@ -317,4 +324,3 @@ describe('SearchController', () => {
     });
   });
 });
-

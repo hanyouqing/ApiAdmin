@@ -4,7 +4,9 @@ import { logger } from '../Utils/logger.js';
 import LoginLog from '../Models/LoginLog.js';
 
 class LoginLogController extends BaseController {
-  static get ControllerName() { return 'LoginLogController'; }
+  static get ControllerName() {
+    return 'LoginLogController';
+  }
 
   static async listLogs(ctx) {
     try {
@@ -15,15 +17,7 @@ class LoginLogController extends BaseController {
         return;
       }
 
-      const {
-        userId,
-        status,
-        loginType,
-        startDate,
-        endDate,
-        page = 1,
-        pageSize = 20,
-      } = ctx.query;
+      const { userId, status, loginType, startDate, endDate, page = 1, pageSize = 20 } = ctx.query;
 
       const query = {};
 
@@ -155,11 +149,11 @@ class LoginLogController extends BaseController {
         success: successLogins,
         failed: failedLogins,
         successRate: totalLogins > 0 ? ((successLogins / totalLogins) * 100).toFixed(2) : 0,
-        loginTypeStats: loginTypeStats.map((item) => ({
+        loginTypeStats: loginTypeStats.map(item => ({
           type: item._id,
           count: item.count,
         })),
-        dailyStats: dailyStats.map((item) => ({
+        dailyStats: dailyStats.map(item => ({
           date: item._id,
           total: item.count,
           success: item.success,
@@ -179,6 +173,3 @@ class LoginLogController extends BaseController {
 }
 
 export default LoginLogController;
-
-
-

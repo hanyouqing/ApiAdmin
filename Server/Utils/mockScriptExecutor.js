@@ -12,7 +12,9 @@ function isMockScriptAllowed() {
   // Production: custom scripts are off unless explicitly opted in.
   // Node vm is not a security boundary; treat this as an emergency escape hatch only.
   if (process.env.NODE_ENV === 'production') {
-    return process.env.ALLOW_MOCK_SCRIPTS === 'true' && process.env.ALLOW_UNSAFE_MOCK_SCRIPTS === 'true';
+    return (
+      process.env.ALLOW_MOCK_SCRIPTS === 'true' && process.env.ALLOW_UNSAFE_MOCK_SCRIPTS === 'true'
+    );
   }
   return process.env.ALLOW_MOCK_SCRIPTS !== 'false';
 }
@@ -90,12 +92,15 @@ export const executeMockScript = async (script, context) => {
       body: sandbox.mockJson,
     };
   } catch (error) {
-    logger.error({ error: error.message, script: script.substring(0, 100) }, 'Mock script execution error');
+    logger.error(
+      { error: error.message, script: script.substring(0, 100) },
+      'Mock script execution error'
+    );
     throw new Error(`Mock script execution failed: ${error.message}`);
   }
 };
 
-export const validateMockScript = (script) => {
+export const validateMockScript = script => {
   if (!script || script.trim() === '') {
     return { valid: true };
   }

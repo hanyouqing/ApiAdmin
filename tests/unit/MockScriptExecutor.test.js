@@ -33,9 +33,9 @@ describe('Mock Script Executor', () => {
         delay: 0,
       };
       const script = 'mockJson.name = "updated";';
-      
+
       const result = await executeMockScript(script, context);
-      
+
       expect(result).toBeDefined();
       expect(result.body.name).toBe('updated');
     });
@@ -43,7 +43,7 @@ describe('Mock Script Executor', () => {
     it('should handle script errors gracefully', async () => {
       const context = { mockJson: {} };
       const script = 'invalid syntax here!!!';
-      
+
       await expect(executeMockScript(script, context)).rejects.toThrow();
     });
 
@@ -56,9 +56,9 @@ describe('Mock Script Executor', () => {
         delay: 100,
       };
       const script = '';
-      
+
       const result = await executeMockScript(script, context);
-      
+
       expect(result).toBe(null);
     });
   });
@@ -105,4 +105,3 @@ describe('Mock Script Executor', () => {
     });
   });
 });
-

@@ -1,6 +1,30 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Form, Input, Button, Switch, Space, message, App, Modal, Upload, Select, Tabs, Table, Tag, List, Avatar } from 'antd';
-import { UploadOutlined, DownloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined } from '@ant-design/icons';
+import {
+  Card,
+  Form,
+  Input,
+  Button,
+  Switch,
+  Space,
+  message,
+  App,
+  Modal,
+  Upload,
+  Select,
+  Tabs,
+  Table,
+  Tag,
+  List,
+  Avatar,
+} from 'antd';
+import {
+  UploadOutlined,
+  DownloadOutlined,
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  UserOutlined,
+} from '@ant-design/icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { useParams, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -25,7 +49,7 @@ const Setting: React.FC = () => {
   const { t } = useTranslation();
   const { message: messageApi } = App.useApp();
   const { currentProject } = useSelector((state: RootState) => state.project);
-  
+
   // 从路由路径中提取 projectId，或从 Redux store 获取
   const projectId = React.useMemo(() => {
     if (params.projectId) {
@@ -85,92 +109,25 @@ const Setting: React.FC = () => {
 
   const handleImport = async () => {
     if (!projectId) return;
-    
-    // Swagger URL 导入
+
+    // Swagger URL 导入（服务端拉取，自动把 /swagger UI 地址映射为 /swagger.json）
     if (importFormat === 'swagger' && swaggerUrl) {
       setImporting(true);
       try {
-        // 如果 URL 不包含 .json，尝试自动添加
-        let fetchUrl = swaggerUrl;
-        if (!swaggerUrl.endsWith('.json') && !swaggerUrl.includes('/swagger.json') && !swaggerUrl.includes('/openapi.json')) {
-          // 如果 URL 以 /swagger 或 /swagger-ui 结尾，尝试添加 .json
-          if (swaggerUrl.endsWith('/swagger') || swaggerUrl.endsWith('/swagger-ui')) {
-            fetchUrl = swaggerUrl.replace(/\/swagger(-ui)?$/, '/swagger.json');
-          } else if (swaggerUrl.endsWith('/')) {
-            fetchUrl = swaggerUrl + 'swagger.json';
-          } else {
-            fetchUrl = swaggerUrl + '/swagger.json';
-          }
-        }
-
-        const response = await fetch(fetchUrl, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-          },
-        });
-
-        if (!response.ok) {
-          // 如果第一次请求失败，且 URL 被修改过，尝试原始 URL
-          if (fetchUrl !== swaggerUrl) {
-            const originalResponse = await fetch(swaggerUrl, {
-              method: 'GET',
-              headers: {
-                'Accept': 'application/json',
-              },
-            });
-            if (originalResponse.ok) {
-              const contentType = originalResponse.headers.get('content-type') || '';
-              if (contentType.includes('application/json')) {
-                const text = await originalResponse.text();
-                if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
-                  throw new Error('服务器返回了 HTML 页面而不是 JSON。请使用 /swagger.json 端点');
-                }
-                const data = JSON.parse(text);
-                await api.post('/import', {
-                  project_id: projectId,
-                  format: importFormat,
-                  mode: importMode,
-                  data,
-                });
-                messageApi.success(t('importExport.importSuccess'));
-                setImportModalVisible(false);
-                setSwaggerUrl('');
-                dispatch(fetchProjectDetail(projectId));
-                return;
-              }
-            }
-          }
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const contentType = response.headers.get('content-type') || '';
-        const text = await response.text();
-        
-        // 检查是否是 HTML 页面
-        if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
-          throw new Error('服务器返回了 HTML 页面而不是 JSON。请确保 URL 指向 Swagger JSON 文件（例如：/swagger.json）');
-        }
-
-        let data;
-        try {
-          data = JSON.parse(text);
-        } catch (parseError) {
-          throw new Error(`JSON 解析失败: ${parseError instanceof Error ? parseError.message : '未知错误'}`);
-        }
-
         await api.post('/import', {
           project_id: projectId,
           format: importFormat,
           mode: importMode,
-          data,
+          url: swaggerUrl,
         });
         messageApi.success(t('importExport.importSuccess'));
         setImportModalVisible(false);
         setSwaggerUrl('');
         dispatch(fetchProjectDetail(projectId));
       } catch (error: any) {
-        messageApi.error(error.response?.data?.message || error.message || t('importExport.importFailed'));
+        messageApi.error(
+          error.response?.data?.message || error.message || t('importExport.importFailed')
+        );
       } finally {
         setImporting(false);
       }
@@ -183,7 +140,7 @@ const Setting: React.FC = () => {
     try {
       const fileContent = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target?.result as string);
+        reader.onload = e => resolve(e.target?.result as string);
         reader.onerror = reject;
         reader.readAsText(importFile.originFileObj as File);
       });
@@ -210,7 +167,9 @@ const Setting: React.FC = () => {
         dispatch(fetchProjectDetail(projectId));
       }
     } catch (error: any) {
-      messageApi.error(error.response?.data?.message || error.message || t('importExport.importFailed'));
+      messageApi.error(
+        error.response?.data?.message || error.message || t('importExport.importFailed')
+      );
     } finally {
       setImporting(false);
     }
@@ -370,7 +329,9 @@ const Setting: React.FC = () => {
       dataIndex: 'variables',
       key: 'variables',
       render: (variables: any) => (
-        <Tag>{Object.keys(variables || {}).length} {t('project.environment.variablesCount')}</Tag>
+        <Tag>
+          {Object.keys(variables || {}).length} {t('project.environment.variablesCount')}
+        </Tag>
       ),
     },
     {
@@ -382,7 +343,12 @@ const Setting: React.FC = () => {
           <Button type="link" icon={<EditOutlined />} onClick={() => handleEditEnv(record)}>
             {t('common.edit')}
           </Button>
-          <Button type="link" danger icon={<DeleteOutlined />} onClick={() => handleDeleteEnv(record.name)}>
+          <Button
+            type="link"
+            danger
+            icon={<DeleteOutlined />}
+            onClick={() => handleDeleteEnv(record.name)}
+          >
             {t('common.delete')}
           </Button>
         </Space>
@@ -399,34 +365,42 @@ const Setting: React.FC = () => {
             label: t('project.setting.basic'),
             children: (
               <Form form={form} layout="vertical" onFinish={onFinish} style={{ maxWidth: 800 }}>
-        <Form.Item
-          name="project_name"
-          label={t('project.projectName')}
-          rules={[{ required: true, message: t('project.nameRequired') }]}
-        >
-          <Input />
-        </Form.Item>
-        <Form.Item name="project_desc" label={t('common.description')}>
-          <TextArea rows={3} />
-        </Form.Item>
-        <Form.Item name="basepath" label={t('project.basepath')}>
-          <Input placeholder="/api/v1" />
-        </Form.Item>
-        <Form.Item name="color" label={t('project.color')}>
-          <Input type="color" style={{ width: 100 }} />
-        </Form.Item>
-        <Form.Item name="icon" label={t('project.icon')}>
-          <Input placeholder="图标名称或URL" />
-        </Form.Item>
-        <Form.Item name="mock_strict" valuePropName="checked" label={t('project.mockStrict')}>
-          <Switch />
-        </Form.Item>
-        <Form.Item name="enable_json5" valuePropName="checked" label={t('project.enableJson5')}>
-          <Switch />
-        </Form.Item>
-        <Form.Item name="token" label={t('project.token')}>
-          <Input disabled />
-        </Form.Item>
+                <Form.Item
+                  name="project_name"
+                  label={t('project.projectName')}
+                  rules={[{ required: true, message: t('project.nameRequired') }]}
+                >
+                  <Input />
+                </Form.Item>
+                <Form.Item name="project_desc" label={t('common.description')}>
+                  <TextArea rows={3} />
+                </Form.Item>
+                <Form.Item name="basepath" label={t('project.basepath')}>
+                  <Input placeholder="/api/v1" />
+                </Form.Item>
+                <Form.Item name="color" label={t('project.color')}>
+                  <Input type="color" style={{ width: 100 }} />
+                </Form.Item>
+                <Form.Item name="icon" label={t('project.icon')}>
+                  <Input placeholder="图标名称或URL" />
+                </Form.Item>
+                <Form.Item
+                  name="mock_strict"
+                  valuePropName="checked"
+                  label={t('project.mockStrict')}
+                >
+                  <Switch />
+                </Form.Item>
+                <Form.Item
+                  name="enable_json5"
+                  valuePropName="checked"
+                  label={t('project.enableJson5')}
+                >
+                  <Switch />
+                </Form.Item>
+                <Form.Item name="token" label={t('project.token')}>
+                  <Input disabled />
+                </Form.Item>
                 <Form.Item>
                   <Button type="primary" htmlType="submit" loading={loading}>
                     {t('common.save')}
@@ -443,7 +417,12 @@ const Setting: React.FC = () => {
                 <Card
                   title={t('project.member.title')}
                   extra={
-                    <Button type="primary" icon={<PlusOutlined />} onClick={handleAddMember} style={{ color: '#ffffff' }}>
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      onClick={handleAddMember}
+                      style={{ color: '#ffffff' }}
+                    >
                       {t('project.member.add')}
                     </Button>
                   }
@@ -467,7 +446,9 @@ const Setting: React.FC = () => {
                         ].filter(Boolean)}
                       >
                         <List.Item.Meta
-                          avatar={<Avatar src={getAvatarUrl(member.avatar)} icon={<UserOutlined />} />}
+                          avatar={
+                            <Avatar src={getAvatarUrl(member.avatar)} icon={<UserOutlined />} />
+                          }
                           title={member.username || member}
                           description={member.email || ''}
                         />
@@ -486,7 +467,12 @@ const Setting: React.FC = () => {
                 <Card
                   title={t('project.environment.title')}
                   extra={
-                    <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateEnv} style={{ color: '#ffffff' }}>
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      onClick={handleCreateEnv}
+                      style={{ color: '#ffffff' }}
+                    >
                       {t('project.environment.create')}
                     </Button>
                   }
@@ -518,7 +504,7 @@ const Setting: React.FC = () => {
               <div style={{ maxWidth: 800 }}>
                 <Card title={t('project.advanced.migrate')} style={{ marginBottom: 16 }}>
                   <Form
-                    onFinish={async (values) => {
+                    onFinish={async values => {
                       if (!projectId) return;
                       try {
                         await api.post('/project/migrate', {
@@ -528,14 +514,18 @@ const Setting: React.FC = () => {
                         messageApi.success(t('project.advanced.migrateSuccess'));
                         dispatch(fetchProjectDetail(projectId));
                       } catch (error: any) {
-                        messageApi.error(error.response?.data?.message || t('project.advanced.migrateFailed'));
+                        messageApi.error(
+                          error.response?.data?.message || t('project.advanced.migrateFailed')
+                        );
                       }
                     }}
                   >
                     <Form.Item
                       name="target_group_id"
                       label={t('project.advanced.targetGroup')}
-                      rules={[{ required: true, message: t('project.advanced.targetGroupRequired') }]}
+                      rules={[
+                        { required: true, message: t('project.advanced.targetGroupRequired') },
+                      ]}
                     >
                       <Select placeholder={t('project.advanced.targetGroupPlaceholder')}>
                         {groups.map((group: any) => (
@@ -554,7 +544,7 @@ const Setting: React.FC = () => {
                 </Card>
                 <Card title={t('project.advanced.copy')}>
                   <Form
-                    onFinish={async (values) => {
+                    onFinish={async values => {
                       if (!projectId) return;
                       try {
                         const response = await api.post('/project/copy', {
@@ -568,21 +558,22 @@ const Setting: React.FC = () => {
                           window.location.href = `/project/${response.data.data._id}`;
                         }
                       } catch (error: any) {
-                        messageApi.error(error.response?.data?.message || t('project.advanced.copyFailed'));
+                        messageApi.error(
+                          error.response?.data?.message || t('project.advanced.copyFailed')
+                        );
                       }
                     }}
                   >
                     <Form.Item
                       name="new_project_name"
                       label={t('project.advanced.newProjectName')}
-                      rules={[{ required: true, message: t('project.advanced.newProjectNameRequired') }]}
+                      rules={[
+                        { required: true, message: t('project.advanced.newProjectNameRequired') },
+                      ]}
                     >
                       <Input placeholder={t('project.advanced.newProjectNamePlaceholder')} />
                     </Form.Item>
-                    <Form.Item
-                      name="target_group_id"
-                      label={t('project.advanced.targetGroup')}
-                    >
+                    <Form.Item name="target_group_id" label={t('project.advanced.targetGroup')}>
                       <Select placeholder={t('project.advanced.targetGroupPlaceholder')} allowClear>
                         {groups.map((group: any) => (
                           <Option key={group._id} value={group._id}>
@@ -609,10 +600,12 @@ const Setting: React.FC = () => {
                 <Card title={t('importExport.import')} style={{ marginBottom: 16 }}>
                   <Space direction="vertical" style={{ width: '100%' }}>
                     <div>
-                      <label style={{ display: 'block', marginBottom: 8 }}>{t('importExport.format')}</label>
+                      <label style={{ display: 'block', marginBottom: 8 }}>
+                        {t('importExport.format')}
+                      </label>
                       <Select
                         value={importFormat}
-                        onChange={(value) => {
+                        onChange={value => {
                           setImportFormat(value);
                           setImportFile(null);
                           setSwaggerUrl('');
@@ -626,12 +619,10 @@ const Setting: React.FC = () => {
                       </Select>
                     </div>
                     <div>
-                      <label style={{ display: 'block', marginBottom: 8 }}>{t('importExport.importMode')}</label>
-                      <Select
-                        value={importMode}
-                        onChange={setImportMode}
-                        style={{ width: 200 }}
-                      >
+                      <label style={{ display: 'block', marginBottom: 8 }}>
+                        {t('importExport.importMode')}
+                      </label>
+                      <Select value={importMode} onChange={setImportMode} style={{ width: 200 }}>
                         <Option value="normal">{t('importExport.mode.normal')}</Option>
                         <Option value="good">{t('importExport.mode.good')}</Option>
                         <Option value="mergin">{t('importExport.mode.mergin')}</Option>
@@ -639,18 +630,20 @@ const Setting: React.FC = () => {
                     </div>
                     {importFormat === 'swagger' && (
                       <div>
-                        <label style={{ display: 'block', marginBottom: 8 }}>{t('importExport.swaggerUrl')}</label>
+                        <label style={{ display: 'block', marginBottom: 8 }}>
+                          {t('importExport.swaggerUrl')}
+                        </label>
                         <Input
-                          placeholder="https://api.example.com/swagger.json"
+                          placeholder="http://localhost:3000/swagger 或 https://api.example.com/swagger.json"
                           value={swaggerUrl}
-                          onChange={(e) => setSwaggerUrl(e.target.value)}
+                          onChange={e => setSwaggerUrl(e.target.value)}
                           style={{ width: '100%', maxWidth: 500 }}
                         />
                       </div>
                     )}
                     {importFormat !== 'swagger' || !swaggerUrl ? (
                       <Upload
-                        beforeUpload={(file) => {
+                        beforeUpload={file => {
                           setImportFile({ ...file, uid: file.uid } as UploadFile);
                           return false;
                         }}
@@ -675,28 +668,16 @@ const Setting: React.FC = () => {
                 </Card>
                 <Card title={t('importExport.export')}>
                   <Space direction="vertical" style={{ width: '100%' }}>
-                    <Button
-                      icon={<DownloadOutlined />}
-                      onClick={() => handleExport('json')}
-                    >
+                    <Button icon={<DownloadOutlined />} onClick={() => handleExport('json')}>
                       {t('importExport.exportJson')}
                     </Button>
-                    <Button
-                      icon={<DownloadOutlined />}
-                      onClick={() => handleExport('swagger')}
-                    >
+                    <Button icon={<DownloadOutlined />} onClick={() => handleExport('swagger')}>
                       {t('importExport.exportSwagger')}
                     </Button>
-                    <Button
-                      icon={<DownloadOutlined />}
-                      onClick={() => handleExport('markdown')}
-                    >
+                    <Button icon={<DownloadOutlined />} onClick={() => handleExport('markdown')}>
                       {t('importExport.exportMarkdown')}
                     </Button>
-                    <Button
-                      icon={<DownloadOutlined />}
-                      onClick={() => handleExport('html')}
-                    >
+                    <Button icon={<DownloadOutlined />} onClick={() => handleExport('html')}>
                       {t('importExport.exportHtml')}
                     </Button>
                   </Space>

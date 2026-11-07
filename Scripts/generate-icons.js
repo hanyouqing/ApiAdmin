@@ -3,7 +3,7 @@
 /**
  * 生成 ApiAdmin 项目图标
  * 基于 hanyouqing.com 的颜色方案
- * 
+ *
  * 颜色方案：
  * - 主色调（绿色）：#16a34a
  * - 主题色（深蓝）：#1a365d
@@ -45,9 +45,9 @@ const iconSizes = [
 
 // 颜色定义
 const colors = {
-  primary: '#16a34a',      // 绿色
-  theme: '#1a365d',        // 深蓝
-  tech: '#2563eb',         // 科技蓝
+  primary: '#16a34a', // 绿色
+  theme: '#1a365d', // 深蓝
+  tech: '#2563eb', // 科技蓝
   white: '#ffffff',
   dark: '#1e293b',
 };
@@ -56,7 +56,7 @@ const colors = {
 function createIconSVG(size) {
   const fontSize = Math.floor(size * 0.4);
   const letterSpacing = Math.floor(size * 0.05);
-  
+
   return `
 <svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
   <defs>
@@ -88,12 +88,10 @@ function createIconSVG(size) {
 async function generateIcon(size, filename) {
   const svg = createIconSVG(size);
   const outputPath = path.join(__dirname, '..', 'Static', 'icons', filename);
-  
+
   try {
-    await sharp(Buffer.from(svg))
-      .png()
-      .toFile(outputPath);
-    
+    await sharp(Buffer.from(svg)).png().toFile(outputPath);
+
     console.log(`✓ 生成 ${filename} (${size}x${size})`);
     return true;
   } catch (error) {
@@ -106,31 +104,25 @@ async function generateIcon(size, filename) {
 async function generateFavicon() {
   const svg = createIconSVG(32);
   const outputPath = path.join(__dirname, '..', 'Static', 'icons', 'favicon.ico');
-  
+
   try {
     // 先生成 PNG，然后转换为 ICO
-    const pngBuffer = await sharp(Buffer.from(svg))
-      .png()
-      .resize(32, 32)
-      .toBuffer();
-    
+    const pngBuffer = await sharp(Buffer.from(svg)).png().resize(32, 32).toBuffer();
+
     // 对于 ICO 格式，我们使用多个尺寸
     const sizes = [16, 32];
     const icoImages = await Promise.all(
-      sizes.map(async (size) => {
-        const resized = await sharp(Buffer.from(svg))
-          .png()
-          .resize(size, size)
-          .toBuffer();
+      sizes.map(async size => {
+        const resized = await sharp(Buffer.from(svg)).png().resize(size, size).toBuffer();
         return { size, buffer: resized };
       })
     );
-    
+
     // 简单的 ICO 文件格式（只包含 32x32）
     // 注意：这是一个简化版本，完整的 ICO 格式更复杂
     // 实际项目中建议使用专门的库如 to-ico
     await sharp(pngBuffer).toFile(outputPath.replace('.ico', '.png'));
-    
+
     // 创建 ICO 文件（使用 PNG 作为后备）
     fs.writeFileSync(outputPath, pngBuffer);
     console.log(`✓ 生成 favicon.ico`);
@@ -153,26 +145,24 @@ async function generateManifestIcons() {
 // 主函数
 async function main() {
   console.log('开始生成 ApiAdmin 图标...\n');
-  
+
   // 确保目录存在
   const imagesDir = path.join(__dirname, '..', 'Static', 'icons');
   if (!fs.existsSync(imagesDir)) {
     fs.mkdirSync(imagesDir, { recursive: true });
   }
-  
+
   // 生成所有尺寸的图标
-  const results = await Promise.all(
-    iconSizes.map(({ size, name }) => generateIcon(size, name))
-  );
-  
+  const results = await Promise.all(iconSizes.map(({ size, name }) => generateIcon(size, name)));
+
   // 生成 favicon
   await generateFavicon();
-  
+
   // 统计
   const successCount = results.filter(r => r).length;
   console.log(`\n完成！成功生成 ${successCount + 1}/${iconSizes.length + 1} 个图标文件`);
   console.log(`图标文件保存在: ${imagesDir}`);
-  
+
   // 生成 README
   const readmeContent = `# ApiAdmin 图标文件
 
@@ -236,4 +226,3 @@ node Scripts/generate-icons.js
 
 // 运行
 main().catch(console.error);
-

@@ -10,4 +10,3 @@ class PluginService {
 }
 
 export default PluginService;
-

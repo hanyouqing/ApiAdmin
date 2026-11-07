@@ -58,7 +58,8 @@ async function notifyMonitor(monitor, run) {
   const isFailure = run.status === 'failing' || run.status === 'error';
   const isSuccess = run.status === 'passing';
   const shouldNotify =
-    (isFailure && notification.on_failure !== false) || (isSuccess && notification.on_success === true);
+    (isFailure && notification.on_failure !== false) ||
+    (isSuccess && notification.on_success === true);
   if (!shouldNotify) return;
 
   const payload = {
@@ -126,10 +127,11 @@ export async function runApiMonitor(monitorId, { triggeredBy = 'manual' } = {}) 
 
   try {
     const envHint = monitor.environment_id ? { _id: monitor.environment_id } : {};
-    const { merged, baseUrl, headers: envHeaders } = await resolveEnvironmentContext(
-      monitor.project_id,
-      envHint
-    );
+    const {
+      merged,
+      baseUrl,
+      headers: envHeaders,
+    } = await resolveEnvironmentContext(monitor.project_id, envHint);
 
     let urlTemplate = monitor.request.url || '';
     if (baseUrl && urlTemplate.startsWith('/')) {
@@ -178,8 +180,8 @@ export async function runApiMonitor(monitorId, { triggeredBy = 'manual' } = {}) 
     if (!evalResult.passed) {
       status = 'failing';
       message = evalResult.results
-        .filter((r) => !r.passed)
-        .map((r) => `${r.name}: expected ${r.expected}, got ${r.actual}`)
+        .filter(r => !r.passed)
+        .map(r => `${r.name}: expected ${r.expected}, got ${r.actual}`)
         .join('; ');
     }
   } catch (error) {
@@ -208,7 +210,7 @@ export async function runApiMonitor(monitorId, { triggeredBy = 'manual' } = {}) 
   monitor.last_message = message;
   await monitor.save();
 
-  await notifyMonitor(monitor, run).catch((err) => {
+  await notifyMonitor(monitor, run).catch(err => {
     logger.warn({ error: err.message, monitorId: monitor._id }, 'Monitor notify error');
   });
 
@@ -218,7 +220,7 @@ export async function runApiMonitor(monitorId, { triggeredBy = 'manual' } = {}) 
     .skip(100)
     .select('_id');
   if (oldRuns.length) {
-    await ApiMonitorRun.deleteMany({ _id: { $in: oldRuns.map((r) => r._id) } });
+    await ApiMonitorRun.deleteMany({ _id: { $in: oldRuns.map(r => r._id) } });
   }
 
   return { monitor, run };

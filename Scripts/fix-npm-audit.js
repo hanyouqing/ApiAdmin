@@ -33,12 +33,12 @@ try {
 
   console.log('📦 重新生成 package-lock.json...');
   console.log('   注意: 如果 Node.js 版本低于 18，请先升级 Node.js\n');
-  
+
   try {
     execSync('npm install --package-lock-only --legacy-peer-deps', {
       stdio: 'inherit',
       cwd: rootDir,
-      env: { ...process.env, SKIP_PREINSTALL: 'true' }
+      env: { ...process.env, SKIP_PREINSTALL: 'true' },
     });
     console.log('\n✅ package-lock.json 已重新生成\n');
   } catch (err) {
@@ -54,6 +54,3 @@ try {
   console.error('❌ 修复失败:', error.message);
   process.exit(1);
 }
-
-
-

@@ -1,6 +1,24 @@
 import React, { useEffect } from 'react';
-import { Card, Form, Input, Button, Avatar, Upload, App, Descriptions, Tag, Space, Divider } from 'antd';
-import { UserOutlined, UploadOutlined, MailOutlined, CrownOutlined, CalendarOutlined } from '@ant-design/icons';
+import {
+  Card,
+  Form,
+  Input,
+  Button,
+  Avatar,
+  Upload,
+  App,
+  Descriptions,
+  Tag,
+  Space,
+  Divider,
+} from 'antd';
+import {
+  UserOutlined,
+  UploadOutlined,
+  MailOutlined,
+  CrownOutlined,
+  CalendarOutlined,
+} from '@ant-design/icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { updateUserInfo, getUserInfo } from '../../Reducer/Modules/User';
@@ -98,11 +116,7 @@ const Profile: React.FC = () => {
             <Descriptions.Item label={t('user.avatar')}>
               <Space>
                 <Avatar size={64} icon={<UserOutlined />} src={getAvatarUrl(user?.avatar)} />
-                <Upload
-                  beforeUpload={handleAvatarUpload}
-                  showUploadList={false}
-                  accept="image/*"
-                >
+                <Upload beforeUpload={handleAvatarUpload} showUploadList={false} accept="image/*">
                   <Button icon={<UploadOutlined />} size="small">
                     {t('user.uploadAvatar')}
                   </Button>
@@ -151,7 +165,12 @@ const Profile: React.FC = () => {
               <Input />
             </Form.Item>
             <Form.Item>
-              <Button type="primary" htmlType="submit" loading={loading} style={{ color: '#ffffff' }}>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={loading}
+                style={{ color: '#ffffff' }}
+              >
                 {t('common.save')}
               </Button>
             </Form.Item>
@@ -163,4 +182,3 @@ const Profile: React.FC = () => {
 };
 
 export default Profile;
-

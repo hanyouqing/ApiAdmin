@@ -43,7 +43,7 @@ export class HARImporter {
         return;
       }
 
-      const query = (request.queryString || []).map((q) => ({
+      const query = (request.queryString || []).map(q => ({
         name: q.name,
         type: 'string',
         required: false,
@@ -51,7 +51,7 @@ export class HARImporter {
         desc: '',
       }));
 
-      const headers = (request.headers || []).map((h) => ({
+      const headers = (request.headers || []).map(h => ({
         name: h.name,
         value: h.value,
         required: false,
@@ -115,6 +115,3 @@ export class HARImporter {
     }
   }
 }
-
-
-

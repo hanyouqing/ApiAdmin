@@ -42,6 +42,9 @@ const thirdPartyAuthConfigSchema = new Schema<IThirdPartyAuthConfig>(
 
 thirdPartyAuthConfigSchema.index({ enabled: 1 });
 
-const ThirdPartyAuthConfig = mongoose.model<IThirdPartyAuthConfig, ThirdPartyAuthConfigModel>('ThirdPartyAuthConfig', thirdPartyAuthConfigSchema);
+const ThirdPartyAuthConfig = mongoose.model<IThirdPartyAuthConfig, ThirdPartyAuthConfigModel>(
+  'ThirdPartyAuthConfig',
+  thirdPartyAuthConfigSchema
+);
 
 export default ThirdPartyAuthConfig;

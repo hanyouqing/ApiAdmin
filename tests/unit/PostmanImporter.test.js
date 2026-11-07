@@ -42,9 +42,9 @@ describe('PostmanImporter', () => {
     it('should throw error for invalid Postman collection', async () => {
       const invalidData = {};
 
-      await expect(importer.import(invalidData, { projectId: '123', userId: '456' })).rejects.toThrow(
-        'Invalid Postman collection format'
-      );
+      await expect(
+        importer.import(invalidData, { projectId: '123', userId: '456' })
+      ).rejects.toThrow('Invalid Postman collection format');
     });
 
     it('should import valid Postman collection', async () => {

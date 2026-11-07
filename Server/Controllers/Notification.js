@@ -5,7 +5,9 @@ import Notification from '../Models/Notification.js';
 import NotificationSettings from '../Models/NotificationSettings.js';
 
 class NotificationController extends BaseController {
-  static get ControllerName() { return 'NotificationController'; }
+  static get ControllerName() {
+    return 'NotificationController';
+  }
 
   static async listNotifications(ctx) {
     try {
@@ -26,10 +28,7 @@ class NotificationController extends BaseController {
       const limit = parseInt(pageSize);
 
       const [list, total, unreadCount] = await Promise.all([
-        Notification.find(query)
-          .sort({ createdAt: -1 })
-          .skip(skip)
-          .limit(limit),
+        Notification.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit),
         Notification.countDocuments(query),
         Notification.countDocuments({ userId: user._id, read: false }),
       ]);
@@ -86,9 +85,7 @@ class NotificationController extends BaseController {
       logger.error({ error }, 'Mark notification as read error');
       ctx.status = 500;
       ctx.body = NotificationController.error(
-        process.env.NODE_ENV === 'production'
-          ? '标记通知失败'
-          : error.message || '标记通知失败'
+        process.env.NODE_ENV === 'production' ? '标记通知失败' : error.message || '标记通知失败'
       );
     }
   }
@@ -102,9 +99,12 @@ class NotificationController extends BaseController {
         { read: true, readAt: new Date() }
       );
 
-      ctx.body = NotificationController.success({
-        updatedCount: result.modifiedCount,
-      }, '所有通知已标记为已读');
+      ctx.body = NotificationController.success(
+        {
+          updatedCount: result.modifiedCount,
+        },
+        '所有通知已标记为已读'
+      );
     } catch (error) {
       logger.error({ error }, 'Mark all notifications as read error');
       ctx.status = 500;
@@ -145,9 +145,7 @@ class NotificationController extends BaseController {
       logger.error({ error }, 'Delete notification error');
       ctx.status = 500;
       ctx.body = NotificationController.error(
-        process.env.NODE_ENV === 'production'
-          ? '删除通知失败'
-          : error.message || '删除通知失败'
+        process.env.NODE_ENV === 'production' ? '删除通知失败' : error.message || '删除通知失败'
       );
     }
   }
@@ -269,14 +267,17 @@ class NotificationController extends BaseController {
 
       logger.info({ userId: user._id }, 'Notification settings updated');
 
-      ctx.body = NotificationController.success({
-        email: settings.email,
-        inApp: settings.inApp,
-        webhook: settings.webhook,
-        feishu: settings.feishu,
-        dingtalk: settings.dingtalk,
-        slack: settings.slack,
-      }, '通知设置更新成功');
+      ctx.body = NotificationController.success(
+        {
+          email: settings.email,
+          inApp: settings.inApp,
+          webhook: settings.webhook,
+          feishu: settings.feishu,
+          dingtalk: settings.dingtalk,
+          slack: settings.slack,
+        },
+        '通知设置更新成功'
+      );
     } catch (error) {
       logger.error({ error }, 'Update notification settings error');
       ctx.status = 500;
@@ -290,5 +291,3 @@ class NotificationController extends BaseController {
 }
 
 export default NotificationController;
-
-

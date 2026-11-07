@@ -61,7 +61,7 @@ async function main() {
 
   console.log('⚠️  Restoring logical config. Matching collections will be replaced.');
   console.log('   Press Ctrl+C within 3s to cancel...');
-  await new Promise((r) => setTimeout(r, 3000));
+  await new Promise(r => setTimeout(r, 3000));
 
   await mongoose.connect(resolveUri());
   const db = mongoose.connection.db;
@@ -80,7 +80,7 @@ async function main() {
   console.log(`✅ Config restore complete from ${filePath}`);
 }
 
-main().catch(async (err) => {
+main().catch(async err => {
   console.error('❌', err.message || err);
   try {
     await mongoose.disconnect();

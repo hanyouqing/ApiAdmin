@@ -133,4 +133,3 @@ cd ../Server && npm install
 1. 查看项目的 `UPGRADE.md` 文档
 2. 检查 Node.js 官网文档: https://nodejs.org/
 3. 查看 nvm 文档: https://github.com/nvm-sh/nvm
-

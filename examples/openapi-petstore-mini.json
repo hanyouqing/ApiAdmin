@@ -6,13 +6,12 @@
     "version": "0.1.0"
   },
   "servers": [
-    { "url": "https://httpbin.org", "description": "Public demo host (replace with Mock when ready)" }
+    {
+      "url": "https://httpbin.org",
+      "description": "Public demo host (replace with Mock when ready)"
+    }
   ],
-  "tags": [
-    { "name": "health" },
-    { "name": "users" },
-    { "name": "orders" }
-  ],
+  "tags": [{ "name": "health" }, { "name": "users" }, { "name": "orders" }],
   "paths": {
     "/get": {
       "get": {

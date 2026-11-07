@@ -1,5 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import ProjectVariableStore, { entriesToMap, mapToEntries } from '../../Server/Models/ProjectVariableStore.js';
+import ProjectVariableStore, {
+  entriesToMap,
+  mapToEntries,
+} from '../../Server/Models/ProjectVariableStore.js';
 import { resolveEnvironmentContext } from '../../Server/Utils/variableResolver.js';
 import Project from '../../Server/Models/Project.js';
 import TestEnvironment from '../../Server/Models/TestEnvironment.js';

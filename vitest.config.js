@@ -21,16 +21,16 @@ export default defineConfig({
     testTimeout: 30000,
     fileParallelism: false,
     setupFiles: ['./tests/setup.js'],
-    exclude: ['**/node_modules/**', '**/dist/**', '**/tests/e2e/**', '**/.{idea,git,cache,output,temp}/**'],
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/tests/e2e/**',
+      '**/.{idea,git,cache,output,temp}/**',
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      exclude: [
-        'node_modules/',
-        'tests/',
-        '**/*.config.js',
-        '**/*.config.ts',
-      ],
+      exclude: ['node_modules/', 'tests/', '**/*.config.js', '**/*.config.ts'],
     },
   },
 });

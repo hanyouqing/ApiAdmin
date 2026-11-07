@@ -4,15 +4,9 @@ import Redis from 'ioredis';
 const require = createRequire(import.meta.url);
 const rateLimit = require('koa-ratelimit');
 
-const redis = process.env.REDIS_URL
-  ? new Redis(process.env.REDIS_URL)
-  : null;
+const redis = process.env.REDIS_URL ? new Redis(process.env.REDIS_URL) : null;
 
-if (
-  process.env.NODE_ENV === 'production' &&
-  !redis &&
-  process.env.REQUIRE_REDIS !== 'false'
-) {
+if (process.env.NODE_ENV === 'production' && !redis && process.env.REQUIRE_REDIS !== 'false') {
   throw new Error(
     'REDIS_URL is required in production for rate limiting. Set REQUIRE_REDIS=false only for single-instance emergency mode.'
   );
@@ -26,7 +20,7 @@ const createRateLimiter = (options = {}) => {
   } = options;
 
   const isDevelopment = process.env.NODE_ENV !== 'production';
-  
+
   // 在开发环境放宽限制
   const effectiveMax = isDevelopment ? max * 10 : max;
   const effectiveDuration = isDevelopment ? duration / 10 : duration;
@@ -36,7 +30,7 @@ const createRateLimiter = (options = {}) => {
     db: redis || new Map(),
     duration: effectiveDuration,
     max: effectiveMax,
-    id: (ctx) => {
+    id: ctx => {
       return ctx.state.user?._id?.toString() || ctx.ip;
     },
     errorMessage: message,
@@ -48,7 +42,7 @@ const createRateLimiter = (options = {}) => {
   return async (ctx, next) => {
     try {
       await limiter(ctx, next);
-      
+
       // 检查是否被限流（koa-ratelimit 会设置 ctx.status = 429）
       if (ctx.status === 429) {
         ctx.body = {

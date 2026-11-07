@@ -77,4 +77,3 @@ const Statistics: React.FC = () => {
 };
 
 export default Statistics;
-

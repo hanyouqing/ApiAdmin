@@ -55,6 +55,9 @@ interfaceCatSchema.index({ project_id: 1, parent_id: 1 });
 interfaceCatSchema.index({ project_id: 1, created_at: 1 });
 interfaceCatSchema.index({ uid: 1 });
 
-const InterfaceCat = mongoose.model<IInterfaceCat, InterfaceCatModel>('InterfaceCat', interfaceCatSchema);
+const InterfaceCat = mongoose.model<IInterfaceCat, InterfaceCatModel>(
+  'InterfaceCat',
+  interfaceCatSchema
+);
 
 export default InterfaceCat;

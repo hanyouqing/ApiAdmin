@@ -9,7 +9,9 @@ import Interface from '../Models/Interface.js';
  * 处理多用户实时编辑功能
  */
 class CollaborationController extends BaseController {
-  static get ControllerName() { return 'CollaborationController'; }
+  static get ControllerName() {
+    return 'CollaborationController';
+  }
 
   /**
    * 加入协作会话
@@ -65,17 +67,18 @@ class CollaborationController extends BaseController {
 
       logger.info({ userId: user._id, interfaceId }, 'User joined collaboration session');
 
-      ctx.body = CollaborationController.success({
-        sessionId: session._id,
-        activeUsers: session.active_users,
-      }, '加入协作会话成功');
+      ctx.body = CollaborationController.success(
+        {
+          sessionId: session._id,
+          activeUsers: session.active_users,
+        },
+        '加入协作会话成功'
+      );
     } catch (error) {
       logger.error({ error }, 'Join session error');
       ctx.status = 500;
       ctx.body = CollaborationController.error(
-        process.env.NODE_ENV === 'production'
-          ? '加入会话失败'
-          : error.message || '加入会话失败'
+        process.env.NODE_ENV === 'production' ? '加入会话失败' : error.message || '加入会话失败'
       );
     }
   }
@@ -118,9 +121,7 @@ class CollaborationController extends BaseController {
       logger.error({ error }, 'Leave session error');
       ctx.status = 500;
       ctx.body = CollaborationController.error(
-        process.env.NODE_ENV === 'production'
-          ? '离开会话失败'
-          : error.message || '离开会话失败'
+        process.env.NODE_ENV === 'production' ? '离开会话失败' : error.message || '离开会话失败'
       );
     }
   }
@@ -212,6 +213,3 @@ class CollaborationController extends BaseController {
 }
 
 export default CollaborationController;
-
-
-

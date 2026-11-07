@@ -34,7 +34,9 @@ docker build \
   --build-arg NODE_VERSION="$NODE_VERSION" \
   --build-arg NPM_VERSION="$NPM_VERSION" \
   -t apiadmin:latest \
-  "$@"
+  -t "apiadmin:${APP_VERSION}" \
+  "$@" \
+  .
 
 echo ""
 echo "✅ Docker 镜像构建完成！"

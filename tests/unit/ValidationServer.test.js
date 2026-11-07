@@ -1,6 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import mongoose from 'mongoose';
-import { validateObjectId, validateEmail, validatePassword, sanitizeString, sanitizeInput } from '../../Server/Utils/validation.js';
+import {
+  validateObjectId,
+  validateEmail,
+  validatePassword,
+  sanitizeString,
+  sanitizeInput,
+} from '../../Server/Utils/validation.js';
 
 describe('Server Validation Utils', () => {
   beforeEach(async () => {
@@ -68,4 +74,3 @@ describe('Server Validation Utils', () => {
     });
   });
 });
-

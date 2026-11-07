@@ -24,7 +24,9 @@ interface AuthenticatedContext extends Koa.Context {
  * 处理 AI 辅助接口生成、设计建议等功能
  */
 class AIAssistantController extends BaseController {
-  static get ControllerName() { return 'AIAssistantController'; }
+  static get ControllerName() {
+    return 'AIAssistantController';
+  }
 
   /**
    * 根据自然语言描述生成接口雏形
@@ -58,23 +60,27 @@ class AIAssistantController extends BaseController {
         // 尝试使用 AI 服务生成
         interfaceData = await aiService.parseInterfaceDescription(description, projectId);
       } catch (aiError: any) {
-        logger.warn({ aiError: aiError.message }, 'AI Service failed, falling back to rule-based extraction');
+        logger.warn(
+          { aiError: aiError.message },
+          'AI Service failed, falling back to rule-based extraction'
+        );
         // 降级到基础规则提取
         interfaceData = await this.fallbackParseDescription(description, project);
       }
 
       logger.info({ userId: user._id, projectId, description }, 'AI generated interface');
 
-      ctx.body = AIAssistantController.success({
-        interface: interfaceData,
-      }, '接口生成成功');
+      ctx.body = AIAssistantController.success(
+        {
+          interface: interfaceData,
+        },
+        '接口生成成功'
+      );
     } catch (error: any) {
       logger.error({ error }, 'Generate interface error');
       ctx.status = 500;
       ctx.body = AIAssistantController.error(
-        process.env.NODE_ENV === 'production'
-          ? '生成接口失败'
-          : error.message || '生成接口失败'
+        process.env.NODE_ENV === 'production' ? '生成接口失败' : error.message || '生成接口失败'
       );
     }
   }
@@ -101,7 +107,10 @@ class AIAssistantController extends BaseController {
 
       let suggestions;
       try {
-        suggestions = await aiService.getDesignReview(interfaceData, interfaceData.project_id.toString());
+        suggestions = await aiService.getDesignReview(
+          interfaceData,
+          interfaceData.project_id.toString()
+        );
       } catch (aiError) {
         // 降级到基础静态分析
         suggestions = await this.staticAnalyzeInterface(interfaceData);
@@ -151,7 +160,10 @@ class AIAssistantController extends BaseController {
 
       let suggestions;
       try {
-        const content = await aiService.generateContent(prompt, interfaceData.project_id.toString());
+        const content = await aiService.generateContent(
+          prompt,
+          interfaceData.project_id.toString()
+        );
         const jsonStr = content.replace(/```json\n?|\n?```/g, '').trim();
         suggestions = JSON.parse(jsonStr);
       } catch (error) {
@@ -214,7 +226,7 @@ class AIAssistantController extends BaseController {
           interface_id,
           project_id: interfaceData.project_id,
           name: mock.name,
-          ip_filter: mock.ip_filter || '',
+          ip_filter: (mock as { ip_filter?: string }).ip_filter || '',
           query_filter: mock.query_filter || {},
           body_filter: mock.body_filter || {},
           response: mock.response,
@@ -225,7 +237,12 @@ class AIAssistantController extends BaseController {
         await expectation.save();
         saved = expectation;
         logger.info(
-          { userId: user._id, interfaceId: interface_id, expectationId: expectation._id, source: mock.source },
+          {
+            userId: user._id,
+            interfaceId: interface_id,
+            expectationId: expectation._id,
+            source: mock.source,
+          },
           'AI mock expectation saved'
         );
       }
@@ -293,14 +310,19 @@ class AIAssistantController extends BaseController {
           action: 'ai_code_fix',
           targetId: run_id,
           targetName: result.target_name || 'code-fix',
-          userId: user._id,
+          userId: String(user._id),
           username: user.username,
           projectId: result.project_id || null,
           details: {
             run_type: result.run_type,
             source: result.source,
             file_count: result.files?.length || 0,
-            draft_pr: !!result.pull_request?.url,
+            draft_pr: !!(
+              result.pull_request &&
+              typeof result.pull_request === 'object' &&
+              'url' in result.pull_request &&
+              (result.pull_request as { url?: string }).url
+            ),
           },
           ip: ctx.ip || '',
           userAgent: ctx.headers['user-agent'] || '',
@@ -328,10 +350,15 @@ class AIAssistantController extends BaseController {
    */
   static async fallbackParseDescription(description: string, project: any) {
     const lowerDesc = description.toLowerCase();
-    const method = lowerDesc.includes('post') || lowerDesc.includes('创建') ? 'POST' :
-                   lowerDesc.includes('put') || lowerDesc.includes('更新') ? 'PUT' :
-                   lowerDesc.includes('delete') || lowerDesc.includes('删除') ? 'DELETE' : 'GET';
-    
+    const method =
+      lowerDesc.includes('post') || lowerDesc.includes('创建')
+        ? 'POST'
+        : lowerDesc.includes('put') || lowerDesc.includes('更新')
+          ? 'PUT'
+          : lowerDesc.includes('delete') || lowerDesc.includes('删除')
+            ? 'DELETE'
+            : 'GET';
+
     return {
       title: description.substring(0, 50),
       path: project.basepath + '/api/new-interface',
@@ -354,7 +381,10 @@ class AIAssistantController extends BaseController {
     if (!interfaceData.desc) {
       suggestions.push({ type: 'info', field: 'desc', message: '建议添加接口描述' });
     }
-    if (interfaceData.method === 'GET' && (!interfaceData.req_query || interfaceData.req_query.length === 0)) {
+    if (
+      interfaceData.method === 'GET' &&
+      (!interfaceData.req_query || interfaceData.req_query.length === 0)
+    ) {
       suggestions.push({ type: 'info', field: 'query', message: 'GET 接口通常需要查询参数' });
     }
     return suggestions;
@@ -367,7 +397,7 @@ class AIAssistantController extends BaseController {
     if (type === 'query') {
       return [
         { name: 'page', type: 'number', required: false, desc: '页码' },
-        { name: 'pageSize', type: 'number', required: false, desc: '每页数量' }
+        { name: 'pageSize', type: 'number', required: false, desc: '每页数量' },
       ];
     }
     return [];

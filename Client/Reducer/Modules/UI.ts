@@ -20,7 +20,7 @@ const uiSlice = createSlice({
   name: 'ui',
   initialState,
   reducers: {
-    toggleSidebar: (state) => {
+    toggleSidebar: state => {
       state.sidebarCollapsed = !state.sidebarCollapsed;
     },
     setTheme: (state, action: PayloadAction<'light' | 'dark'>) => {
@@ -37,4 +37,3 @@ const uiSlice = createSlice({
 
 export const { toggleSidebar, setTheme, setLocale, setTestPipelineRunning } = uiSlice.actions;
 export default uiSlice.reducer;
-

@@ -206,6 +206,3 @@ describe('Whitelist Controller', () => {
     });
   });
 });
-
-
-

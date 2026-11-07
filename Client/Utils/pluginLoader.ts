@@ -42,7 +42,10 @@ class PluginLoader {
   private plugins: Map<string, PluginInstance> = new Map();
   private registeredRoutes: Array<{ path: string; component: React.ComponentType<any> }> = [];
   private registeredMenus: Array<{ key: string; label: string; icon?: string; path: string }> = [];
-  private registeredTabs: Map<string, Array<{ key: string; label: string; component: React.ComponentType<any> }>> = new Map();
+  private registeredTabs: Map<
+    string,
+    Array<{ key: string; label: string; component: React.ComponentType<any> }>
+  > = new Map();
 
   /**
    * 加载插件
@@ -60,7 +63,9 @@ class PluginLoader {
       if (manifest.entry?.client) {
         try {
           // @vite-ignore - Dynamic plugin import path cannot be statically analyzed
-          const module = await import(/* @vite-ignore */ `../../Plugins/${manifest.name}/${manifest.entry.client}`);
+          const module = await import(
+            /* @vite-ignore */ `../../Plugins/${manifest.name}/${manifest.entry.client}`
+          );
           component = module.default || module;
         } catch (error) {
           console.error(`Failed to load plugin component for ${manifest.name}:`, error);
@@ -70,9 +75,9 @@ class PluginLoader {
       if (manifest.routes) {
         for (const route of manifest.routes) {
           try {
-            const routePath = route.component 
+            const routePath = route.component
               ? `../../Plugins/${manifest.name}/${route.component}`
-              : manifest.entry?.client 
+              : manifest.entry?.client
                 ? `../../Plugins/${manifest.name}/${manifest.entry.client}`
                 : null;
 
@@ -114,7 +119,9 @@ class PluginLoader {
    */
   unloadPlugin(pluginName: string): void {
     this.plugins.delete(pluginName);
-    this.registeredRoutes = this.registeredRoutes.filter(r => !r.path.startsWith(`/plugin/${pluginName}`));
+    this.registeredRoutes = this.registeredRoutes.filter(
+      r => !r.path.startsWith(`/plugin/${pluginName}`)
+    );
     this.registeredMenus = this.registeredMenus.filter(m => !m.key.startsWith(`${pluginName}:`));
     this.registeredTabs.delete(pluginName);
   }
@@ -122,7 +129,10 @@ class PluginLoader {
   /**
    * 注册插件路由
    */
-  private registerPluginRoutes(pluginName: string, routes: Array<{ path: string; component: React.ComponentType<any> }>): void {
+  private registerPluginRoutes(
+    pluginName: string,
+    routes: Array<{ path: string; component: React.ComponentType<any> }>
+  ): void {
     for (const route of routes) {
       this.registeredRoutes.push({
         path: `/plugin/${pluginName}${route.path}`,
@@ -153,20 +163,22 @@ class PluginLoader {
   private registerPluginTabs(manifest: PluginManifest): void {
     if (manifest.tabs) {
       const tabs: Array<{ key: string; label: string; component: React.ComponentType<any> }> = [];
-      
+
       for (const tab of manifest.tabs) {
         try {
           const tabPath = `../../Plugins/${manifest.name}/${tab.component}`;
           // @vite-ignore - Dynamic plugin import path cannot be statically analyzed
-          import(/* @vite-ignore */ tabPath).then(module => {
-            tabs.push({
-              key: tab.key,
-              label: tab.label,
-              component: module.default || module,
+          import(/* @vite-ignore */ tabPath)
+            .then(module => {
+              tabs.push({
+                key: tab.key,
+                label: tab.label,
+                component: module.default || module,
+              });
+            })
+            .catch(error => {
+              console.error(`Failed to load tab component for ${manifest.name}:`, error);
             });
-          }).catch(error => {
-            console.error(`Failed to load tab component for ${manifest.name}:`, error);
-          });
         } catch (error) {
           console.error(`Failed to load tab for ${manifest.name}:`, error);
         }
@@ -193,9 +205,11 @@ class PluginLoader {
   /**
    * 获取指定目标的 Tab
    */
-  getTabs(target: string): Array<{ key: string; label: string; component: React.ComponentType<any> }> {
+  getTabs(
+    target: string
+  ): Array<{ key: string; label: string; component: React.ComponentType<any> }> {
     const tabs: Array<{ key: string; label: string; component: React.ComponentType<any> }> = [];
-    
+
     for (const [pluginName, pluginTabs] of this.registeredTabs.entries()) {
       const manifest = this.plugins.get(pluginName)?.manifest;
       if (manifest?.tabs) {
@@ -228,4 +242,3 @@ class PluginLoader {
 }
 
 export const pluginLoader = new PluginLoader();
-

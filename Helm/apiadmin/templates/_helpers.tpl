@@ -59,5 +59,41 @@ Create the name of the service account to use
 {{- end }}
 {{- end }}
 
+{{- define "apiadmin.secretName" -}}
+{{- if .Values.config.existingSecret }}
+{{- .Values.config.existingSecret }}
+{{- else }}
+{{- printf "%s-secret" (include "apiadmin.fullname" .) }}
+{{- end }}
+{{- end }}
+
+{{- define "apiadmin.mongodb.host" -}}
+{{- printf "%s-mongodb" (include "apiadmin.fullname" .) }}
+{{- end }}
+
+{{- define "apiadmin.redis.host" -}}
+{{- printf "%s-redis" (include "apiadmin.fullname" .) }}
+{{- end }}
+
+{{/*
+Reuse an existing Secret value across upgrades. Otherwise use the explicit value, or generate one.
+*/}}
+{{- define "apiadmin.secretValue" -}}
+{{- $root := index . 0 -}}
+{{- $explicit := index . 1 -}}
+{{- $secretName := index . 2 -}}
+{{- $key := index . 3 -}}
+{{- if $explicit -}}
+{{- $explicit -}}
+{{- else -}}
+{{- $prev := lookup "v1" "Secret" $root.Release.Namespace $secretName -}}
+{{- if and $prev $prev.data (index $prev.data $key) -}}
+{{- index $prev.data $key | b64dec -}}
+{{- else -}}
+{{- randAlphaNum 48 -}}
+{{- end -}}
+{{- end -}}
+{{- end }}
+
 
 

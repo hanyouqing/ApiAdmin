@@ -40,7 +40,7 @@ const EmailConfig: React.FC = () => {
     try {
       const response = await api.get('/email/config');
       const data = response.data.data || {};
-      
+
       // 后端返回的数据结构需要转换
       const formData: any = {
         provider: data.provider || 'smtp',
@@ -85,7 +85,7 @@ const EmailConfig: React.FC = () => {
   const handleSave = async () => {
     try {
       const values = await form.validateFields();
-      
+
       // 将表单数据转换为后端需要的格式
       const configData: any = {
         provider: values.provider,
@@ -267,7 +267,7 @@ const EmailConfig: React.FC = () => {
     <Card title={t('admin.email.title')} loading={loading}>
       <Form form={form} layout="vertical">
         <Form.Item name="provider" label={t('admin.email.provider')} rules={[{ required: true }]}>
-          <Select onChange={(value) => setProvider(value)}>
+          <Select onChange={value => setProvider(value)}>
             <Option value="smtp">{t('admin.email.provider.smtp')}</Option>
             <Option value="sendgrid">{t('admin.email.provider.sendgrid')}</Option>
             <Option value="ses">{t('admin.email.provider.ses')}</Option>
@@ -295,4 +295,3 @@ const EmailConfig: React.FC = () => {
 };
 
 export default EmailConfig;
-

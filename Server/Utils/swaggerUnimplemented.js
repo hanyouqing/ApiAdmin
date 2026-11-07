@@ -1,9 +1,9 @@
 /**
  * ApiAdmin - 未实现功能 Swagger 定义
- * 
+ *
  * 本文档包含所有未实现功能的 Swagger/OpenAPI 定义
  * 这些定义应在功能实现后集成到主 swagger.js 文件中
- * 
+ *
  * 文档版本: 1.0
  * 创建日期: 2025-01-27
  */
@@ -23,7 +23,7 @@ export const unimplementedPaths = {
       description: 'Get list of all configured SSO providers',
       security: [{ bearerAuth: [] }],
       responses: {
-        '200': {
+        200: {
           description: 'SSO providers list',
           content: {
             'application/json': {
@@ -34,15 +34,15 @@ export const unimplementedPaths = {
                   data: {
                     type: 'array',
                     items: {
-                      $ref: '#/components/schemas/SSOProvider'
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+                      $ref: '#/components/schemas/SSOProvider',
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
     post: {
       tags: ['SSO'],
@@ -54,27 +54,27 @@ export const unimplementedPaths = {
         content: {
           'application/json': {
             schema: {
-              $ref: '#/components/schemas/SSOProviderCreate'
-            }
-          }
-        }
+              $ref: '#/components/schemas/SSOProviderCreate',
+            },
+          },
+        },
       },
       responses: {
-        '200': {
+        200: {
           description: 'SSO provider created',
           content: {
             'application/json': {
               schema: {
-                $ref: '#/components/schemas/SuccessResponse'
-              }
-            }
-          }
+                $ref: '#/components/schemas/SuccessResponse',
+              },
+            },
+          },
         },
-        '400': {
-          $ref: '#/components/responses/BadRequest'
-        }
-      }
-    }
+        400: {
+          $ref: '#/components/responses/BadRequest',
+        },
+      },
+    },
   },
   '/api/sso/providers/{id}': {
     get: {
@@ -86,11 +86,11 @@ export const unimplementedPaths = {
           name: 'id',
           in: 'path',
           required: true,
-          schema: { type: 'string' }
-        }
+          schema: { type: 'string' },
+        },
       ],
       responses: {
-        '200': {
+        200: {
           description: 'SSO provider details',
           content: {
             'application/json': {
@@ -99,17 +99,17 @@ export const unimplementedPaths = {
                 properties: {
                   success: { type: 'boolean' },
                   data: {
-                    $ref: '#/components/schemas/SSOProvider'
-                  }
-                }
-              }
-            }
-          }
+                    $ref: '#/components/schemas/SSOProvider',
+                  },
+                },
+              },
+            },
+          },
         },
-        '404': {
-          $ref: '#/components/responses/NotFound'
-        }
-      }
+        404: {
+          $ref: '#/components/responses/NotFound',
+        },
+      },
     },
     put: {
       tags: ['SSO'],
@@ -120,23 +120,23 @@ export const unimplementedPaths = {
           name: 'id',
           in: 'path',
           required: true,
-          schema: { type: 'string' }
-        }
+          schema: { type: 'string' },
+        },
       ],
       requestBody: {
         content: {
           'application/json': {
             schema: {
-              $ref: '#/components/schemas/SSOProviderUpdate'
-            }
-          }
-        }
+              $ref: '#/components/schemas/SSOProviderUpdate',
+            },
+          },
+        },
       },
       responses: {
-        '200': {
-          $ref: '#/components/responses/Success'
-        }
-      }
+        200: {
+          $ref: '#/components/responses/Success',
+        },
+      },
     },
     delete: {
       tags: ['SSO'],
@@ -147,15 +147,15 @@ export const unimplementedPaths = {
           name: 'id',
           in: 'path',
           required: true,
-          schema: { type: 'string' }
-        }
+          schema: { type: 'string' },
+        },
       ],
       responses: {
-        '200': {
-          $ref: '#/components/responses/Success'
-        }
-      }
-    }
+        200: {
+          $ref: '#/components/responses/Success',
+        },
+      },
+    },
   },
   '/api/sso/auth/{providerId}': {
     get: {
@@ -167,23 +167,23 @@ export const unimplementedPaths = {
           name: 'providerId',
           in: 'path',
           required: true,
-          schema: { type: 'string' }
+          schema: { type: 'string' },
         },
         {
           name: 'redirectUrl',
           in: 'query',
-          schema: { type: 'string' }
-        }
+          schema: { type: 'string' },
+        },
       ],
       responses: {
-        '302': {
-          description: 'Redirect to SSO provider'
+        302: {
+          description: 'Redirect to SSO provider',
         },
-        '404': {
-          $ref: '#/components/responses/NotFound'
-        }
-      }
-    }
+        404: {
+          $ref: '#/components/responses/NotFound',
+        },
+      },
+    },
   },
   '/api/sso/auth/{providerId}/callback': {
     get: {
@@ -195,42 +195,42 @@ export const unimplementedPaths = {
           name: 'providerId',
           in: 'path',
           required: true,
-          schema: { type: 'string' }
+          schema: { type: 'string' },
         },
         {
           name: 'code',
           in: 'query',
           schema: { type: 'string' },
-          description: 'OAuth/OIDC authorization code'
+          description: 'OAuth/OIDC authorization code',
         },
         {
           name: 'state',
           in: 'query',
           schema: { type: 'string' },
-          description: 'OAuth state parameter'
+          description: 'OAuth state parameter',
         },
         {
           name: 'SAMLResponse',
           in: 'query',
           schema: { type: 'string' },
-          description: 'SAML response'
+          description: 'SAML response',
         },
         {
           name: 'ticket',
           in: 'query',
           schema: { type: 'string' },
-          description: 'CAS ticket'
-        }
+          description: 'CAS ticket',
+        },
       ],
       responses: {
-        '302': {
-          description: 'Redirect to application'
+        302: {
+          description: 'Redirect to application',
         },
-        '400': {
-          $ref: '#/components/responses/BadRequest'
-        }
-      }
-    }
+        400: {
+          $ref: '#/components/responses/BadRequest',
+        },
+      },
+    },
   },
 
   // ============================================================================
@@ -245,15 +245,15 @@ export const unimplementedPaths = {
         {
           name: 'redirectUrl',
           in: 'query',
-          schema: { type: 'string' }
-        }
+          schema: { type: 'string' },
+        },
       ],
       responses: {
-        '302': {
-          description: 'Redirect to GitHub'
-        }
-      }
-    }
+        302: {
+          description: 'Redirect to GitHub',
+        },
+      },
+    },
   },
   '/api/auth/github/callback': {
     get: {
@@ -264,16 +264,16 @@ export const unimplementedPaths = {
           name: 'code',
           in: 'query',
           required: true,
-          schema: { type: 'string' }
+          schema: { type: 'string' },
         },
         {
           name: 'state',
           in: 'query',
-          schema: { type: 'string' }
-        }
+          schema: { type: 'string' },
+        },
       ],
       responses: {
-        '200': {
+        200: {
           description: 'Login successful',
           content: {
             'application/json': {
@@ -286,20 +286,20 @@ export const unimplementedPaths = {
                     properties: {
                       token: { type: 'string' },
                       user: {
-                        $ref: '#/components/schemas/User'
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
+                        $ref: '#/components/schemas/User',
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
         },
-        '403': {
-          description: 'User not in whitelist'
-        }
-      }
-    }
+        403: {
+          description: 'User not in whitelist',
+        },
+      },
+    },
   },
   '/api/auth/phone/send-code': {
     post: {
@@ -316,28 +316,28 @@ export const unimplementedPaths = {
                 phone: {
                   type: 'string',
                   pattern: '^1[3-9]\\d{9}$',
-                  description: 'Phone number'
-                }
-              }
-            }
-          }
-        }
+                  description: 'Phone number',
+                },
+              },
+            },
+          },
+        },
       },
       responses: {
-        '200': {
-          $ref: '#/components/responses/Success'
+        200: {
+          $ref: '#/components/responses/Success',
         },
-        '400': {
-          $ref: '#/components/responses/BadRequest'
+        400: {
+          $ref: '#/components/responses/BadRequest',
         },
-        '403': {
-          description: 'Phone not in whitelist'
+        403: {
+          description: 'Phone not in whitelist',
         },
-        '429': {
-          description: 'Rate limit exceeded'
-        }
-      }
-    }
+        429: {
+          description: 'Rate limit exceeded',
+        },
+      },
+    },
   },
   '/api/auth/phone/login': {
     post: {
@@ -355,15 +355,15 @@ export const unimplementedPaths = {
                 code: {
                   type: 'string',
                   pattern: '^\\d{6}$',
-                  description: '6-digit verification code'
-                }
-              }
-            }
-          }
-        }
+                  description: '6-digit verification code',
+                },
+              },
+            },
+          },
+        },
       },
       responses: {
-        '200': {
+        200: {
           description: 'Login successful',
           content: {
             'application/json': {
@@ -376,20 +376,20 @@ export const unimplementedPaths = {
                     properties: {
                       token: { type: 'string' },
                       user: {
-                        $ref: '#/components/schemas/User'
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
+                        $ref: '#/components/schemas/User',
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
         },
-        '400': {
-          description: 'Invalid or expired code'
-        }
-      }
-    }
+        400: {
+          description: 'Invalid or expired code',
+        },
+      },
+    },
   },
   '/api/auth/email/send-code': {
     post: {
@@ -405,19 +405,19 @@ export const unimplementedPaths = {
               properties: {
                 email: {
                   type: 'string',
-                  format: 'email'
-                }
-              }
-            }
-          }
-        }
+                  format: 'email',
+                },
+              },
+            },
+          },
+        },
       },
       responses: {
-        '200': {
-          $ref: '#/components/responses/Success'
-        }
-      }
-    }
+        200: {
+          $ref: '#/components/responses/Success',
+        },
+      },
+    },
   },
   '/api/auth/email/login': {
     post: {
@@ -432,14 +432,14 @@ export const unimplementedPaths = {
               required: ['email', 'code'],
               properties: {
                 email: { type: 'string', format: 'email' },
-                code: { type: 'string' }
-              }
-            }
-          }
-        }
+                code: { type: 'string' },
+              },
+            },
+          },
+        },
       },
       responses: {
-        '200': {
+        200: {
           description: 'Login successful',
           content: {
             'application/json': {
@@ -452,17 +452,17 @@ export const unimplementedPaths = {
                     properties: {
                       token: { type: 'string' },
                       user: {
-                        $ref: '#/components/schemas/User'
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+                        $ref: '#/components/schemas/User',
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   },
 
   // ============================================================================
@@ -474,7 +474,7 @@ export const unimplementedPaths = {
       summary: 'Get whitelist configuration',
       security: [{ bearerAuth: [] }],
       responses: {
-        '200': {
+        200: {
           description: 'Whitelist configuration',
           content: {
             'application/json': {
@@ -483,14 +483,14 @@ export const unimplementedPaths = {
                 properties: {
                   success: { type: 'boolean' },
                   data: {
-                    $ref: '#/components/schemas/WhitelistConfig'
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+                    $ref: '#/components/schemas/WhitelistConfig',
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
     put: {
       tags: ['Whitelist'],
@@ -500,17 +500,17 @@ export const unimplementedPaths = {
         content: {
           'application/json': {
             schema: {
-              $ref: '#/components/schemas/WhitelistConfig'
-            }
-          }
-        }
+              $ref: '#/components/schemas/WhitelistConfig',
+            },
+          },
+        },
       },
       responses: {
-        '200': {
-          $ref: '#/components/responses/Success'
-        }
-      }
-    }
+        200: {
+          $ref: '#/components/responses/Success',
+        },
+      },
+    },
   },
   '/api/whitelist/entries': {
     get: {
@@ -523,27 +523,27 @@ export const unimplementedPaths = {
           in: 'query',
           schema: {
             type: 'string',
-            enum: ['github', 'gitlab', 'gmail', 'wechat', 'phone', 'email']
-          }
+            enum: ['github', 'gitlab', 'gmail', 'wechat', 'phone', 'email'],
+          },
         },
         {
           name: 'page',
           in: 'query',
-          schema: { type: 'integer', default: 1 }
+          schema: { type: 'integer', default: 1 },
         },
         {
           name: 'pageSize',
           in: 'query',
-          schema: { type: 'integer', default: 10 }
+          schema: { type: 'integer', default: 10 },
         },
         {
           name: 'search',
           in: 'query',
-          schema: { type: 'string' }
-        }
+          schema: { type: 'string' },
+        },
       ],
       responses: {
-        '200': {
+        200: {
           description: 'Whitelist entries',
           content: {
             'application/json': {
@@ -557,20 +557,20 @@ export const unimplementedPaths = {
                       list: {
                         type: 'array',
                         items: {
-                          $ref: '#/components/schemas/WhitelistEntry'
-                        }
+                          $ref: '#/components/schemas/WhitelistEntry',
+                        },
                       },
                       pagination: {
-                        $ref: '#/components/schemas/Pagination'
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+                        $ref: '#/components/schemas/Pagination',
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
     post: {
       tags: ['Whitelist'],
@@ -581,16 +581,16 @@ export const unimplementedPaths = {
         content: {
           'application/json': {
             schema: {
-              $ref: '#/components/schemas/WhitelistEntryCreate'
-            }
-          }
-        }
+              $ref: '#/components/schemas/WhitelistEntryCreate',
+            },
+          },
+        },
       },
       responses: {
-        '200': {
-          $ref: '#/components/responses/Success'
-        }
-      }
+        200: {
+          $ref: '#/components/responses/Success',
+        },
+      },
     },
     delete: {
       tags: ['Whitelist'],
@@ -604,19 +604,19 @@ export const unimplementedPaths = {
               properties: {
                 ids: {
                   type: 'array',
-                  items: { type: 'string' }
-                }
-              }
-            }
-          }
-        }
+                  items: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
       },
       responses: {
-        '200': {
-          $ref: '#/components/responses/Success'
-        }
-      }
-    }
+        200: {
+          $ref: '#/components/responses/Success',
+        },
+      },
+    },
   },
   '/api/whitelist/entries/{id}': {
     put: {
@@ -628,23 +628,23 @@ export const unimplementedPaths = {
           name: 'id',
           in: 'path',
           required: true,
-          schema: { type: 'string' }
-        }
+          schema: { type: 'string' },
+        },
       ],
       requestBody: {
         content: {
           'application/json': {
             schema: {
-              $ref: '#/components/schemas/WhitelistEntryUpdate'
-            }
-          }
-        }
+              $ref: '#/components/schemas/WhitelistEntryUpdate',
+            },
+          },
+        },
       },
       responses: {
-        '200': {
-          $ref: '#/components/responses/Success'
-        }
-      }
+        200: {
+          $ref: '#/components/responses/Success',
+        },
+      },
     },
     delete: {
       tags: ['Whitelist'],
@@ -655,15 +655,15 @@ export const unimplementedPaths = {
           name: 'id',
           in: 'path',
           required: true,
-          schema: { type: 'string' }
-        }
+          schema: { type: 'string' },
+        },
       ],
       responses: {
-        '200': {
-          $ref: '#/components/responses/Success'
-        }
-      }
-    }
+        200: {
+          $ref: '#/components/responses/Success',
+        },
+      },
+    },
   },
   '/api/whitelist/entries/check': {
     post: {
@@ -680,16 +680,16 @@ export const unimplementedPaths = {
               properties: {
                 platform: {
                   type: 'string',
-                  enum: ['github', 'gitlab', 'gmail', 'wechat', 'phone', 'email']
+                  enum: ['github', 'gitlab', 'gmail', 'wechat', 'phone', 'email'],
                 },
-                value: { type: 'string' }
-              }
-            }
-          }
-        }
+                value: { type: 'string' },
+              },
+            },
+          },
+        },
       },
       responses: {
-        '200': {
+        200: {
           description: 'Check result',
           content: {
             'application/json': {
@@ -702,17 +702,17 @@ export const unimplementedPaths = {
                     properties: {
                       inWhitelist: { type: 'boolean' },
                       entry: {
-                        $ref: '#/components/schemas/WhitelistEntry'
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+                        $ref: '#/components/schemas/WhitelistEntry',
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   },
 
   // ============================================================================
@@ -724,7 +724,7 @@ export const unimplementedPaths = {
       summary: 'Get email service configuration',
       security: [{ bearerAuth: [] }],
       responses: {
-        '200': {
+        200: {
           description: 'Email configuration',
           content: {
             'application/json': {
@@ -733,14 +733,14 @@ export const unimplementedPaths = {
                 properties: {
                   success: { type: 'boolean' },
                   data: {
-                    $ref: '#/components/schemas/EmailConfig'
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+                    $ref: '#/components/schemas/EmailConfig',
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
     put: {
       tags: ['Email'],
@@ -750,17 +750,17 @@ export const unimplementedPaths = {
         content: {
           'application/json': {
             schema: {
-              $ref: '#/components/schemas/EmailConfig'
-            }
-          }
-        }
+              $ref: '#/components/schemas/EmailConfig',
+            },
+          },
+        },
       },
       responses: {
-        '200': {
-          $ref: '#/components/responses/Success'
-        }
-      }
-    }
+        200: {
+          $ref: '#/components/responses/Success',
+        },
+      },
+    },
   },
   '/api/email/test': {
     post: {
@@ -776,18 +776,18 @@ export const unimplementedPaths = {
               properties: {
                 to: { type: 'string', format: 'email' },
                 subject: { type: 'string' },
-                content: { type: 'string' }
-              }
-            }
-          }
-        }
+                content: { type: 'string' },
+              },
+            },
+          },
+        },
       },
       responses: {
-        '200': {
-          $ref: '#/components/responses/Success'
-        }
-      }
-    }
+        200: {
+          $ref: '#/components/responses/Success',
+        },
+      },
+    },
   },
   '/api/email/templates': {
     get: {
@@ -795,7 +795,7 @@ export const unimplementedPaths = {
       summary: 'Get email templates list',
       security: [{ bearerAuth: [] }],
       responses: {
-        '200': {
+        200: {
           description: 'Email templates',
           content: {
             'application/json': {
@@ -806,15 +806,15 @@ export const unimplementedPaths = {
                   data: {
                     type: 'array',
                     items: {
-                      $ref: '#/components/schemas/EmailTemplate'
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+                      $ref: '#/components/schemas/EmailTemplate',
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
     post: {
       tags: ['Email'],
@@ -825,17 +825,17 @@ export const unimplementedPaths = {
         content: {
           'application/json': {
             schema: {
-              $ref: '#/components/schemas/EmailTemplateCreate'
-            }
-          }
-        }
+              $ref: '#/components/schemas/EmailTemplateCreate',
+            },
+          },
+        },
       },
       responses: {
-        '200': {
-          $ref: '#/components/responses/Success'
-        }
-      }
-    }
+        200: {
+          $ref: '#/components/responses/Success',
+        },
+      },
+    },
   },
   '/api/email/templates/{id}': {
     get: {
@@ -847,11 +847,11 @@ export const unimplementedPaths = {
           name: 'id',
           in: 'path',
           required: true,
-          schema: { type: 'string' }
-        }
+          schema: { type: 'string' },
+        },
       ],
       responses: {
-        '200': {
+        200: {
           description: 'Email template',
           content: {
             'application/json': {
@@ -860,14 +860,14 @@ export const unimplementedPaths = {
                 properties: {
                   success: { type: 'boolean' },
                   data: {
-                    $ref: '#/components/schemas/EmailTemplate'
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+                    $ref: '#/components/schemas/EmailTemplate',
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
     put: {
       tags: ['Email'],
@@ -878,23 +878,23 @@ export const unimplementedPaths = {
           name: 'id',
           in: 'path',
           required: true,
-          schema: { type: 'string' }
-        }
+          schema: { type: 'string' },
+        },
       ],
       requestBody: {
         content: {
           'application/json': {
             schema: {
-              $ref: '#/components/schemas/EmailTemplateUpdate'
-            }
-          }
-        }
+              $ref: '#/components/schemas/EmailTemplateUpdate',
+            },
+          },
+        },
       },
       responses: {
-        '200': {
-          $ref: '#/components/responses/Success'
-        }
-      }
+        200: {
+          $ref: '#/components/responses/Success',
+        },
+      },
     },
     delete: {
       tags: ['Email'],
@@ -905,15 +905,15 @@ export const unimplementedPaths = {
           name: 'id',
           in: 'path',
           required: true,
-          schema: { type: 'string' }
-        }
+          schema: { type: 'string' },
+        },
       ],
       responses: {
-        '200': {
-          $ref: '#/components/responses/Success'
-        }
-      }
-    }
+        200: {
+          $ref: '#/components/responses/Success',
+        },
+      },
+    },
   },
   '/api/email/send': {
     post: {
@@ -933,29 +933,29 @@ export const unimplementedPaths = {
                     { type: 'string', format: 'email' },
                     {
                       type: 'array',
-                      items: { type: 'string', format: 'email' }
-                    }
-                  ]
+                      items: { type: 'string', format: 'email' },
+                    },
+                  ],
                 },
                 templateId: { type: 'string' },
                 variables: {
                   type: 'object',
-                  additionalProperties: true
+                  additionalProperties: true,
                 },
                 subject: { type: 'string' },
                 attachments: {
                   type: 'array',
                   items: {
-                    $ref: '#/components/schemas/EmailAttachment'
-                  }
-                }
-              }
-            }
-          }
-        }
+                    $ref: '#/components/schemas/EmailAttachment',
+                  },
+                },
+              },
+            },
+          },
+        },
       },
       responses: {
-        '200': {
+        200: {
           description: 'Email sent',
           content: {
             'application/json': {
@@ -970,17 +970,17 @@ export const unimplementedPaths = {
                       failedCount: { type: 'integer' },
                       messageIds: {
                         type: 'array',
-                        items: { type: 'string' }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+                        items: { type: 'string' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   },
 
   // ============================================================================
@@ -995,19 +995,19 @@ export const unimplementedPaths = {
         {
           name: 'enabled',
           in: 'query',
-          schema: { type: 'boolean' }
+          schema: { type: 'boolean' },
         },
         {
           name: 'category',
           in: 'query',
           schema: {
             type: 'string',
-            enum: ['export', 'import', 'mock', 'test', 'integration', 'other']
-          }
-        }
+            enum: ['export', 'import', 'mock', 'test', 'integration', 'other'],
+          },
+        },
       ],
       responses: {
-        '200': {
+        200: {
           description: 'Plugins list',
           content: {
             'application/json': {
@@ -1018,16 +1018,16 @@ export const unimplementedPaths = {
                   data: {
                     type: 'array',
                     items: {
-                      $ref: '#/components/schemas/Plugin'
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+                      $ref: '#/components/schemas/Plugin',
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   },
   '/api/plugins/{id}': {
     get: {
@@ -1039,11 +1039,11 @@ export const unimplementedPaths = {
           name: 'id',
           in: 'path',
           required: true,
-          schema: { type: 'string' }
-        }
+          schema: { type: 'string' },
+        },
       ],
       responses: {
-        '200': {
+        200: {
           description: 'Plugin details',
           content: {
             'application/json': {
@@ -1052,14 +1052,14 @@ export const unimplementedPaths = {
                 properties: {
                   success: { type: 'boolean' },
                   data: {
-                    $ref: '#/components/schemas/Plugin'
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+                    $ref: '#/components/schemas/Plugin',
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
     delete: {
       tags: ['Plugins'],
@@ -1070,15 +1070,15 @@ export const unimplementedPaths = {
           name: 'id',
           in: 'path',
           required: true,
-          schema: { type: 'string' }
-        }
+          schema: { type: 'string' },
+        },
       ],
       responses: {
-        '200': {
-          $ref: '#/components/responses/Success'
-        }
-      }
-    }
+        200: {
+          $ref: '#/components/responses/Success',
+        },
+      },
+    },
   },
   '/api/plugins/install/local': {
     post: {
@@ -1095,19 +1095,19 @@ export const unimplementedPaths = {
               properties: {
                 pluginPath: {
                   type: 'string',
-                  description: 'Plugin directory path relative to Plugins directory'
-                }
-              }
-            }
-          }
-        }
+                  description: 'Plugin directory path relative to Plugins directory',
+                },
+              },
+            },
+          },
+        },
       },
       responses: {
-        '200': {
-          $ref: '#/components/responses/Success'
-        }
-      }
-    }
+        200: {
+          $ref: '#/components/responses/Success',
+        },
+      },
+    },
   },
   '/api/plugins/install/npm': {
     post: {
@@ -1124,23 +1124,23 @@ export const unimplementedPaths = {
               properties: {
                 packageName: {
                   type: 'string',
-                  description: 'npm package name, e.g., @apiadmin/plugin-xxx'
+                  description: 'npm package name, e.g., @apiadmin/plugin-xxx',
                 },
                 version: {
                   type: 'string',
-                  description: 'Package version, default: latest'
-                }
-              }
-            }
-          }
-        }
+                  description: 'Package version, default: latest',
+                },
+              },
+            },
+          },
+        },
       },
       responses: {
-        '200': {
-          $ref: '#/components/responses/Success'
-        }
-      }
-    }
+        200: {
+          $ref: '#/components/responses/Success',
+        },
+      },
+    },
   },
   '/api/plugins/{id}/enable': {
     patch: {
@@ -1152,8 +1152,8 @@ export const unimplementedPaths = {
           name: 'id',
           in: 'path',
           required: true,
-          schema: { type: 'string' }
-        }
+          schema: { type: 'string' },
+        },
       ],
       requestBody: {
         required: true,
@@ -1163,18 +1163,18 @@ export const unimplementedPaths = {
               type: 'object',
               required: ['enabled'],
               properties: {
-                enabled: { type: 'boolean' }
-              }
-            }
-          }
-        }
+                enabled: { type: 'boolean' },
+              },
+            },
+          },
+        },
       },
       responses: {
-        '200': {
-          $ref: '#/components/responses/Success'
-        }
-      }
-    }
+        200: {
+          $ref: '#/components/responses/Success',
+        },
+      },
+    },
   },
   '/api/plugins/{id}/config': {
     get: {
@@ -1186,11 +1186,11 @@ export const unimplementedPaths = {
           name: 'id',
           in: 'path',
           required: true,
-          schema: { type: 'string' }
-        }
+          schema: { type: 'string' },
+        },
       ],
       responses: {
-        '200': {
+        200: {
           description: 'Plugin configuration',
           content: {
             'application/json': {
@@ -1203,20 +1203,20 @@ export const unimplementedPaths = {
                     properties: {
                       config: {
                         type: 'object',
-                        additionalProperties: true
+                        additionalProperties: true,
                       },
                       schema: {
                         type: 'object',
-                        description: 'JSON Schema for config validation'
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+                        description: 'JSON Schema for config validation',
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
     put: {
       tags: ['Plugins'],
@@ -1227,8 +1227,8 @@ export const unimplementedPaths = {
           name: 'id',
           in: 'path',
           required: true,
-          schema: { type: 'string' }
-        }
+          schema: { type: 'string' },
+        },
       ],
       requestBody: {
         required: true,
@@ -1239,19 +1239,19 @@ export const unimplementedPaths = {
               properties: {
                 config: {
                   type: 'object',
-                  additionalProperties: true
-                }
-              }
-            }
-          }
-        }
+                  additionalProperties: true,
+                },
+              },
+            },
+          },
+        },
       },
       responses: {
-        '200': {
-          $ref: '#/components/responses/Success'
-        }
-      }
-    }
+        200: {
+          $ref: '#/components/responses/Success',
+        },
+      },
+    },
   },
 
   // ============================================================================
@@ -1263,7 +1263,7 @@ export const unimplementedPaths = {
       summary: 'Get CLI tokens list',
       security: [{ bearerAuth: [] }],
       responses: {
-        '200': {
+        200: {
           description: 'CLI tokens list',
           content: {
             'application/json': {
@@ -1274,15 +1274,15 @@ export const unimplementedPaths = {
                   data: {
                     type: 'array',
                     items: {
-                      $ref: '#/components/schemas/CLIToken'
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+                      $ref: '#/components/schemas/CLIToken',
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
     post: {
       tags: ['CI/CD'],
@@ -1300,15 +1300,15 @@ export const unimplementedPaths = {
                 projectId: { type: 'string' },
                 expiresAt: {
                   type: 'string',
-                  format: 'date-time'
-                }
-              }
-            }
-          }
-        }
+                  format: 'date-time',
+                },
+              },
+            },
+          },
+        },
       },
       responses: {
-        '200': {
+        200: {
           description: 'CLI token generated',
           content: {
             'application/json': {
@@ -1317,15 +1317,15 @@ export const unimplementedPaths = {
                 properties: {
                   success: { type: 'boolean' },
                   data: {
-                    $ref: '#/components/schemas/CLIToken'
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+                    $ref: '#/components/schemas/CLIToken',
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   },
   '/api/cicd/test/run': {
     post: {
@@ -1343,20 +1343,20 @@ export const unimplementedPaths = {
                 collectionId: { type: 'string' },
                 environment: {
                   type: 'object',
-                  additionalProperties: true
+                  additionalProperties: true,
                 },
                 format: {
                   type: 'string',
                   enum: ['json', 'junit', 'allure'],
-                  default: 'json'
-                }
-              }
-            }
-          }
-        }
+                  default: 'json',
+                },
+              },
+            },
+          },
+        },
       },
       responses: {
-        '200': {
+        200: {
           description: 'Test report',
           content: {
             'application/json': {
@@ -1369,25 +1369,25 @@ export const unimplementedPaths = {
                     properties: {
                       report: {
                         type: 'object',
-                        description: 'Test report object'
+                        description: 'Test report object',
                       },
                       format: {
                         type: 'string',
-                        enum: ['json', 'junit', 'allure']
+                        enum: ['json', 'junit', 'allure'],
                       },
                       content: {
                         type: 'string',
-                        description: 'Formatted report content'
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+                        description: 'Formatted report content',
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   },
 
   // ============================================================================
@@ -1402,11 +1402,11 @@ export const unimplementedPaths = {
         {
           name: 'projectId',
           in: 'query',
-          schema: { type: 'string' }
-        }
+          schema: { type: 'string' },
+        },
       ],
       responses: {
-        '200': {
+        200: {
           description: 'Auto test configuration',
           content: {
             'application/json': {
@@ -1415,14 +1415,14 @@ export const unimplementedPaths = {
                 properties: {
                   success: { type: 'boolean' },
                   data: {
-                    $ref: '#/components/schemas/AutoTestConfig'
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+                    $ref: '#/components/schemas/AutoTestConfig',
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
     put: {
       tags: ['Auto Test'],
@@ -1432,17 +1432,17 @@ export const unimplementedPaths = {
         content: {
           'application/json': {
             schema: {
-              $ref: '#/components/schemas/AutoTestConfig'
-            }
-          }
-        }
+              $ref: '#/components/schemas/AutoTestConfig',
+            },
+          },
+        },
       },
       responses: {
-        '200': {
-          $ref: '#/components/responses/Success'
-        }
-      }
-    }
+        200: {
+          $ref: '#/components/responses/Success',
+        },
+      },
+    },
   },
   '/api/auto-test/generate': {
     post: {
@@ -1458,21 +1458,21 @@ export const unimplementedPaths = {
                 interfaceIds: {
                   type: 'array',
                   items: { type: 'string' },
-                  description: 'Interface IDs, empty for all imported interfaces'
+                  description: 'Interface IDs, empty for all imported interfaces',
                 },
                 projectId: { type: 'string' },
                 strategy: {
                   type: 'string',
                   enum: ['mock', 'example', 'history'],
-                  default: 'mock'
-                }
-              }
-            }
-          }
-        }
+                  default: 'mock',
+                },
+              },
+            },
+          },
+        },
       },
       responses: {
-        '200': {
+        200: {
           description: 'Test cases generated',
           content: {
             'application/json': {
@@ -1487,18 +1487,18 @@ export const unimplementedPaths = {
                       testCases: {
                         type: 'array',
                         items: {
-                          $ref: '#/components/schemas/TestCase'
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+                          $ref: '#/components/schemas/TestCase',
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   },
   '/api/test/rules': {
     get: {
@@ -1512,7 +1512,7 @@ export const unimplementedPaths = {
           in: 'query',
           required: true,
           schema: { type: 'string' },
-          description: 'Project ID'
+          description: 'Project ID',
         },
         {
           name: 'type',
@@ -1520,13 +1520,13 @@ export const unimplementedPaths = {
           required: false,
           schema: {
             type: 'string',
-            enum: ['assertion', 'request', 'response']
+            enum: ['assertion', 'request', 'response'],
           },
-          description: 'Rule type filter'
-        }
+          description: 'Rule type filter',
+        },
       ],
       responses: {
-        '200': {
+        200: {
           description: 'Test rules list',
           content: {
             'application/json': {
@@ -1537,21 +1537,21 @@ export const unimplementedPaths = {
                   data: {
                     type: 'array',
                     items: {
-                      $ref: '#/components/schemas/TestRuleConfig'
-                    }
-                  }
-                }
-              }
-            }
-          }
+                      $ref: '#/components/schemas/TestRuleConfig',
+                    },
+                  },
+                },
+              },
+            },
+          },
         },
-        '400': {
-          $ref: '#/components/responses/BadRequest'
+        400: {
+          $ref: '#/components/responses/BadRequest',
         },
-        '404': {
-          $ref: '#/components/responses/NotFound'
-        }
-      }
+        404: {
+          $ref: '#/components/responses/NotFound',
+        },
+      },
     },
     post: {
       tags: ['Test Rules'],
@@ -1563,13 +1563,13 @@ export const unimplementedPaths = {
         content: {
           'application/json': {
             schema: {
-              $ref: '#/components/schemas/TestRuleConfigCreate'
-            }
-          }
-        }
+              $ref: '#/components/schemas/TestRuleConfigCreate',
+            },
+          },
+        },
       },
       responses: {
-        '200': {
+        200: {
           description: 'Test rule created',
           content: {
             'application/json': {
@@ -1578,22 +1578,22 @@ export const unimplementedPaths = {
                 properties: {
                   success: { type: 'boolean' },
                   data: {
-                    $ref: '#/components/schemas/TestRuleConfig'
+                    $ref: '#/components/schemas/TestRuleConfig',
                   },
-                  message: { type: 'string' }
-                }
-              }
-            }
-          }
+                  message: { type: 'string' },
+                },
+              },
+            },
+          },
         },
-        '400': {
-          $ref: '#/components/responses/BadRequest'
+        400: {
+          $ref: '#/components/responses/BadRequest',
         },
-        '404': {
-          $ref: '#/components/responses/NotFound'
-        }
-      }
-    }
+        404: {
+          $ref: '#/components/responses/NotFound',
+        },
+      },
+    },
   },
   '/api/test/rules/{id}': {
     get: {
@@ -1607,11 +1607,11 @@ export const unimplementedPaths = {
           in: 'path',
           required: true,
           schema: { type: 'string' },
-          description: 'Test rule ID'
-        }
+          description: 'Test rule ID',
+        },
       ],
       responses: {
-        '200': {
+        200: {
           description: 'Test rule details',
           content: {
             'application/json': {
@@ -1620,20 +1620,20 @@ export const unimplementedPaths = {
                 properties: {
                   success: { type: 'boolean' },
                   data: {
-                    $ref: '#/components/schemas/TestRuleConfig'
-                  }
-                }
-              }
-            }
-          }
+                    $ref: '#/components/schemas/TestRuleConfig',
+                  },
+                },
+              },
+            },
+          },
         },
-        '400': {
-          $ref: '#/components/responses/BadRequest'
+        400: {
+          $ref: '#/components/responses/BadRequest',
         },
-        '404': {
-          $ref: '#/components/responses/NotFound'
-        }
-      }
+        404: {
+          $ref: '#/components/responses/NotFound',
+        },
+      },
     },
     put: {
       tags: ['Test Rules'],
@@ -1646,21 +1646,21 @@ export const unimplementedPaths = {
           in: 'path',
           required: true,
           schema: { type: 'string' },
-          description: 'Test rule ID'
-        }
+          description: 'Test rule ID',
+        },
       ],
       requestBody: {
         required: true,
         content: {
           'application/json': {
             schema: {
-              $ref: '#/components/schemas/TestRuleConfigUpdate'
-            }
-          }
-        }
+              $ref: '#/components/schemas/TestRuleConfigUpdate',
+            },
+          },
+        },
       },
       responses: {
-        '200': {
+        200: {
           description: 'Test rule updated',
           content: {
             'application/json': {
@@ -1669,21 +1669,21 @@ export const unimplementedPaths = {
                 properties: {
                   success: { type: 'boolean' },
                   data: {
-                    $ref: '#/components/schemas/TestRuleConfig'
+                    $ref: '#/components/schemas/TestRuleConfig',
                   },
-                  message: { type: 'string' }
-                }
-              }
-            }
-          }
+                  message: { type: 'string' },
+                },
+              },
+            },
+          },
         },
-        '400': {
-          $ref: '#/components/responses/BadRequest'
+        400: {
+          $ref: '#/components/responses/BadRequest',
         },
-        '404': {
-          $ref: '#/components/responses/NotFound'
-        }
-      }
+        404: {
+          $ref: '#/components/responses/NotFound',
+        },
+      },
     },
     delete: {
       tags: ['Test Rules'],
@@ -1696,11 +1696,11 @@ export const unimplementedPaths = {
           in: 'path',
           required: true,
           schema: { type: 'string' },
-          description: 'Test rule ID'
-        }
+          description: 'Test rule ID',
+        },
       ],
       responses: {
-        '200': {
+        200: {
           description: 'Test rule deleted',
           content: {
             'application/json': {
@@ -1708,20 +1708,20 @@ export const unimplementedPaths = {
                 type: 'object',
                 properties: {
                   success: { type: 'boolean' },
-                  message: { type: 'string' }
-                }
-              }
-            }
-          }
+                  message: { type: 'string' },
+                },
+              },
+            },
+          },
         },
-        '400': {
-          $ref: '#/components/responses/BadRequest'
+        400: {
+          $ref: '#/components/responses/BadRequest',
         },
-        '404': {
-          $ref: '#/components/responses/NotFound'
-        }
-      }
-    }
+        404: {
+          $ref: '#/components/responses/NotFound',
+        },
+      },
+    },
   },
   '/api/auto-test/run': {
     post: {
@@ -1736,17 +1736,17 @@ export const unimplementedPaths = {
               properties: {
                 interfaceIds: {
                   type: 'array',
-                  items: { type: 'string' }
+                  items: { type: 'string' },
                 },
                 projectId: { type: 'string' },
-                collectionId: { type: 'string' }
-              }
-            }
-          }
-        }
+                collectionId: { type: 'string' },
+              },
+            },
+          },
+        },
       },
       responses: {
-        '200': {
+        200: {
           description: 'Test results',
           content: {
             'application/json': {
@@ -1758,20 +1758,20 @@ export const unimplementedPaths = {
                     type: 'object',
                     properties: {
                       report: {
-                        $ref: '#/components/schemas/TestReport'
+                        $ref: '#/components/schemas/TestReport',
                       },
                       qualityReport: {
-                        $ref: '#/components/schemas/QualityReport'
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+                        $ref: '#/components/schemas/QualityReport',
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   },
 
   // ============================================================================
@@ -1786,29 +1786,29 @@ export const unimplementedPaths = {
         {
           name: 'unreadOnly',
           in: 'query',
-          schema: { type: 'boolean' }
+          schema: { type: 'boolean' },
         },
         {
           name: 'type',
           in: 'query',
           schema: {
             type: 'string',
-            enum: ['interface-change', 'test-failed', 'project-update', 'system']
-          }
+            enum: ['interface-change', 'test-failed', 'project-update', 'system'],
+          },
         },
         {
           name: 'page',
           in: 'query',
-          schema: { type: 'integer', default: 1 }
+          schema: { type: 'integer', default: 1 },
         },
         {
           name: 'pageSize',
           in: 'query',
-          schema: { type: 'integer', default: 10 }
-        }
+          schema: { type: 'integer', default: 10 },
+        },
       ],
       responses: {
-        '200': {
+        200: {
           description: 'Notifications list',
           content: {
             'application/json': {
@@ -1822,22 +1822,22 @@ export const unimplementedPaths = {
                       list: {
                         type: 'array',
                         items: {
-                          $ref: '#/components/schemas/Notification'
-                        }
+                          $ref: '#/components/schemas/Notification',
+                        },
                       },
                       pagination: {
-                        $ref: '#/components/schemas/Pagination'
+                        $ref: '#/components/schemas/Pagination',
                       },
-                      unreadCount: { type: 'integer' }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+                      unreadCount: { type: 'integer' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   },
   '/api/notifications/{id}/read': {
     patch: {
@@ -1849,15 +1849,15 @@ export const unimplementedPaths = {
           name: 'id',
           in: 'path',
           required: true,
-          schema: { type: 'string' }
-        }
+          schema: { type: 'string' },
+        },
       ],
       responses: {
-        '200': {
-          $ref: '#/components/responses/Success'
-        }
-      }
-    }
+        200: {
+          $ref: '#/components/responses/Success',
+        },
+      },
+    },
   },
   '/api/notifications/settings': {
     get: {
@@ -1865,7 +1865,7 @@ export const unimplementedPaths = {
       summary: 'Get notification settings',
       security: [{ bearerAuth: [] }],
       responses: {
-        '200': {
+        200: {
           description: 'Notification settings',
           content: {
             'application/json': {
@@ -1874,14 +1874,14 @@ export const unimplementedPaths = {
                 properties: {
                   success: { type: 'boolean' },
                   data: {
-                    $ref: '#/components/schemas/NotificationSettings'
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+                    $ref: '#/components/schemas/NotificationSettings',
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
     put: {
       tags: ['Notifications'],
@@ -1891,17 +1891,17 @@ export const unimplementedPaths = {
         content: {
           'application/json': {
             schema: {
-              $ref: '#/components/schemas/NotificationSettings'
-            }
-          }
-        }
+              $ref: '#/components/schemas/NotificationSettings',
+            },
+          },
+        },
       },
       responses: {
-        '200': {
-          $ref: '#/components/responses/Success'
-        }
-      }
-    }
+        200: {
+          $ref: '#/components/responses/Success',
+        },
+      },
+    },
   },
 
   // ============================================================================
@@ -1918,7 +1918,7 @@ export const unimplementedPaths = {
           in: 'query',
           required: true,
           schema: { type: 'string' },
-          description: 'Search keyword'
+          description: 'Search keyword',
         },
         {
           name: 'type',
@@ -1926,22 +1926,22 @@ export const unimplementedPaths = {
           schema: {
             type: 'string',
             enum: ['all', 'interface', 'project', 'group'],
-            default: 'all'
-          }
+            default: 'all',
+          },
         },
         {
           name: 'page',
           in: 'query',
-          schema: { type: 'integer', default: 1 }
+          schema: { type: 'integer', default: 1 },
         },
         {
           name: 'pageSize',
           in: 'query',
-          schema: { type: 'integer', default: 10 }
-        }
+          schema: { type: 'integer', default: 10 },
+        },
       ],
       responses: {
-        '200': {
+        200: {
           description: 'Search results',
           content: {
             'application/json': {
@@ -1955,22 +1955,22 @@ export const unimplementedPaths = {
                       results: {
                         type: 'array',
                         items: {
-                          $ref: '#/components/schemas/SearchResult'
-                        }
+                          $ref: '#/components/schemas/SearchResult',
+                        },
                       },
                       pagination: {
-                        $ref: '#/components/schemas/Pagination'
+                        $ref: '#/components/schemas/Pagination',
                       },
-                      total: { type: 'integer' }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+                      total: { type: 'integer' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   },
   '/api/search/suggestions': {
     get: {
@@ -1982,16 +1982,16 @@ export const unimplementedPaths = {
           name: 'q',
           in: 'query',
           required: true,
-          schema: { type: 'string' }
+          schema: { type: 'string' },
         },
         {
           name: 'limit',
           in: 'query',
-          schema: { type: 'integer', default: 5 }
-        }
+          schema: { type: 'integer', default: 5 },
+        },
       ],
       responses: {
-        '200': {
+        200: {
           description: 'Search suggestions',
           content: {
             'application/json': {
@@ -2007,19 +2007,19 @@ export const unimplementedPaths = {
                         text: { type: 'string' },
                         type: {
                           type: 'string',
-                          enum: ['interface', 'project', 'group']
+                          enum: ['interface', 'project', 'group'],
                         },
-                        count: { type: 'integer' }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+                        count: { type: 'integer' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   },
   '/api/search/history': {
     get: {
@@ -2031,11 +2031,11 @@ export const unimplementedPaths = {
         {
           name: 'limit',
           in: 'query',
-          schema: { type: 'integer', default: 10, maximum: 50 }
-        }
+          schema: { type: 'integer', default: 10, maximum: 50 },
+        },
       ],
       responses: {
-        '200': {
+        200: {
           description: 'Search history',
           content: {
             'application/json': {
@@ -2050,16 +2050,16 @@ export const unimplementedPaths = {
                       properties: {
                         query: { type: 'string' },
                         count: { type: 'integer' },
-                        lastSearchedAt: { type: 'string', format: 'date-time' }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+                        lastSearchedAt: { type: 'string', format: 'date-time' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
     delete: {
       tags: ['Search'],
@@ -2067,11 +2067,11 @@ export const unimplementedPaths = {
       description: 'Clear all search history for current user',
       security: [{ bearerAuth: [] }],
       responses: {
-        '200': {
-          $ref: '#/components/responses/Success'
-        }
-      }
-    }
+        200: {
+          $ref: '#/components/responses/Success',
+        },
+      },
+    },
   },
 
   // ============================================================================
@@ -2087,14 +2087,14 @@ export const unimplementedPaths = {
           name: 'projectId',
           in: 'path',
           required: true,
-          schema: { type: 'string' }
-        }
+          schema: { type: 'string' },
+        },
       ],
       responses: {
-        '200': {
-          $ref: '#/components/responses/Success'
-        }
-      }
+        200: {
+          $ref: '#/components/responses/Success',
+        },
+      },
     },
     delete: {
       tags: ['Projects'],
@@ -2105,15 +2105,15 @@ export const unimplementedPaths = {
           name: 'projectId',
           in: 'path',
           required: true,
-          schema: { type: 'string' }
-        }
+          schema: { type: 'string' },
+        },
       ],
       responses: {
-        '200': {
-          $ref: '#/components/responses/Success'
-        }
-      }
-    }
+        200: {
+          $ref: '#/components/responses/Success',
+        },
+      },
+    },
   },
   '/api/projects/following': {
     get: {
@@ -2124,16 +2124,16 @@ export const unimplementedPaths = {
         {
           name: 'page',
           in: 'query',
-          schema: { type: 'integer', default: 1 }
+          schema: { type: 'integer', default: 1 },
         },
         {
           name: 'pageSize',
           in: 'query',
-          schema: { type: 'integer', default: 10 }
-        }
+          schema: { type: 'integer', default: 10 },
+        },
       ],
       responses: {
-        '200': {
+        200: {
           description: 'Followed projects',
           content: {
             'application/json': {
@@ -2147,21 +2147,21 @@ export const unimplementedPaths = {
                       list: {
                         type: 'array',
                         items: {
-                          $ref: '#/components/schemas/Project'
-                        }
+                          $ref: '#/components/schemas/Project',
+                        },
                       },
                       pagination: {
-                        $ref: '#/components/schemas/Pagination'
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+                        $ref: '#/components/schemas/Pagination',
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   },
 
   // ============================================================================
@@ -2178,47 +2178,47 @@ export const unimplementedPaths = {
           in: 'query',
           schema: {
             type: 'string',
-            enum: ['project', 'interface', 'user', 'all']
-          }
+            enum: ['project', 'interface', 'user', 'all'],
+          },
         },
         {
           name: 'projectId',
           in: 'query',
-          schema: { type: 'string' }
+          schema: { type: 'string' },
         },
         {
           name: 'userId',
           in: 'query',
-          schema: { type: 'string' }
+          schema: { type: 'string' },
         },
         {
           name: 'action',
           in: 'query',
-          schema: { type: 'string' }
+          schema: { type: 'string' },
         },
         {
           name: 'startDate',
           in: 'query',
-          schema: { type: 'string', format: 'date-time' }
+          schema: { type: 'string', format: 'date-time' },
         },
         {
           name: 'endDate',
           in: 'query',
-          schema: { type: 'string', format: 'date-time' }
+          schema: { type: 'string', format: 'date-time' },
         },
         {
           name: 'page',
           in: 'query',
-          schema: { type: 'integer', default: 1 }
+          schema: { type: 'integer', default: 1 },
         },
         {
           name: 'pageSize',
           in: 'query',
-          schema: { type: 'integer', default: 10 }
-        }
+          schema: { type: 'integer', default: 10 },
+        },
       ],
       responses: {
-        '200': {
+        200: {
           description: 'Operation logs',
           content: {
             'application/json': {
@@ -2232,21 +2232,21 @@ export const unimplementedPaths = {
                       list: {
                         type: 'array',
                         items: {
-                          $ref: '#/components/schemas/OperationLog'
-                        }
+                          $ref: '#/components/schemas/OperationLog',
+                        },
                       },
                       pagination: {
-                        $ref: '#/components/schemas/Pagination'
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+                        $ref: '#/components/schemas/Pagination',
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   },
   '/api/logs/export': {
     get: {
@@ -2257,7 +2257,7 @@ export const unimplementedPaths = {
         {
           name: 'type',
           in: 'query',
-          schema: { type: 'string' }
+          schema: { type: 'string' },
         },
         {
           name: 'format',
@@ -2265,24 +2265,24 @@ export const unimplementedPaths = {
           schema: {
             type: 'string',
             enum: ['csv', 'json', 'excel'],
-            default: 'csv'
-          }
-        }
+            default: 'csv',
+          },
+        },
       ],
       responses: {
-        '200': {
+        200: {
           description: 'Exported logs file',
           content: {
             'application/octet-stream': {
               schema: {
                 type: 'string',
-                format: 'binary'
-              }
-            }
-          }
-        }
-      }
-    }
+                format: 'binary',
+              },
+            },
+          },
+        },
+      },
+    },
   },
 
   // ============================================================================
@@ -2297,21 +2297,21 @@ export const unimplementedPaths = {
         {
           name: 'role',
           in: 'query',
-          schema: { type: 'string' }
+          schema: { type: 'string' },
         },
         {
           name: 'page',
           in: 'query',
-          schema: { type: 'integer', default: 1 }
+          schema: { type: 'integer', default: 1 },
         },
         {
           name: 'pageSize',
           in: 'query',
-          schema: { type: 'integer', default: 10 }
-        }
+          schema: { type: 'integer', default: 10 },
+        },
       ],
       responses: {
-        '200': {
+        200: {
           description: 'User projects',
           content: {
             'application/json': {
@@ -2325,21 +2325,21 @@ export const unimplementedPaths = {
                       list: {
                         type: 'array',
                         items: {
-                          $ref: '#/components/schemas/Project'
-                        }
+                          $ref: '#/components/schemas/Project',
+                        },
                       },
                       pagination: {
-                        $ref: '#/components/schemas/Pagination'
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+                        $ref: '#/components/schemas/Pagination',
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   },
   '/api/user/stats': {
     get: {
@@ -2350,16 +2350,16 @@ export const unimplementedPaths = {
         {
           name: 'startDate',
           in: 'query',
-          schema: { type: 'string', format: 'date-time' }
+          schema: { type: 'string', format: 'date-time' },
         },
         {
           name: 'endDate',
           in: 'query',
-          schema: { type: 'string', format: 'date-time' }
-        }
+          schema: { type: 'string', format: 'date-time' },
+        },
       ],
       responses: {
-        '200': {
+        200: {
           description: 'User statistics',
           content: {
             'application/json': {
@@ -2368,15 +2368,15 @@ export const unimplementedPaths = {
                 properties: {
                   success: { type: 'boolean' },
                   data: {
-                    $ref: '#/components/schemas/UserStats'
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+                    $ref: '#/components/schemas/UserStats',
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   },
 
   // ============================================================================
@@ -2392,31 +2392,31 @@ export const unimplementedPaths = {
         {
           name: 'catId',
           in: 'query',
-          schema: { type: 'string' }
+          schema: { type: 'string' },
         },
         {
           name: 'tag',
           in: 'query',
-          schema: { type: 'string' }
+          schema: { type: 'string' },
         },
         {
           name: 'status',
           in: 'query',
-          schema: { type: 'string' }
+          schema: { type: 'string' },
         },
         {
           name: 'page',
           in: 'query',
-          schema: { type: 'integer', default: 1 }
+          schema: { type: 'integer', default: 1 },
         },
         {
           name: 'pageSize',
           in: 'query',
-          schema: { type: 'integer', default: 10 }
-        }
+          schema: { type: 'integer', default: 10 },
+        },
       ],
       responses: {
-        '200': {
+        200: {
           description: 'Interfaces list',
           content: {
             'application/json': {
@@ -2430,20 +2430,20 @@ export const unimplementedPaths = {
                       list: {
                         type: 'array',
                         items: {
-                          $ref: '#/components/schemas/Interface'
-                        }
+                          $ref: '#/components/schemas/Interface',
+                        },
                       },
                       pagination: {
-                        $ref: '#/components/schemas/Pagination'
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+                        $ref: '#/components/schemas/Pagination',
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
     post: {
       tags: ['OpenAPI'],
@@ -2454,17 +2454,17 @@ export const unimplementedPaths = {
         content: {
           'application/json': {
             schema: {
-              $ref: '#/components/schemas/Interface'
-            }
-          }
-        }
+              $ref: '#/components/schemas/Interface',
+            },
+          },
+        },
       },
       responses: {
-        '200': {
-          $ref: '#/components/responses/Success'
-        }
-      }
-    }
+        200: {
+          $ref: '#/components/responses/Success',
+        },
+      },
+    },
   },
   '/api/projects/{projectId}/tokens': {
     get: {
@@ -2476,11 +2476,11 @@ export const unimplementedPaths = {
           name: 'projectId',
           in: 'path',
           required: true,
-          schema: { type: 'string' }
-        }
+          schema: { type: 'string' },
+        },
       ],
       responses: {
-        '200': {
+        200: {
           description: 'Project tokens',
           content: {
             'application/json': {
@@ -2491,15 +2491,15 @@ export const unimplementedPaths = {
                   data: {
                     type: 'array',
                     items: {
-                      $ref: '#/components/schemas/ProjectToken'
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+                      $ref: '#/components/schemas/ProjectToken',
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
     post: {
       tags: ['Projects'],
@@ -2510,8 +2510,8 @@ export const unimplementedPaths = {
           name: 'projectId',
           in: 'path',
           required: true,
-          schema: { type: 'string' }
-        }
+          schema: { type: 'string' },
+        },
       ],
       requestBody: {
         required: true,
@@ -2524,15 +2524,15 @@ export const unimplementedPaths = {
                 name: { type: 'string' },
                 expiresAt: {
                   type: 'string',
-                  format: 'date-time'
-                }
-              }
-            }
-          }
-        }
+                  format: 'date-time',
+                },
+              },
+            },
+          },
+        },
       },
       responses: {
-        '200': {
+        200: {
           description: 'Project token generated',
           content: {
             'application/json': {
@@ -2541,15 +2541,15 @@ export const unimplementedPaths = {
                 properties: {
                   success: { type: 'boolean' },
                   data: {
-                    $ref: '#/components/schemas/ProjectToken'
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+                    $ref: '#/components/schemas/ProjectToken',
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   },
 
   // ============================================================================
@@ -2565,8 +2565,8 @@ export const unimplementedPaths = {
           name: 'projectId',
           in: 'path',
           required: true,
-          schema: { type: 'string' }
-        }
+          schema: { type: 'string' },
+        },
       ],
       requestBody: {
         content: {
@@ -2577,15 +2577,15 @@ export const unimplementedPaths = {
                 version: { type: 'string' },
                 theme: {
                   type: 'object',
-                  additionalProperties: true
-                }
-              }
-            }
-          }
-        }
+                  additionalProperties: true,
+                },
+              },
+            },
+          },
+        },
       },
       responses: {
-        '200': {
+        200: {
           description: 'Documentation published',
           content: {
             'application/json': {
@@ -2600,17 +2600,17 @@ export const unimplementedPaths = {
                       version: { type: 'string' },
                       publishedAt: {
                         type: 'string',
-                        format: 'date-time'
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+                        format: 'date-time',
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   },
   '/api/projects/{projectId}/docs/export/pdf': {
     get: {
@@ -2622,36 +2622,36 @@ export const unimplementedPaths = {
           name: 'projectId',
           in: 'path',
           required: true,
-          schema: { type: 'string' }
+          schema: { type: 'string' },
         },
         {
           name: 'interfaceIds',
           in: 'query',
           schema: {
             type: 'string',
-            description: 'Comma-separated interface IDs'
-          }
+            description: 'Comma-separated interface IDs',
+          },
         },
         {
           name: 'template',
           in: 'query',
-          schema: { type: 'string' }
-        }
+          schema: { type: 'string' },
+        },
       ],
       responses: {
-        '200': {
+        200: {
           description: 'PDF file',
           content: {
             'application/pdf': {
               schema: {
                 type: 'string',
-                format: 'binary'
-              }
-            }
-          }
-        }
-      }
-    }
+                format: 'binary',
+              },
+            },
+          },
+        },
+      },
+    },
   },
 
   // ============================================================================
@@ -2667,11 +2667,11 @@ export const unimplementedPaths = {
           name: 'projectId',
           in: 'path',
           required: true,
-          schema: { type: 'string' }
-        }
+          schema: { type: 'string' },
+        },
       ],
       responses: {
-        '200': {
+        200: {
           description: 'Project health metrics',
           content: {
             'application/json': {
@@ -2680,15 +2680,15 @@ export const unimplementedPaths = {
                 properties: {
                   success: { type: 'boolean' },
                   data: {
-                    $ref: '#/components/schemas/ProjectHealth'
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+                    $ref: '#/components/schemas/ProjectHealth',
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   },
   '/api/monitor/stats/api-calls': {
     get: {
@@ -2699,12 +2699,12 @@ export const unimplementedPaths = {
         {
           name: 'startDate',
           in: 'query',
-          schema: { type: 'string', format: 'date-time' }
+          schema: { type: 'string', format: 'date-time' },
         },
         {
           name: 'endDate',
           in: 'query',
-          schema: { type: 'string', format: 'date-time' }
+          schema: { type: 'string', format: 'date-time' },
         },
         {
           name: 'interval',
@@ -2712,17 +2712,17 @@ export const unimplementedPaths = {
           schema: {
             type: 'string',
             enum: ['hour', 'day', 'week', 'month'],
-            default: 'day'
-          }
+            default: 'day',
+          },
         },
         {
           name: 'interfaceId',
           in: 'query',
-          schema: { type: 'string' }
-        }
+          schema: { type: 'string' },
+        },
       ],
       responses: {
-        '200': {
+        200: {
           description: 'API call statistics',
           content: {
             'application/json': {
@@ -2731,15 +2731,15 @@ export const unimplementedPaths = {
                 properties: {
                   success: { type: 'boolean' },
                   data: {
-                    $ref: '#/components/schemas/APICallStats'
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+                    $ref: '#/components/schemas/APICallStats',
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   },
   '/api/monitor/stats/response-time': {
     get: {
@@ -2750,21 +2750,21 @@ export const unimplementedPaths = {
         {
           name: 'startDate',
           in: 'query',
-          schema: { type: 'string', format: 'date-time' }
+          schema: { type: 'string', format: 'date-time' },
         },
         {
           name: 'endDate',
           in: 'query',
-          schema: { type: 'string', format: 'date-time' }
+          schema: { type: 'string', format: 'date-time' },
         },
         {
           name: 'interfaceId',
           in: 'query',
-          schema: { type: 'string' }
-        }
+          schema: { type: 'string' },
+        },
       ],
       responses: {
-        '200': {
+        200: {
           description: 'Response time analysis',
           content: {
             'application/json': {
@@ -2773,15 +2773,15 @@ export const unimplementedPaths = {
                 properties: {
                   success: { type: 'boolean' },
                   data: {
-                    $ref: '#/components/schemas/ResponseTimeAnalysis'
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+                    $ref: '#/components/schemas/ResponseTimeAnalysis',
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   },
   '/api/monitor/stats/error-rate': {
     get: {
@@ -2792,21 +2792,21 @@ export const unimplementedPaths = {
         {
           name: 'startDate',
           in: 'query',
-          schema: { type: 'string', format: 'date-time' }
+          schema: { type: 'string', format: 'date-time' },
         },
         {
           name: 'endDate',
           in: 'query',
-          schema: { type: 'string', format: 'date-time' }
+          schema: { type: 'string', format: 'date-time' },
         },
         {
           name: 'interfaceId',
           in: 'query',
-          schema: { type: 'string' }
-        }
+          schema: { type: 'string' },
+        },
       ],
       responses: {
-        '200': {
+        200: {
           description: 'Error rate statistics',
           content: {
             'application/json': {
@@ -2815,16 +2815,16 @@ export const unimplementedPaths = {
                 properties: {
                   success: { type: 'boolean' },
                   data: {
-                    $ref: '#/components/schemas/ErrorRateStats'
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
+                    $ref: '#/components/schemas/ErrorRateStats',
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
 };
 
 /**
@@ -2840,22 +2840,22 @@ export const unimplementedComponents = {
         name: { type: 'string' },
         type: {
           type: 'string',
-          enum: ['saml', 'oauth2', 'oidc', 'ldap', 'cas']
+          enum: ['saml', 'oauth2', 'oidc', 'ldap', 'cas'],
         },
         enabled: { type: 'boolean' },
         description: { type: 'string' },
         config: {
           type: 'object',
-          additionalProperties: true
+          additionalProperties: true,
         },
         roleMapping: {
           type: 'object',
-          additionalProperties: { type: 'string' }
+          additionalProperties: { type: 'string' },
         },
         autoCreateUser: { type: 'boolean' },
         createdAt: { type: 'string', format: 'date-time' },
-        updatedAt: { type: 'string', format: 'date-time' }
-      }
+        updatedAt: { type: 'string', format: 'date-time' },
+      },
     },
     SSOProviderCreate: {
       type: 'object',
@@ -2864,19 +2864,19 @@ export const unimplementedComponents = {
         name: { type: 'string' },
         type: {
           type: 'string',
-          enum: ['saml', 'oauth2', 'oidc', 'ldap', 'cas']
+          enum: ['saml', 'oauth2', 'oidc', 'ldap', 'cas'],
         },
         enabled: { type: 'boolean', default: true },
         config: {
           type: 'object',
-          additionalProperties: true
+          additionalProperties: true,
         },
         roleMapping: {
           type: 'object',
-          additionalProperties: { type: 'string' }
+          additionalProperties: { type: 'string' },
         },
-        autoCreateUser: { type: 'boolean', default: true }
-      }
+        autoCreateUser: { type: 'boolean', default: true },
+      },
     },
     SSOProviderUpdate: {
       type: 'object',
@@ -2885,14 +2885,14 @@ export const unimplementedComponents = {
         enabled: { type: 'boolean' },
         config: {
           type: 'object',
-          additionalProperties: true
+          additionalProperties: true,
         },
         roleMapping: {
           type: 'object',
-          additionalProperties: { type: 'string' }
+          additionalProperties: { type: 'string' },
         },
-        autoCreateUser: { type: 'boolean' }
-      }
+        autoCreateUser: { type: 'boolean' },
+      },
     },
     WhitelistConfig: {
       type: 'object',
@@ -2902,10 +2902,10 @@ export const unimplementedComponents = {
           type: 'array',
           items: {
             type: 'string',
-            enum: ['github', 'gitlab', 'gmail', 'wechat', 'phone', 'email']
-          }
-        }
-      }
+            enum: ['github', 'gitlab', 'gmail', 'wechat', 'phone', 'email'],
+          },
+        },
+      },
     },
     WhitelistEntry: {
       type: 'object',
@@ -2913,7 +2913,7 @@ export const unimplementedComponents = {
         id: { type: 'string' },
         platform: {
           type: 'string',
-          enum: ['github', 'gitlab', 'gmail', 'wechat', 'phone', 'email']
+          enum: ['github', 'gitlab', 'gmail', 'wechat', 'phone', 'email'],
         },
         value: { type: 'string' },
         description: { type: 'string' },
@@ -2923,10 +2923,10 @@ export const unimplementedComponents = {
           type: 'object',
           properties: {
             id: { type: 'string' },
-            username: { type: 'string' }
-          }
-        }
-      }
+            username: { type: 'string' },
+          },
+        },
+      },
     },
     WhitelistEntryCreate: {
       type: 'object',
@@ -2934,26 +2934,26 @@ export const unimplementedComponents = {
       properties: {
         platform: {
           type: 'string',
-          enum: ['github', 'gitlab', 'gmail', 'wechat', 'phone', 'email']
+          enum: ['github', 'gitlab', 'gmail', 'wechat', 'phone', 'email'],
         },
         value: { type: 'string' },
-        description: { type: 'string' }
-      }
+        description: { type: 'string' },
+      },
     },
     WhitelistEntryUpdate: {
       type: 'object',
       properties: {
         value: { type: 'string' },
         description: { type: 'string' },
-        enabled: { type: 'boolean' }
-      }
+        enabled: { type: 'boolean' },
+      },
     },
     EmailConfig: {
       type: 'object',
       properties: {
         provider: {
           type: 'string',
-          enum: ['smtp', 'sendgrid', 'ses', 'aliyun']
+          enum: ['smtp', 'sendgrid', 'ses', 'aliyun'],
         },
         smtp: {
           type: 'object',
@@ -2965,41 +2965,41 @@ export const unimplementedComponents = {
               type: 'object',
               properties: {
                 user: { type: 'string' },
-                pass: { type: 'string' }
-              }
-            }
-          }
+                pass: { type: 'string' },
+              },
+            },
+          },
         },
         sendgrid: {
           type: 'object',
           properties: {
-            apiKey: { type: 'string' }
-          }
+            apiKey: { type: 'string' },
+          },
         },
         ses: {
           type: 'object',
           properties: {
             accessKeyId: { type: 'string' },
             secretAccessKey: { type: 'string' },
-            region: { type: 'string' }
-          }
+            region: { type: 'string' },
+          },
         },
         aliyun: {
           type: 'object',
           properties: {
             accessKeyId: { type: 'string' },
             accessKeySecret: { type: 'string' },
-            region: { type: 'string' }
-          }
+            region: { type: 'string' },
+          },
         },
         from: {
           type: 'object',
           properties: {
             name: { type: 'string' },
-            email: { type: 'string', format: 'email' }
-          }
-        }
-      }
+            email: { type: 'string', format: 'email' },
+          },
+        },
+      },
     },
     EmailTemplate: {
       type: 'object',
@@ -3008,18 +3008,18 @@ export const unimplementedComponents = {
         name: { type: 'string' },
         type: {
           type: 'string',
-          enum: ['verification', 'welcome', 'password-reset', 'interface-change', 'custom']
+          enum: ['verification', 'welcome', 'password-reset', 'interface-change', 'custom'],
         },
         subject: { type: 'string' },
         html: { type: 'string' },
         text: { type: 'string' },
         variables: {
           type: 'array',
-          items: { type: 'string' }
+          items: { type: 'string' },
         },
         createdAt: { type: 'string', format: 'date-time' },
-        updatedAt: { type: 'string', format: 'date-time' }
-      }
+        updatedAt: { type: 'string', format: 'date-time' },
+      },
     },
     EmailTemplateCreate: {
       type: 'object',
@@ -3028,16 +3028,16 @@ export const unimplementedComponents = {
         name: { type: 'string' },
         type: {
           type: 'string',
-          enum: ['verification', 'welcome', 'password-reset', 'interface-change', 'custom']
+          enum: ['verification', 'welcome', 'password-reset', 'interface-change', 'custom'],
         },
         subject: { type: 'string' },
         html: { type: 'string' },
         text: { type: 'string' },
         variables: {
           type: 'array',
-          items: { type: 'string' }
-        }
-      }
+          items: { type: 'string' },
+        },
+      },
     },
     EmailTemplateUpdate: {
       type: 'object',
@@ -3048,17 +3048,17 @@ export const unimplementedComponents = {
         text: { type: 'string' },
         variables: {
           type: 'array',
-          items: { type: 'string' }
-        }
-      }
+          items: { type: 'string' },
+        },
+      },
     },
     EmailAttachment: {
       type: 'object',
       properties: {
         filename: { type: 'string' },
         content: { type: 'string', description: 'Base64 encoded content' },
-        contentType: { type: 'string' }
-      }
+        contentType: { type: 'string' },
+      },
     },
     TestRuleConfig: {
       type: 'object',
@@ -3068,7 +3068,7 @@ export const unimplementedComponents = {
         name: { type: 'string' },
         type: {
           type: 'string',
-          enum: ['assertion', 'request', 'response']
+          enum: ['assertion', 'request', 'response'],
         },
         enabled: { type: 'boolean' },
         assertion_rules: {
@@ -3085,11 +3085,11 @@ export const unimplementedComponents = {
                 properties: {
                   name: { type: 'string' },
                   script: { type: 'string' },
-                  description: { type: 'string' }
-                }
-              }
-            }
-          }
+                  description: { type: 'string' },
+                },
+              },
+            },
+          },
         },
         request_config: {
           type: 'object',
@@ -3101,9 +3101,9 @@ export const unimplementedComponents = {
             verify_ssl: { type: 'boolean' },
             default_headers: {
               type: 'object',
-              additionalProperties: true
-            }
-          }
+              additionalProperties: true,
+            },
+          },
         },
         response_config: {
           type: 'object',
@@ -3118,18 +3118,18 @@ export const unimplementedComponents = {
                   path: { type: 'string' },
                   type: {
                     type: 'string',
-                    enum: ['json', 'header', 'cookie']
-                  }
-                }
-              }
-            }
-          }
+                    enum: ['json', 'header', 'cookie'],
+                  },
+                },
+              },
+            },
+          },
         },
         description: { type: 'string' },
         createdBy: { type: 'string' },
         createdAt: { type: 'string', format: 'date-time' },
-        updatedAt: { type: 'string', format: 'date-time' }
-      }
+        updatedAt: { type: 'string', format: 'date-time' },
+      },
     },
     TestRuleConfigCreate: {
       type: 'object',
@@ -3139,7 +3139,7 @@ export const unimplementedComponents = {
         name: { type: 'string' },
         type: {
           type: 'string',
-          enum: ['assertion', 'request', 'response']
+          enum: ['assertion', 'request', 'response'],
         },
         enabled: { type: 'boolean' },
         assertion_rules: {
@@ -3156,11 +3156,11 @@ export const unimplementedComponents = {
                 properties: {
                   name: { type: 'string' },
                   script: { type: 'string' },
-                  description: { type: 'string' }
-                }
-              }
-            }
-          }
+                  description: { type: 'string' },
+                },
+              },
+            },
+          },
         },
         request_config: {
           type: 'object',
@@ -3172,9 +3172,9 @@ export const unimplementedComponents = {
             verify_ssl: { type: 'boolean' },
             default_headers: {
               type: 'object',
-              additionalProperties: true
-            }
-          }
+              additionalProperties: true,
+            },
+          },
         },
         response_config: {
           type: 'object',
@@ -3189,15 +3189,15 @@ export const unimplementedComponents = {
                   path: { type: 'string' },
                   type: {
                     type: 'string',
-                    enum: ['json', 'header', 'cookie']
-                  }
-                }
-              }
-            }
-          }
+                    enum: ['json', 'header', 'cookie'],
+                  },
+                },
+              },
+            },
+          },
         },
-        description: { type: 'string' }
-      }
+        description: { type: 'string' },
+      },
     },
     TestRuleConfigUpdate: {
       type: 'object',
@@ -3206,18 +3206,18 @@ export const unimplementedComponents = {
         enabled: { type: 'boolean' },
         assertion_rules: {
           type: 'object',
-          additionalProperties: true
+          additionalProperties: true,
         },
         request_config: {
           type: 'object',
-          additionalProperties: true
+          additionalProperties: true,
         },
         response_config: {
           type: 'object',
-          additionalProperties: true
+          additionalProperties: true,
         },
-        description: { type: 'string' }
-      }
+        description: { type: 'string' },
+      },
     },
     Plugin: {
       type: 'object',
@@ -3232,7 +3232,7 @@ export const unimplementedComponents = {
         icon: { type: 'string' },
         category: {
           type: 'string',
-          enum: ['export', 'import', 'mock', 'test', 'integration', 'other']
+          enum: ['export', 'import', 'mock', 'test', 'integration', 'other'],
         },
         enabled: { type: 'boolean' },
         installed: { type: 'boolean' },
@@ -3240,7 +3240,7 @@ export const unimplementedComponents = {
         latestVersion: { type: 'string' },
         dependencies: {
           type: 'object',
-          additionalProperties: { type: 'string' }
+          additionalProperties: { type: 'string' },
         },
         routes: {
           type: 'array',
@@ -3248,25 +3248,25 @@ export const unimplementedComponents = {
             type: 'object',
             properties: {
               path: { type: 'string' },
-              method: { type: 'string' }
-            }
-          }
+              method: { type: 'string' },
+            },
+          },
         },
         hooks: {
           type: 'array',
-          items: { type: 'string' }
+          items: { type: 'string' },
         },
         permissions: {
           type: 'array',
-          items: { type: 'string' }
+          items: { type: 'string' },
         },
         config: {
           type: 'object',
-          additionalProperties: true
+          additionalProperties: true,
         },
         installedAt: { type: 'string', format: 'date-time' },
-        updatedAt: { type: 'string', format: 'date-time' }
-      }
+        updatedAt: { type: 'string', format: 'date-time' },
+      },
     },
     CLIToken: {
       type: 'object',
@@ -3277,8 +3277,8 @@ export const unimplementedComponents = {
         projectId: { type: 'string' },
         expiresAt: { type: 'string', format: 'date-time' },
         lastUsedAt: { type: 'string', format: 'date-time' },
-        createdAt: { type: 'string', format: 'date-time' }
-      }
+        createdAt: { type: 'string', format: 'date-time' },
+      },
     },
     AutoTestConfig: {
       type: 'object',
@@ -3288,12 +3288,12 @@ export const unimplementedComponents = {
         autoExecute: { type: 'boolean' },
         dataGenerationStrategy: {
           type: 'string',
-          enum: ['mock', 'example', 'history']
+          enum: ['mock', 'example', 'history'],
         },
         assertionTemplate: { type: 'string' },
         timeout: { type: 'integer', description: 'Timeout in milliseconds' },
-        retryCount: { type: 'integer' }
-      }
+        retryCount: { type: 'integer' },
+      },
     },
     Notification: {
       type: 'object',
@@ -3301,7 +3301,7 @@ export const unimplementedComponents = {
         id: { type: 'string' },
         type: {
           type: 'string',
-          enum: ['interface-change', 'test-failed', 'project-update', 'system']
+          enum: ['interface-change', 'test-failed', 'project-update', 'system'],
         },
         title: { type: 'string' },
         content: { type: 'string' },
@@ -3310,9 +3310,9 @@ export const unimplementedComponents = {
         createdAt: { type: 'string', format: 'date-time' },
         metadata: {
           type: 'object',
-          additionalProperties: true
-        }
-      }
+          additionalProperties: true,
+        },
+      },
     },
     NotificationSettings: {
       type: 'object',
@@ -3323,8 +3323,8 @@ export const unimplementedComponents = {
             interfaceChange: { type: 'boolean' },
             testFailed: { type: 'boolean' },
             projectUpdate: { type: 'boolean' },
-            system: { type: 'boolean' }
-          }
+            system: { type: 'boolean' },
+          },
         },
         inApp: {
           type: 'object',
@@ -3332,15 +3332,15 @@ export const unimplementedComponents = {
             interfaceChange: { type: 'boolean' },
             testFailed: { type: 'boolean' },
             projectUpdate: { type: 'boolean' },
-            system: { type: 'boolean' }
-          }
+            system: { type: 'boolean' },
+          },
         },
         webhook: {
           type: 'object',
           properties: {
             enabled: { type: 'boolean' },
-            url: { type: 'string', format: 'uri' }
-          }
+            url: { type: 'string', format: 'uri' },
+          },
         },
         feishu: {
           type: 'object',
@@ -3351,8 +3351,8 @@ export const unimplementedComponents = {
             interfaceChange: { type: 'boolean' },
             testFailed: { type: 'boolean' },
             projectUpdate: { type: 'boolean' },
-            system: { type: 'boolean' }
-          }
+            system: { type: 'boolean' },
+          },
         },
         dingtalk: {
           type: 'object',
@@ -3363,8 +3363,8 @@ export const unimplementedComponents = {
             interfaceChange: { type: 'boolean' },
             testFailed: { type: 'boolean' },
             projectUpdate: { type: 'boolean' },
-            system: { type: 'boolean' }
-          }
+            system: { type: 'boolean' },
+          },
         },
         slack: {
           type: 'object',
@@ -3375,17 +3375,17 @@ export const unimplementedComponents = {
             interfaceChange: { type: 'boolean' },
             testFailed: { type: 'boolean' },
             projectUpdate: { type: 'boolean' },
-            system: { type: 'boolean' }
-          }
-        }
-      }
+            system: { type: 'boolean' },
+          },
+        },
+      },
     },
     SearchResult: {
       type: 'object',
       properties: {
         type: {
           type: 'string',
-          enum: ['interface', 'project', 'group']
+          enum: ['interface', 'project', 'group'],
         },
         id: { type: 'string' },
         title: { type: 'string' },
@@ -3394,9 +3394,9 @@ export const unimplementedComponents = {
         score: { type: 'number', description: 'Relevance score' },
         metadata: {
           type: 'object',
-          additionalProperties: true
-        }
-      }
+          additionalProperties: true,
+        },
+      },
     },
     OperationLog: {
       type: 'object',
@@ -3404,7 +3404,7 @@ export const unimplementedComponents = {
         id: { type: 'string' },
         type: {
           type: 'string',
-          enum: ['project', 'interface', 'user']
+          enum: ['project', 'interface', 'user'],
         },
         action: { type: 'string' },
         targetId: { type: 'string' },
@@ -3413,12 +3413,12 @@ export const unimplementedComponents = {
         username: { type: 'string' },
         details: {
           type: 'object',
-          additionalProperties: true
+          additionalProperties: true,
         },
         ip: { type: 'string' },
         userAgent: { type: 'string' },
-        createdAt: { type: 'string', format: 'date-time' }
-      }
+        createdAt: { type: 'string', format: 'date-time' },
+      },
     },
     UserStats: {
       type: 'object',
@@ -3426,7 +3426,7 @@ export const unimplementedComponents = {
         totalActions: { type: 'integer' },
         actionsByType: {
           type: 'object',
-          additionalProperties: { type: 'integer' }
+          additionalProperties: { type: 'integer' },
         },
         actionsByDate: {
           type: 'array',
@@ -3434,14 +3434,14 @@ export const unimplementedComponents = {
             type: 'object',
             properties: {
               date: { type: 'string', format: 'date' },
-              count: { type: 'integer' }
-            }
-          }
+              count: { type: 'integer' },
+            },
+          },
         },
         projectsContributed: { type: 'integer' },
         interfacesCreated: { type: 'integer' },
-        testsRun: { type: 'integer' }
-      }
+        testsRun: { type: 'integer' },
+      },
     },
     ProjectToken: {
       type: 'object',
@@ -3451,8 +3451,8 @@ export const unimplementedComponents = {
         name: { type: 'string' },
         expiresAt: { type: 'string', format: 'date-time' },
         lastUsedAt: { type: 'string', format: 'date-time' },
-        createdAt: { type: 'string', format: 'date-time' }
-      }
+        createdAt: { type: 'string', format: 'date-time' },
+      },
     },
     ProjectHealth: {
       type: 'object',
@@ -3467,23 +3467,23 @@ export const unimplementedComponents = {
           properties: {
             totalMembers: { type: 'integer' },
             activeMembers: { type: 'integer' },
-            contributionScore: { type: 'integer' }
-          }
+            contributionScore: { type: 'integer' },
+          },
         },
         changeFrequency: {
           type: 'object',
           properties: {
             daily: { type: 'integer' },
             weekly: { type: 'integer' },
-            monthly: { type: 'integer' }
-          }
+            monthly: { type: 'integer' },
+          },
         },
         score: { type: 'integer', description: 'Overall health score (0-100)' },
         trend: {
           type: 'string',
-          enum: ['improving', 'stable', 'declining']
-        }
-      }
+          enum: ['improving', 'stable', 'declining'],
+        },
+      },
     },
     APICallStats: {
       type: 'object',
@@ -3499,9 +3499,9 @@ export const unimplementedComponents = {
               time: { type: 'string', format: 'date-time' },
               total: { type: 'integer' },
               success: { type: 'integer' },
-              failed: { type: 'integer' }
-            }
-          }
+              failed: { type: 'integer' },
+            },
+          },
         },
         byInterface: {
           type: 'array',
@@ -3512,9 +3512,9 @@ export const unimplementedComponents = {
               interfaceName: { type: 'string' },
               total: { type: 'integer' },
               success: { type: 'integer' },
-              failed: { type: 'integer' }
-            }
-          }
+              failed: { type: 'integer' },
+            },
+          },
         },
         byUser: {
           type: 'array',
@@ -3524,11 +3524,11 @@ export const unimplementedComponents = {
               userId: { type: 'string' },
               username: { type: 'string' },
               total: { type: 'integer' },
-              frequency: { type: 'number' }
-            }
-          }
-        }
-      }
+              frequency: { type: 'number' },
+            },
+          },
+        },
+      },
     },
     ResponseTimeAnalysis: {
       type: 'object',
@@ -3543,9 +3543,9 @@ export const unimplementedComponents = {
             type: 'object',
             properties: {
               range: { type: 'string' },
-              count: { type: 'integer' }
-            }
-          }
+              count: { type: 'integer' },
+            },
+          },
         },
         trend: {
           type: 'array',
@@ -3556,9 +3556,9 @@ export const unimplementedComponents = {
               average: { type: 'number' },
               p50: { type: 'number' },
               p95: { type: 'number' },
-              p99: { type: 'number' }
-            }
-          }
+              p99: { type: 'number' },
+            },
+          },
         },
         slowInterfaces: {
           type: 'array',
@@ -3568,11 +3568,11 @@ export const unimplementedComponents = {
               interfaceId: { type: 'string' },
               interfaceName: { type: 'string' },
               averageResponseTime: { type: 'number' },
-              p95: { type: 'number' }
-            }
-          }
-        }
-      }
+              p95: { type: 'number' },
+            },
+          },
+        },
+      },
     },
     ErrorRateStats: {
       type: 'object',
@@ -3580,7 +3580,7 @@ export const unimplementedComponents = {
         overall: { type: 'number', description: 'Overall error rate' },
         byStatusCode: {
           type: 'object',
-          additionalProperties: { type: 'integer' }
+          additionalProperties: { type: 'integer' },
         },
         trend: {
           type: 'array',
@@ -3588,9 +3588,9 @@ export const unimplementedComponents = {
             type: 'object',
             properties: {
               date: { type: 'string', format: 'date' },
-              errorRate: { type: 'number' }
-            }
-          }
+              errorRate: { type: 'number' },
+            },
+          },
         },
         errors: {
           type: 'array',
@@ -3600,11 +3600,11 @@ export const unimplementedComponents = {
               interfaceId: { type: 'string' },
               statusCode: { type: 'integer' },
               count: { type: 'integer' },
-              lastOccurredAt: { type: 'string', format: 'date-time' }
-            }
-          }
-        }
-      }
+              lastOccurredAt: { type: 'string', format: 'date-time' },
+            },
+          },
+        },
+      },
     },
     TestReport: {
       type: 'object',
@@ -3621,14 +3621,14 @@ export const unimplementedComponents = {
               testCaseId: { type: 'string' },
               status: {
                 type: 'string',
-                enum: ['passed', 'failed']
+                enum: ['passed', 'failed'],
               },
               duration: { type: 'number' },
-              error: { type: 'string' }
-            }
-          }
-        }
-      }
+              error: { type: 'string' },
+            },
+          },
+        },
+      },
     },
     QualityReport: {
       type: 'object',
@@ -3645,17 +3645,17 @@ export const unimplementedComponents = {
               interfaceId: { type: 'string' },
               type: {
                 type: 'string',
-                enum: ['not-accessible', 'format-mismatch', 'missing-params', 'type-mismatch']
+                enum: ['not-accessible', 'format-mismatch', 'missing-params', 'type-mismatch'],
               },
-              message: { type: 'string' }
-            }
-          }
+              message: { type: 'string' },
+            },
+          },
         },
         suggestions: {
           type: 'array',
-          items: { type: 'string' }
-        }
-      }
+          items: { type: 'string' },
+        },
+      },
     },
     Pagination: {
       type: 'object',
@@ -3663,8 +3663,8 @@ export const unimplementedComponents = {
         page: { type: 'integer' },
         pageSize: { type: 'integer' },
         total: { type: 'integer' },
-        totalPages: { type: 'integer' }
-      }
+        totalPages: { type: 'integer' },
+      },
     },
     SuccessResponse: {
       type: 'object',
@@ -3676,19 +3676,19 @@ export const unimplementedComponents = {
             { type: 'array' },
             { type: 'string' },
             { type: 'number' },
-            { type: 'boolean' }
-          ]
+            { type: 'boolean' },
+          ],
         },
-        message: { type: 'string' }
-      }
+        message: { type: 'string' },
+      },
     },
     SearchHistory: {
       type: 'object',
       properties: {
         query: { type: 'string' },
         count: { type: 'integer' },
-        lastSearchedAt: { type: 'string', format: 'date-time' }
-      }
+        lastSearchedAt: { type: 'string', format: 'date-time' },
+      },
     },
     TestRuleConfig: {
       type: 'object',
@@ -3698,7 +3698,7 @@ export const unimplementedComponents = {
         name: { type: 'string' },
         type: {
           type: 'string',
-          enum: ['assertion', 'request', 'response']
+          enum: ['assertion', 'request', 'response'],
         },
         enabled: { type: 'boolean' },
         assertion_rules: {
@@ -3715,11 +3715,11 @@ export const unimplementedComponents = {
                 properties: {
                   name: { type: 'string' },
                   script: { type: 'string' },
-                  description: { type: 'string' }
-                }
-              }
-            }
-          }
+                  description: { type: 'string' },
+                },
+              },
+            },
+          },
         },
         request_config: {
           type: 'object',
@@ -3731,9 +3731,9 @@ export const unimplementedComponents = {
             verify_ssl: { type: 'boolean' },
             default_headers: {
               type: 'object',
-              additionalProperties: { type: 'string' }
-            }
-          }
+              additionalProperties: { type: 'string' },
+            },
+          },
         },
         response_config: {
           type: 'object',
@@ -3748,17 +3748,17 @@ export const unimplementedComponents = {
                   path: { type: 'string' },
                   type: {
                     type: 'string',
-                    enum: ['json', 'header', 'cookie']
-                  }
-                }
-              }
-            }
-          }
+                    enum: ['json', 'header', 'cookie'],
+                  },
+                },
+              },
+            },
+          },
         },
         description: { type: 'string' },
         createdAt: { type: 'string', format: 'date-time' },
-        updatedAt: { type: 'string', format: 'date-time' }
-      }
+        updatedAt: { type: 'string', format: 'date-time' },
+      },
     },
     TestRuleConfigCreate: {
       type: 'object',
@@ -3768,14 +3768,14 @@ export const unimplementedComponents = {
         name: { type: 'string' },
         type: {
           type: 'string',
-          enum: ['assertion', 'request', 'response']
+          enum: ['assertion', 'request', 'response'],
         },
         enabled: { type: 'boolean', default: true },
         assertion_rules: { type: 'object' },
         request_config: { type: 'object' },
         response_config: { type: 'object' },
-        description: { type: 'string' }
-      }
+        description: { type: 'string' },
+      },
     },
     TestRuleConfigUpdate: {
       type: 'object',
@@ -3785,9 +3785,9 @@ export const unimplementedComponents = {
         assertion_rules: { type: 'object' },
         request_config: { type: 'object' },
         response_config: { type: 'object' },
-        description: { type: 'string' }
-      }
-    }
+        description: { type: 'string' },
+      },
+    },
   },
   responses: {
     Success: {
@@ -3795,10 +3795,10 @@ export const unimplementedComponents = {
       content: {
         'application/json': {
           schema: {
-            $ref: '#/components/schemas/SuccessResponse'
-          }
-        }
-      }
+            $ref: '#/components/schemas/SuccessResponse',
+          },
+        },
+      },
     },
     BadRequest: {
       description: 'Bad Request',
@@ -3809,11 +3809,11 @@ export const unimplementedComponents = {
             properties: {
               success: { type: 'boolean', example: false },
               message: { type: 'string' },
-              code: { type: 'integer', example: 400 }
-            }
-          }
-        }
-      }
+              code: { type: 'integer', example: 400 },
+            },
+          },
+        },
+      },
     },
     NotFound: {
       description: 'Not Found',
@@ -3824,27 +3824,27 @@ export const unimplementedComponents = {
             properties: {
               success: { type: 'boolean', example: false },
               message: { type: 'string' },
-              code: { type: 'integer', example: 404 }
-            }
-          }
-        }
-      }
-    }
-  }
+              code: { type: 'integer', example: 404 },
+            },
+          },
+        },
+      },
+    },
+  },
 };
 
 /**
  * 使用说明：
- * 
+ *
  * 1. 在主 swagger.js 文件中导入这些定义：
  *    import { unimplementedPaths, unimplementedComponents } from './swaggerUnimplemented.js';
- * 
+ *
  * 2. 合并到主 swaggerDefinition：
  *    swaggerDefinition.paths = {
  *      ...swaggerDefinition.paths,
  *      ...unimplementedPaths
  *    };
- * 
+ *
  *    swaggerDefinition.components = {
  *      ...swaggerDefinition.components,
  *      schemas: {
@@ -3857,5 +3857,3 @@ export const unimplementedComponents = {
  *      }
  *    };
  */
-
-

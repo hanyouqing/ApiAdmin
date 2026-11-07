@@ -12,12 +12,15 @@ const packageLockPath = path.join(rootDir, 'package-lock.json');
 
 try {
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-  
+
   if (!packageJson.overrides) {
     packageJson.overrides = {};
   }
-  
-  if (!packageJson.overrides.esbuild || !packageJson.overrides.esbuild.match(/^0\.(2[5-9]|[3-9])/)) {
+
+  if (
+    !packageJson.overrides.esbuild ||
+    !packageJson.overrides.esbuild.match(/^0\.(2[5-9]|[3-9])/)
+  ) {
     packageJson.overrides.esbuild = '^0.25.0';
     console.log('✅ 已添加 esbuild override: ^0.25.0');
   } else {
@@ -35,10 +38,10 @@ try {
 
   console.log('📦 重新安装依赖...');
   console.log('   注意: 如果 Node.js 版本低于 18，请先升级 Node.js\n');
-  
+
   const nodeVersion = process.version;
   const majorVersion = parseInt(nodeVersion.match(/v(\d+)/)[1]);
-  
+
   if (majorVersion < 18) {
     console.log('⚠️  当前 Node.js 版本过低，需要 >= 18.0.0');
     console.log(`   当前版本: ${nodeVersion}\n`);
@@ -83,4 +86,3 @@ try {
   console.error('❌ 修复失败:', error.message);
   process.exit(1);
 }
-

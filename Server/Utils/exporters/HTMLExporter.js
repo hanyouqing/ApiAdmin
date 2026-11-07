@@ -25,8 +25,8 @@ export class HTMLExporter {
 `;
 
     interfaces
-      .filter((i) => !publicOnly || i.tag?.includes('public'))
-      .forEach((interfaceData) => {
+      .filter(i => !publicOnly || i.tag?.includes('public'))
+      .forEach(interfaceData => {
         html += `  <h2>${interfaceData.method} ${interfaceData.path}</h2>\n`;
         html += `  <p><strong>${interfaceData.title}</strong></p>\n`;
         if (interfaceData.desc) {
@@ -37,7 +37,7 @@ export class HTMLExporter {
           html += `  <h3>Query Parameters</h3>\n`;
           html += `  <table>\n`;
           html += `    <tr><th>Name</th><th>Type</th><th>Required</th><th>Description</th></tr>\n`;
-          interfaceData.req_query.forEach((q) => {
+          interfaceData.req_query.forEach(q => {
             html += `    <tr><td>${q.name}</td><td>${q.type}</td><td>${q.required ? 'Yes' : 'No'}</td><td>${q.desc || ''}</td></tr>\n`;
           });
           html += `  </table>\n`;
@@ -74,7 +74,6 @@ export class HTMLExporter {
       "'": '&#039;',
       '/': '&#x2F;',
     };
-    return text.replace(/[&<>"'/]/g, (m) => map[m]);
+    return text.replace(/[&<>"'/]/g, m => map[m]);
   }
 }
-

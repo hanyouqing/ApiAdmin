@@ -41,7 +41,10 @@ export interface ITestRuleConfig {
 }
 
 export interface ITestRuleConfigStatics {
-  getProjectRules(projectId: Schema.Types.ObjectId | string, type?: TestRuleType | null): Promise<mongoose.HydratedDocument<ITestRuleConfig>[]>;
+  getProjectRules(
+    projectId: Schema.Types.ObjectId | string,
+    type?: TestRuleType | null
+  ): Promise<mongoose.HydratedDocument<ITestRuleConfig>[]>;
 }
 
 export type TestRuleConfigModel = Model<ITestRuleConfig, {}, ITestRuleConfigStatics>;
@@ -123,7 +126,7 @@ const testRuleConfigSchema = new Schema<ITestRuleConfig, TestRuleConfigModel>(
 testRuleConfigSchema.index({ project_id: 1, type: 1 });
 testRuleConfigSchema.index({ project_id: 1, enabled: 1 });
 
-testRuleConfigSchema.statics.getProjectRules = async function(projectId, type = null) {
+testRuleConfigSchema.statics.getProjectRules = async function (projectId, type = null) {
   const query: any = { project_id: projectId, enabled: true };
   if (type) {
     query.type = type;
@@ -131,6 +134,9 @@ testRuleConfigSchema.statics.getProjectRules = async function(projectId, type = 
   return await this.find(query).sort({ createdAt: -1 });
 };
 
-const TestRuleConfig = mongoose.model<ITestRuleConfig, TestRuleConfigModel>('TestRuleConfig', testRuleConfigSchema);
+const TestRuleConfig = mongoose.model<ITestRuleConfig, TestRuleConfigModel>(
+  'TestRuleConfig',
+  testRuleConfigSchema
+);
 
 export default TestRuleConfig;

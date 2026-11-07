@@ -7,6 +7,7 @@ ApiAdmin 是一个现代化的 API 管理平台，采用前后端分离架构，
 ## 2. 技术栈
 
 ### 2.1 前端技术栈
+
 - **框架**: React
 - **语言**: TypeScript
 - **UI 库**: Ant Design
@@ -21,6 +22,7 @@ ApiAdmin 是一个现代化的 API 管理平台，采用前后端分离架构，
 - **实时协作**: Yjs + y-websocket (CRDT 算法)
 
 ### 2.2 后端技术栈
+
 - **框架**: Koa (可选 NestJS 企业级方案)
 - **语言**: JavaScript (逐步迁移到 TypeScript)
 - **数据库**: MongoDB + Mongoose
@@ -46,11 +48,11 @@ ApiAdmin 是一个现代化的 API 管理平台，采用前后端分离架构，
 - **会话管理**: Redis Session Store
 - **安全**: helmet, express-rate-limit, bcrypt
 - **日志**: Winston / Pino
-- **监控**: 
+- **监控**:
   - **Prometheus**: 指标收集和监控
   - **prom-client**: Prometheus 客户端
   - **Sentry**: 错误追踪
-- **邮件服务**: 
+- **邮件服务**:
   - **Nodemailer**: SMTP 邮件发送
   - **SendGrid** (可选): 第三方邮件服务
   - **AWS SES** (可选): 云邮件服务
@@ -61,6 +63,7 @@ ApiAdmin 是一个现代化的 API 管理平台，采用前后端分离架构，
   - **腾讯云短信** (可选): 国内短信服务
 
 ### 2.3 核心库
+
 - **Mock**: Mockjs
 - **Schema**: JSON Schema (ajv)
 - **数据格式**: Json5
@@ -194,19 +197,21 @@ ApiAdmin/
 ### 4.1 用户与权限模块
 
 #### 4.1.1 数据模型
+
 - **User Model**: 用户信息、角色、权限
 - **Group Model**: 分组信息、成员、权限
 - **Project Model**: 项目信息、成员、权限
 
 #### 4.1.2 权限控制
+
 ```typescript
 // 权限角色枚举
 enum UserRole {
-  SUPER_ADMIN = 'super_admin',    // 超级管理员
-  GROUP_LEADER = 'group_leader',   // 分组组长
+  SUPER_ADMIN = 'super_admin', // 超级管理员
+  GROUP_LEADER = 'group_leader', // 分组组长
   PROJECT_LEADER = 'project_leader', // 项目组长
-  DEVELOPER = 'developer',        // 开发者
-  GUEST = 'guest'                  // 游客
+  DEVELOPER = 'developer', // 开发者
+  GUEST = 'guest', // 游客
 }
 
 // 权限检查中间件
@@ -218,11 +223,13 @@ function checkPermission(requiredRole: UserRole) {
 ### 4.2 接口管理模块
 
 #### 4.2.1 数据模型
+
 - **Interface Model**: 接口基本信息
 - **InterfaceCat Model**: 接口分类
 - **InterfaceCol Model**: 测试集合
 
 #### 4.2.2 核心功能
+
 - 接口 CRUD
 - 接口编辑（请求参数、返回数据）
 - 接口运行/调试
@@ -231,24 +238,26 @@ function checkPermission(requiredRole: UserRole) {
 ### 4.3 Mock 服务模块
 
 #### 4.3.1 Mock 引擎
+
 ```typescript
 // Mock 数据生成器
 class MockGenerator {
   // 基于 Mockjs 生成数据
   generateFromMockjs(template: string): any;
-  
+
   // 基于 JSON Schema 生成数据
   generateFromSchema(schema: JSONSchema): any;
-  
+
   // 处理 Mock 期望
   handleMockExpectation(request: Request): Response;
-  
+
   // 执行自定义脚本
   executeCustomScript(script: string, context: MockContext): any;
 }
 ```
 
 #### 4.3.2 Mock 优先级
+
 1. Mock 期望（匹配条件）
 2. 自定义 Mock 脚本
 3. 项目全局 Mock 脚本
@@ -257,18 +266,19 @@ class MockGenerator {
 ### 4.4 自动化测试模块
 
 #### 4.4.1 测试引擎
+
 ```typescript
 // 测试执行器
 class TestRunner {
   // 执行测试用例
   async runTestCase(testCase: TestCase): Promise<TestResult>;
-  
+
   // 执行测试集合
   async runTestCollection(collection: TestCollection): Promise<TestReport>;
-  
+
   // 变量解析
   resolveVariables(expression: string, context: TestContext): any;
-  
+
   // 断言执行
   executeAssertions(script: string, response: Response): AssertionResult;
 }
@@ -277,6 +287,7 @@ class TestRunner {
 ### 4.5 数据导入导出模块
 
 #### 4.5.1 导入器
+
 ```typescript
 // 数据导入接口
 interface DataImporter {
@@ -284,12 +295,13 @@ interface DataImporter {
 }
 
 // 各种格式的导入器
-class PostmanImporter implements DataImporter { }
-class SwaggerImporter implements DataImporter { }
-class HARImporter implements DataImporter { }
+class PostmanImporter implements DataImporter {}
+class SwaggerImporter implements DataImporter {}
+class HARImporter implements DataImporter {}
 ```
 
 #### 4.5.2 导出器
+
 ```typescript
 // 数据导出接口
 interface DataExporter {
@@ -297,9 +309,9 @@ interface DataExporter {
 }
 
 // 各种格式的导出器
-class JSONExporter implements DataExporter { }
-class SwaggerExporter implements DataExporter { }
-class MarkdownExporter implements DataExporter { }
+class JSONExporter implements DataExporter {}
+class SwaggerExporter implements DataExporter {}
+class MarkdownExporter implements DataExporter {}
 ```
 
 ## 5. API 设计
@@ -307,6 +319,7 @@ class MarkdownExporter implements DataExporter { }
 ### 5.1 RESTful API 规范
 
 #### 5.1.1 用户相关
+
 ```
 POST   /api/user/register          # 用户注册
 POST   /api/user/login             # 用户登录
@@ -317,6 +330,7 @@ POST   /api/user/password/reset    # 重置密码
 ```
 
 #### 5.1.7 SSO 认证相关
+
 ```
 GET    /api/auth/sso/providers     # 获取可用的 SSO 提供者列表
 GET    /api/auth/sso/:provider     # 发起 SSO 认证（重定向到 IdP）
@@ -329,6 +343,7 @@ POST   /api/auth/sso/mapping       # 配置 SSO 用户角色映射（管理员�
 ```
 
 #### 5.1.2 分组相关
+
 ```
 GET    /api/group/list             # 获取分组列表
 POST   /api/group/add              # 创建分组
@@ -340,6 +355,7 @@ DELETE /api/group/member/del       # 移除成员
 ```
 
 #### 5.1.3 项目相关
+
 ```
 GET    /api/project/list           # 获取项目列表
 POST   /api/project/add            # 创建项目
@@ -351,6 +367,7 @@ POST   /api/project/transfer       # 迁移项目
 ```
 
 #### 5.1.4 接口相关
+
 ```
 GET    /api/interface/list         # 获取接口列表
 POST   /api/interface/add          # 创建接口
@@ -361,6 +378,7 @@ POST   /api/interface/run          # 运行接口
 ```
 
 #### 5.1.5 Mock 相关
+
 ```
 GET    /mock/:projectId/:path      # Mock 接口
 POST   /api/mock/expectation/add   # 添加 Mock 期望
@@ -369,6 +387,7 @@ DELETE /api/mock/expectation/del   # 删除 Mock 期望
 ```
 
 #### 5.1.6 测试相关
+
 ```
 GET    /api/test/collection/list   # 获取测试集合列表
 POST   /api/test/collection/add    # 创建测试集合
@@ -380,6 +399,7 @@ GET    /api/test/report/:id       # 获取测试报告
 ### 5.2 WebSocket API
 
 #### 5.2.1 实时协作
+
 ```typescript
 // 接口编辑协作
 interface WebSocketMessage {
@@ -395,6 +415,7 @@ interface WebSocketMessage {
 ### 6.1 核心集合（Collections）
 
 #### 6.1.1 users - 用户表
+
 ```javascript
 {
   _id: ObjectId,
@@ -409,6 +430,7 @@ interface WebSocketMessage {
 ```
 
 #### 6.1.2 groups - 分组表
+
 ```javascript
 {
   _id: ObjectId,
@@ -422,6 +444,7 @@ interface WebSocketMessage {
 ```
 
 #### 6.1.3 projects - 项目表
+
 ```javascript
 {
   _id: ObjectId,
@@ -441,6 +464,7 @@ interface WebSocketMessage {
 ```
 
 #### 6.1.4 interfaces - 接口表
+
 ```javascript
 {
   _id: ObjectId,
@@ -468,6 +492,7 @@ interface WebSocketMessage {
 ```
 
 #### 6.1.5 interface_cases - 测试用例表
+
 ```javascript
 {
   _id: ObjectId,
@@ -488,30 +513,30 @@ interface WebSocketMessage {
 ## 7. 状态管理设计
 
 ### 7.1 Redux Store 结构
+
 ```typescript
 interface RootState {
-  user: UserState;           // 用户状态
-  group: GroupState;         // 分组状态
-  project: ProjectState;     // 项目状态
+  user: UserState; // 用户状态
+  group: GroupState; // 分组状态
+  project: ProjectState; // 项目状态
   interface: InterfaceState; // 接口状态
   interfaceCol: InterfaceColState; // 接口集合状态
-  test: TestState;          // 测试状态
-  mock: MockState;          // Mock 状态
-  ui: UIState;              // UI 状态
+  test: TestState; // 测试状态
+  mock: MockState; // Mock 状态
+  ui: UIState; // UI 状态
 }
 ```
 
 ### 7.2 异步操作
+
 使用 Redux Toolkit 的 `createAsyncThunk` 处理异步操作：
+
 ```typescript
 // 示例：获取项目列表
-const fetchProjects = createAsyncThunk(
-  'project/fetchList',
-  async (groupId: string) => {
-    const response = await api.get(`/api/project/list?group_id=${groupId}`);
-    return response.data;
-  }
-);
+const fetchProjects = createAsyncThunk('project/fetchList', async (groupId: string) => {
+  const response = await api.get(`/api/project/list?group_id=${groupId}`);
+  return response.data;
+});
 ```
 
 ## 8. 安全设计
@@ -519,6 +544,7 @@ const fetchProjects = createAsyncThunk(
 ### 8.1 认证机制
 
 #### 8.1.1 本地认证
+
 - JWT Token 认证
 - Token 过期时间管理
 - 刷新 Token 机制
@@ -527,6 +553,7 @@ const fetchProjects = createAsyncThunk(
 #### 8.1.2 SSO 单点登录集成
 
 **支持的协议**:
+
 - **SAML 2.0**: 企业级 SSO，适用于 B2B 场景
 - **OAuth 2.0**: 授权框架，支持第三方应用授权
 - **OpenID Connect (OIDC)**: 基于 OAuth 2.0 的身份认证协议
@@ -534,6 +561,7 @@ const fetchProjects = createAsyncThunk(
 - **CAS (Central Authentication Service)**: 中央认证服务
 
 **技术实现**:
+
 ```typescript
 // SSO 认证策略配置
 interface SSOConfig {
@@ -544,11 +572,11 @@ interface SSOConfig {
 
 // SAML 2.0 配置
 interface SAMLConfig {
-  entryPoint: string;        // IdP SSO URL
-  issuer: string;            // SP Entity ID
-  callbackUrl: string;        // ACS URL
-  cert: string;              // IdP 证书
-  privateKey?: string;       // SP 私钥（可选）
+  entryPoint: string; // IdP SSO URL
+  issuer: string; // SP Entity ID
+  callbackUrl: string; // ACS URL
+  cert: string; // IdP 证书
+  privateKey?: string; // SP 私钥（可选）
   signatureAlgorithm?: string;
   digestAlgorithm?: string;
 }
@@ -570,7 +598,7 @@ interface OIDCConfig {
   clientSecret: string;
   callbackURL: string;
   scope: string[];
-  discoveryURL?: string;    // OIDC Discovery 端点
+  discoveryURL?: string; // OIDC Discovery 端点
 }
 
 // LDAP 配置
@@ -593,6 +621,7 @@ interface CASConfig {
 ```
 
 **认证流程**:
+
 1. 用户选择 SSO 登录方式
 2. 重定向到身份提供者（IdP）
 3. 用户在 IdP 完成认证
@@ -601,12 +630,14 @@ interface CASConfig {
 6. 返回 JWT Token 给前端
 
 ### 8.2 权限验证
+
 - 中间件权限检查
 - 前端路由守卫
 - API 接口权限验证
 - SSO 用户权限映射（将 SSO 用户角色映射到系统角色）
 
 ### 8.3 数据安全
+
 - 密码加密存储（bcrypt，替代 MD5/SHA256）
 - XSS 防护
 - CSRF 防护
@@ -617,6 +648,7 @@ interface CASConfig {
 ## 9. 性能优化
 
 ### 9.1 前端优化
+
 - 代码分割（路由级别）
 - 组件懒加载
 - 虚拟滚动（长列表）
@@ -624,6 +656,7 @@ interface CASConfig {
 - 缓存策略
 
 ### 9.2 后端优化
+
 - 数据库索引优化
 - 查询优化
 - 缓存机制（Redis，可选）
@@ -632,11 +665,13 @@ interface CASConfig {
 ## 10. 部署方案
 
 ### 10.1 开发环境
+
 - 前后端分离开发
 - 热更新支持
 - 开发代理配置
 
 ### 10.2 生产环境
+
 - 前端构建静态文件
 - 后端服务部署
 - Nginx 反向代理
@@ -648,6 +683,7 @@ interface CASConfig {
 #### 10.3.1 Dockerfile 配置
 
 **多阶段构建 Dockerfile**:
+
 ```dockerfile
 # 阶段1: 构建前端
 FROM node:18-alpine AS frontend-builder
@@ -703,6 +739,7 @@ CMD ["node", "Server/app.js"]
 #### 10.3.2 Docker Compose 配置
 
 **docker-compose.yml**:
+
 ```yaml
 version: '3.8'
 
@@ -713,7 +750,7 @@ services:
       dockerfile: Dockerfile
     container_name: apiadmin
     ports:
-      - "3000:3000"
+      - '3000:3000'
     environment:
       - NODE_ENV=production
       - MONGODB_URL=mongodb://mongodb:27017/apiadmin
@@ -735,7 +772,7 @@ services:
     image: mongo:6.0
     container_name: apiadmin-mongodb
     ports:
-      - "27017:27017"
+      - '27017:27017'
     environment:
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD:-admin123}
@@ -756,12 +793,12 @@ services:
     image: redis:7-alpine
     container_name: apiadmin-redis
     ports:
-      - "6379:6379"
+      - '6379:6379'
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis123}
     volumes:
       - redis-data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      test: ['CMD', 'redis-cli', '--raw', 'incr', 'ping']
       interval: 10s
       timeout: 3s
       retries: 5
@@ -773,8 +810,8 @@ services:
     image: nginx:alpine
     container_name: apiadmin-nginx
     ports:
-      - "80:80"
-      - "443:443"
+      - '80:80'
+      - '443:443'
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
@@ -795,6 +832,7 @@ networks:
 ```
 
 **环境变量配置 (.env.example)**:
+
 ```bash
 # 应用配置
 NODE_ENV=production
@@ -868,13 +906,14 @@ helm/
 #### 10.4.2 Helm Chart 配置
 
 **Chart.yaml**:
+
 ```yaml
 apiVersion: v2
 name: apiadmin
 description: A Helm chart for ApiAdmin API Management Platform
 type: application
 version: 1.0.0
-appVersion: "1.0.0"
+appVersion: '1.0.0'
 keywords:
   - api
   - management
@@ -885,23 +924,24 @@ maintainers:
 ```
 
 **values.yaml** (主要配置):
+
 ```yaml
 replicaCount: 2
 
 image:
-  repository: apiadmin/apiadmin
+  repository: ghcr.io/hanyouqing/apiadmin
   pullPolicy: IfNotPresent
-  tag: "latest"
+  tag: 'latest'
 
 imagePullSecrets: []
 
-nameOverride: ""
-fullnameOverride: ""
+nameOverride: ''
+fullnameOverride: ''
 
 serviceAccount:
   create: true
   annotations: {}
-  name: ""
+  name: ''
 
 podAnnotations: {}
 
@@ -911,7 +951,7 @@ podSecurityContext:
 securityContext:
   capabilities:
     drop:
-    - ALL
+      - ALL
   readOnlyRootFilesystem: true
   runAsNonRoot: true
   runAsUser: 1001
@@ -922,9 +962,9 @@ service:
 
 ingress:
   enabled: true
-  className: "nginx"
+  className: 'nginx'
   annotations:
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    cert-manager.io/cluster-issuer: 'letsencrypt-prod'
   hosts:
     - host: apiadmin.example.com
       paths:
@@ -960,8 +1000,8 @@ mongodb:
   enabled: true
   auth:
     enabled: true
-    rootPassword: "change-me"
-    database: "apiadmin"
+    rootPassword: 'change-me'
+    database: 'apiadmin'
   persistence:
     enabled: true
     size: 20Gi
@@ -977,7 +1017,7 @@ redis:
   enabled: true
   auth:
     enabled: true
-    password: "change-me"
+    password: 'change-me'
   persistence:
     enabled: true
     size: 10Gi
@@ -991,16 +1031,16 @@ redis:
 
 env:
   NODE_ENV: production
-  PORT: "3000"
+  PORT: '3000'
 
 config:
-  jwtSecret: "change-me"
-  jwtExpiresIn: "7d"
-  uploadMaxSize: "10485760"
+  jwtSecret: 'change-me'
+  jwtExpiresIn: '7d'
+  uploadMaxSize: '10485760'
 
 persistence:
   enabled: true
-  storageClass: ""
+  storageClass: ''
   accessMode: ReadWriteOnce
   size: 10Gi
 ```
@@ -1115,7 +1155,7 @@ const httpRequestTotal = new client.Counter({
 });
 
 // 暴露指标端点
-app.get('/metrics', async (ctx) => {
+app.get('/metrics', async ctx => {
   ctx.set('Content-Type', client.register.contentType);
   ctx.body = await client.register.metrics();
 });
@@ -1133,6 +1173,7 @@ app.get('/metrics', async (ctx) => {
 #### 12.3.1 数据存储
 
 **时间序列数据库**:
+
 - **InfluxDB**: 高性能时间序列数据库（推荐）
 - **TimescaleDB**: 基于 PostgreSQL 的时间序列扩展
 - **MongoDB**: 使用现有数据库存储聚合数据
@@ -1203,11 +1244,7 @@ export class AnalyticsService {
   }
 
   // 错误率统计
-  async getErrorRate(
-    interfaceId: string,
-    startDate: Date,
-    endDate: Date
-  ): Promise<ErrorRateStats> {
+  async getErrorRate(interfaceId: string, startDate: Date, endDate: Date): Promise<ErrorRateStats> {
     const logs = await APICallLog.find({
       interfaceId,
       timestamp: { $gte: startDate, $lte: endDate },
@@ -1220,7 +1257,10 @@ export class AnalyticsService {
       total,
       errors,
       errorRate: total > 0 ? (errors / total) * 100 : 0,
-      errorsByStatus: this.groupBy(logs.filter(log => log.statusCode >= 400), 'statusCode'),
+      errorsByStatus: this.groupBy(
+        logs.filter(log => log.statusCode >= 400),
+        'statusCode'
+      ),
     };
   }
 
@@ -1230,7 +1270,7 @@ export class AnalyticsService {
     period: 'hour' | 'day' | 'week' | 'month'
   ): Promise<UsageTrend> {
     const groupBy = this.getGroupByFormat(period);
-    
+
     const trend = await APICallLog.aggregate([
       {
         $match: {
@@ -1321,39 +1361,42 @@ import passport from 'passport';
 import { Strategy as WeChatStrategy } from 'passport-wechat';
 
 export function configureWeChatStrategy(config: WeChatConfig) {
-  passport.use('wechat', new WeChatStrategy(
-    {
-      appID: config.appID,
-      appSecret: config.appSecret,
-      callbackURL: config.callbackURL,
-      scope: 'snsapi_login',
-    },
-    async (accessToken, refreshToken, profile, done) => {
-      // 检查白名单
-      if (!isInWhitelist('wechat', profile.openid)) {
-        return done(new Error('User not in whitelist'), null);
-      }
+  passport.use(
+    'wechat',
+    new WeChatStrategy(
+      {
+        appID: config.appID,
+        appSecret: config.appSecret,
+        callbackURL: config.callbackURL,
+        scope: 'snsapi_login',
+      },
+      async (accessToken, refreshToken, profile, done) => {
+        // 检查白名单
+        if (!isInWhitelist('wechat', profile.openid)) {
+          return done(new Error('User not in whitelist'), null);
+        }
 
-      // 查找或创建用户
-      let user = await User.findOne({
-        ssoProvider: 'wechat',
-        ssoId: profile.openid,
-      });
-
-      if (!user) {
-        user = await User.create({
-          username: profile.nickname,
-          email: `${profile.openid}@wechat.local`,
+        // 查找或创建用户
+        let user = await User.findOne({
           ssoProvider: 'wechat',
           ssoId: profile.openid,
-          ssoAttributes: profile,
-          role: UserRole.GUEST,
         });
-      }
 
-      return done(null, user);
-    }
-  ));
+        if (!user) {
+          user = await User.create({
+            username: profile.nickname,
+            email: `${profile.openid}@wechat.local`,
+            ssoProvider: 'wechat',
+            ssoId: profile.openid,
+            ssoAttributes: profile,
+            role: UserRole.GUEST,
+          });
+        }
+
+        return done(null, user);
+      }
+    )
+  );
 }
 ```
 
@@ -1365,7 +1408,7 @@ export class AuthController {
   // 发送验证码
   async sendPhoneCode(ctx: Context) {
     const { phone } = ctx.request.body;
-    
+
     // 检查白名单
     if (!isInWhitelist('phone', phone)) {
       return ctx.throw(403, 'Phone number not in whitelist');
@@ -1373,20 +1416,20 @@ export class AuthController {
 
     // 生成验证码
     const code = generateOTP(6);
-    
+
     // 存储验证码（Redis，5分钟过期）
     await redis.setex(`phone:code:${phone}`, 300, code);
-    
+
     // 发送短信
     await smsService.send(phone, `您的验证码是：${code}，5分钟内有效`);
-    
+
     ctx.body = { success: true, message: '验证码已发送' };
   }
 
   // 手机号登录
   async loginWithPhone(ctx: Context) {
     const { phone, code } = ctx.request.body;
-    
+
     // 验证验证码
     const storedCode = await redis.get(`phone:code:${phone}`);
     if (storedCode !== code) {
@@ -1426,39 +1469,42 @@ import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 
 export function configureGoogleStrategy(config: GoogleConfig) {
-  passport.use('google', new GoogleStrategy(
-    {
-      clientID: config.clientID,
-      clientSecret: config.clientSecret,
-      callbackURL: config.callbackURL,
-    },
-    async (accessToken, refreshToken, profile, done) => {
-      const email = profile.emails[0].value;
-      
-      // 检查白名单（仅允许 Gmail 邮箱）
-      if (!isInWhitelist('email', email)) {
-        return done(new Error('Email not in whitelist'), null);
-      }
+  passport.use(
+    'google',
+    new GoogleStrategy(
+      {
+        clientID: config.clientID,
+        clientSecret: config.clientSecret,
+        callbackURL: config.callbackURL,
+      },
+      async (accessToken, refreshToken, profile, done) => {
+        const email = profile.emails[0].value;
 
-      let user = await User.findOne({
-        email,
-        ssoProvider: 'google',
-      });
+        // 检查白名单（仅允许 Gmail 邮箱）
+        if (!isInWhitelist('email', email)) {
+          return done(new Error('Email not in whitelist'), null);
+        }
 
-      if (!user) {
-        user = await User.create({
+        let user = await User.findOne({
           email,
-          username: profile.displayName,
           ssoProvider: 'google',
-          ssoId: profile.id,
-          ssoAttributes: profile,
-          role: UserRole.GUEST,
         });
-      }
 
-      return done(null, user);
-    }
-  ));
+        if (!user) {
+          user = await User.create({
+            email,
+            username: profile.displayName,
+            ssoProvider: 'google',
+            ssoId: profile.id,
+            ssoAttributes: profile,
+            role: UserRole.GUEST,
+          });
+        }
+
+        return done(null, user);
+      }
+    )
+  );
 }
 ```
 
@@ -1470,7 +1516,7 @@ export class AuthController {
   // 发送邮箱验证码
   async sendEmailCode(ctx: Context) {
     const { email } = ctx.request.body;
-    
+
     // 检查白名单
     if (!isInWhitelist('email', email)) {
       return ctx.throw(403, 'Email not in whitelist');
@@ -1478,20 +1524,20 @@ export class AuthController {
 
     // 生成验证码
     const code = generateOTP(6);
-    
+
     // 存储验证码
     await redis.setex(`email:code:${email}`, 300, code);
-    
+
     // 发送邮件
     await emailService.sendVerificationCode(email, code);
-    
+
     ctx.body = { success: true, message: '验证码已发送到邮箱' };
   }
 
   // 邮箱验证码登录
   async loginWithEmailCode(ctx: Context) {
     const { email, code } = ctx.request.body;
-    
+
     // 验证验证码
     const storedCode = await redis.get(`email:code:${email}`);
     if (storedCode !== code) {
@@ -1560,4 +1606,3 @@ export async function isInWhitelist(
 **文档版本**：v0.0.1
 **创建日期**：2025-01-27  
 **最后更新**：2025-01-27
-

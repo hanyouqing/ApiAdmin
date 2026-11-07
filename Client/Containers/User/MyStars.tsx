@@ -89,11 +89,16 @@ const MyStars: React.FC = () => {
   ];
 
   return (
-    <Card title={<><StarFilled /> {t('user.stars.title')}</>}>
+    <Card
+      title={
+        <>
+          <StarFilled /> {t('user.stars.title')}
+        </>
+      }
+    >
       <Table columns={columns} dataSource={projects} rowKey="_id" loading={loading} />
     </Card>
   );
 };
 
 export default MyStars;
-

@@ -137,7 +137,12 @@ const UserManagement: React.FC = () => {
             {t('common.edit')}
           </Button>
           {record._id !== user?._id && (
-            <Button type="link" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record._id)}>
+            <Button
+              type="link"
+              danger
+              icon={<DeleteOutlined />}
+              onClick={() => handleDelete(record._id)}
+            >
               {t('common.delete')}
             </Button>
           )}
@@ -155,7 +160,12 @@ const UserManagement: React.FC = () => {
       <Card
         title={t('admin.user.title')}
         extra={
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate} style={{ color: '#ffffff' }}>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={handleCreate}
+            style={{ color: '#ffffff' }}
+          >
             {t('admin.user.create')}
           </Button>
         }
@@ -215,4 +225,3 @@ const UserManagement: React.FC = () => {
 };
 
 export default UserManagement;
-

@@ -78,7 +78,7 @@ async function main() {
   console.log(`✅ Config backup written: ${outPath}`);
 }
 
-main().catch(async (err) => {
+main().catch(async err => {
   console.error('❌', err.message || err);
   try {
     await mongoose.disconnect();

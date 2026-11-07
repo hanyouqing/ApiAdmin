@@ -25,6 +25,3 @@ projectFollowSchema.index({ userId: 1, projectId: 1 }, { unique: true });
 const ProjectFollow = mongoose.model('ProjectFollow', projectFollowSchema);
 
 export default ProjectFollow;
-
-
-

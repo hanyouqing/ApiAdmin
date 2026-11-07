@@ -58,8 +58,7 @@ export const mockServer = async (ctx, next) => {
     const expectation = await MockExpectation.findOne({
       interface_id: interfaceData._id,
       enabled: true,
-    })
-      .sort({ priority: -1, created_at: -1 });
+    }).sort({ priority: -1, created_at: -1 });
 
     const requestData = {
       method: ctx.method,
@@ -75,7 +74,10 @@ export const mockServer = async (ctx, next) => {
       statusCode = expectation.response.status_code;
       delay = expectation.response.delay || 0;
       responseHeaders = expectation.response.headers || {};
-      logger.info({ expectationId: expectation._id, interfaceId: interfaceData._id }, 'Mock expectation matched');
+      logger.info(
+        { expectationId: expectation._id, interfaceId: interfaceData._id },
+        'Mock expectation matched'
+      );
     } else {
       let mockData = interfaceData.res_body || '{}';
       let parsedMockData = {};
@@ -113,7 +115,7 @@ export const mockServer = async (ctx, next) => {
         };
 
         let scriptResult = null;
-        
+
         if (interfaceData.mock_script && interfaceData.mock_script.trim()) {
           try {
             scriptResult = await executeMockScript(interfaceData.mock_script, scriptContext);
@@ -124,7 +126,10 @@ export const mockServer = async (ctx, next) => {
               parsedMockData = scriptResult.body || parsedMockData;
             }
           } catch (error) {
-            logger.error({ error, interfaceId: interfaceData._id }, 'Interface mock script execution error');
+            logger.error(
+              { error, interfaceId: interfaceData._id },
+              'Interface mock script execution error'
+            );
           }
         }
 
@@ -142,7 +147,11 @@ export const mockServer = async (ctx, next) => {
           }
         }
 
-        const finalMockData = await executeAfterMockHook(interfaceData, requestData, parsedMockData);
+        const finalMockData = await executeAfterMockHook(
+          interfaceData,
+          requestData,
+          parsedMockData
+        );
 
         if (interfaceData.res_body_type === 'json') {
           responseData = JSON.stringify(finalMockData, null, 2);
@@ -158,7 +167,7 @@ export const mockServer = async (ctx, next) => {
     }
 
     if (delay > 0) {
-      await new Promise((resolve) => setTimeout(resolve, delay));
+      await new Promise(resolve => setTimeout(resolve, delay));
     }
 
     ctx.status = statusCode;
@@ -238,7 +247,7 @@ const replaceVariables = (data, ctx) => {
   }
 
   if (Array.isArray(data)) {
-    return data.map((item) => replaceVariables(item, ctx));
+    return data.map(item => replaceVariables(item, ctx));
   }
 
   if (data && typeof data === 'object') {
@@ -251,4 +260,3 @@ const replaceVariables = (data, ctx) => {
 
   return data;
 };
-

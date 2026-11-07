@@ -1,9 +1,6 @@
 import { Config } from '../Types/config.js';
 
-const requiredEnvVars: (keyof Config)[] = [
-  'JWT_SECRET',
-  'MONGODB_URL',
-];
+const requiredEnvVars: (keyof Config)[] = ['JWT_SECRET', 'MONGODB_URL'];
 
 const optionalEnvVars: Partial<Config> = {
   PORT: 3000,
@@ -11,7 +8,9 @@ const optionalEnvVars: Partial<Config> = {
   JWT_EXPIRES_IN: '7d',
   LOG_LEVEL: 'info',
   REDIS_URL: null,
-  CORS_ORIGIN: 'http://localhost:3000',
+  // Vite defaults to 3001+; include common local UI origins for browser fetches
+  CORS_ORIGIN:
+    'http://localhost:3000,http://localhost:3001,http://localhost:3002,http://127.0.0.1:3000,http://127.0.0.1:3001,http://127.0.0.1:3002',
   UPLOAD_MAX_SIZE: 10485760,
   UPLOAD_PATH: './uploads',
   SWAGGER_ENABLED: false,
@@ -85,9 +84,7 @@ export const validateConfig = () => {
   }
 
   if (missing.length > 0) {
-    throw new Error(
-      `Missing required environment variables: ${missing.join(', ')}`
-    );
+    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
   }
 
   for (const [key, defaultValue] of Object.entries(optionalEnvVars)) {
@@ -124,9 +121,7 @@ export const validateConfig = () => {
     (!isProduction && process.env.ALLOW_PUBLIC_REGISTRATION !== 'false');
 
   if (isProduction && isWeakJwtSecret(config.JWT_SECRET)) {
-    throw new Error(
-      'JWT_SECRET must be a strong random value (>=32 chars) in production'
-    );
+    throw new Error('JWT_SECRET must be a strong random value (>=32 chars) in production');
   }
 
   if (isProduction && (!config.CORS_ORIGIN || config.CORS_ORIGIN === '*')) {
@@ -152,7 +147,11 @@ export const validateConfig = () => {
     }
   }
 
-  if (isProduction && process.env.ALLOW_MOCK_SCRIPTS === 'true' && process.env.ALLOW_UNSAFE_MOCK_SCRIPTS !== 'true') {
+  if (
+    isProduction &&
+    process.env.ALLOW_MOCK_SCRIPTS === 'true' &&
+    process.env.ALLOW_UNSAFE_MOCK_SCRIPTS !== 'true'
+  ) {
     console.warn(
       'Warning: ALLOW_MOCK_SCRIPTS=true without ALLOW_UNSAFE_MOCK_SCRIPTS=true; custom mock scripts remain disabled in production.'
     );

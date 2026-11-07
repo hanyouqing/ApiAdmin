@@ -86,6 +86,9 @@ operationLogSchema.index({ userId: 1, createdAt: -1 });
 operationLogSchema.index({ projectId: 1, createdAt: -1 });
 operationLogSchema.index({ action: 1, createdAt: -1 });
 
-const OperationLog = mongoose.model<IOperationLog, OperationLogModel>('OperationLog', operationLogSchema);
+const OperationLog = mongoose.model<IOperationLog, OperationLogModel>(
+  'OperationLog',
+  operationLogSchema
+);
 
 export default OperationLog;

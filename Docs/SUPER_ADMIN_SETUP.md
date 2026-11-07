@@ -58,30 +58,23 @@ use apiadmin
 
 ```javascript
 // 查看所有用户
-db.users.find({}, { email: 1, username: 1, role: 1 }).pretty()
+db.users.find({}, { email: 1, username: 1, role: 1 }).pretty();
 
 // 查找特定用户
-db.users.findOne({ email: "your-email@example.com" })
+db.users.findOne({ email: 'your-email@example.com' });
 ```
 
 #### 步骤 4：更新用户角色为超级管理员
 
 ```javascript
 // 将指定邮箱的用户设置为超级管理员
-db.users.updateOne(
-  { email: "aaa@aaa.com" },
-  { $set: { role: "super_admin" } }
-)
+db.users.updateOne({ email: 'aaa@aaa.com' }, { $set: { role: 'super_admin' } });
 
 // 或者将第一个用户设置为超级管理员
-db.users.updateOne(
-  {},
-  { $set: { role: "super_admin" } },
-  { sort: { createdAt: 1 } }
-)
+db.users.updateOne({}, { $set: { role: 'super_admin' } }, { sort: { createdAt: 1 } });
 
 // 验证更新
-db.users.findOne({ role: "super_admin" })
+db.users.findOne({ role: 'super_admin' });
 ```
 
 ### 方法 3：通过 API 设置（需要先有超级管理员）
@@ -122,7 +115,26 @@ A: 可以。系统允许多个用户拥有 `super_admin` 角色。
 
 ### Q: 忘记超级管理员密码怎么办？
 
-A: 可以通过 MongoDB 重置密码，或者创建新的超级管理员账号。
+A: 用 Makefile 重置（会经 User 模型哈希写入，不要直接改库里的明文）：
+
+```bash
+# 默认重置 demo@apiadmin.local → Demo1234!
+make reset-password
+
+# 指定账号
+make reset-password EMAIL=your-email@example.com PASSWORD='NewPass123!'
+
+# 用户不存在时一并创建为 super_admin
+make reset-password EMAIL=admin@example.com PASSWORD='NewPass123!' CREATE=1
+```
+
+等价脚本：
+
+```bash
+cd Server && npx tsx scripts/reset-password.mjs --email your-email@example.com --password 'NewPass123!'
+```
+
+本地登录密码不能为空（schema 要求）；“清空”请理解为重置成已知密码后再登录修改。
 
 ## 安全建议
 
@@ -144,4 +156,3 @@ node Server/scripts/create-super-admin.js --email your-registered-email@example.
 
 3. **重新登录**：退出并重新登录，验证超级管理员权限
 4. **创建分组**：尝试创建分组，确认权限正常
-

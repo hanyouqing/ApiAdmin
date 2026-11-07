@@ -27,7 +27,7 @@ const AIConfig: React.FC = () => {
   const user = useSelector((state: RootState) => state.user.user);
   const [loading, setLoading] = useState(false);
   const [configs, setConfigs] = useState<Record<string, AIConfigData>>({});
-  
+
   const [openaiForm] = Form.useForm();
   const [geminiForm] = Form.useForm();
   const [deepseekForm] = Form.useForm();
@@ -71,7 +71,7 @@ const AIConfig: React.FC = () => {
           });
         }
       };
-      
+
       // 使用 setTimeout 确保表单已经渲染
       const timer = setTimeout(() => {
         setFormValues('openai', openaiForm);
@@ -82,7 +82,7 @@ const AIConfig: React.FC = () => {
         setFormValues('aliyun', aliyunForm);
         setFormValues('custom', customForm);
       }, 100);
-      
+
       return () => clearTimeout(timer);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -93,7 +93,7 @@ const AIConfig: React.FC = () => {
     try {
       const response = await api.get('/admin/ai/configs');
       const configList = response.data.data || [];
-      
+
       const configMap: Record<string, AIConfigData> = {};
       configList.forEach((config: AIConfigData) => {
         configMap[config.provider] = config;
@@ -135,7 +135,7 @@ const AIConfig: React.FC = () => {
   const handleSave = async (provider: string, form: any) => {
     try {
       const values = await form.validateFields();
-      
+
       const configData: any = {
         provider,
         name: values.name || provider,
@@ -205,11 +205,7 @@ const AIConfig: React.FC = () => {
           <Input placeholder={getDefaultEndpoint(provider)} />
         </Form.Item>
 
-        <Form.Item
-          name="model"
-          label={t('admin.ai.model')}
-          tooltip={t('admin.ai.modelTooltip')}
-        >
+        <Form.Item name="model" label={t('admin.ai.model')} tooltip={t('admin.ai.modelTooltip')}>
           <Input placeholder={getDefaultModel(provider)} />
         </Form.Item>
 
@@ -245,13 +241,15 @@ const AIConfig: React.FC = () => {
 
         <Form.Item>
           <Space>
-            <Button type="primary" icon={<SaveOutlined />} onClick={() => handleSave(provider, form)}>
+            <Button
+              type="primary"
+              icon={<SaveOutlined />}
+              onClick={() => handleSave(provider, form)}
+            >
               {t('common.save')}
             </Button>
             {isEnabled && (
-              <Button onClick={() => handleTest(provider)}>
-                {t('admin.ai.test')}
-              </Button>
+              <Button onClick={() => handleTest(provider)}>{t('admin.ai.test')}</Button>
             )}
           </Space>
         </Form.Item>

@@ -15,7 +15,7 @@ interface CodeGeneratorProps {
 const CodeGenerator: React.FC<CodeGeneratorProps> = ({
   interfaceData,
   environments = [],
-  onClose
+  onClose,
 }) => {
   const [language, setLanguage] = useState<string>('javascript');
   const [code, setCode] = useState<string>('');
@@ -30,7 +30,7 @@ const CodeGenerator: React.FC<CodeGeneratorProps> = ({
     { value: 'go', label: 'Go' },
     { value: 'php', label: 'PHP' },
     { value: 'ruby', label: 'Ruby' },
-    { value: 'swift', label: 'Swift' }
+    { value: 'swift', label: 'Swift' },
   ];
 
   useEffect(() => {
@@ -48,7 +48,7 @@ const CodeGenerator: React.FC<CodeGeneratorProps> = ({
         interfaceData,
         language,
         environment: selectedEnv,
-        includeComments: true
+        includeComments: true,
       });
 
       if (response.success) {
@@ -64,11 +64,14 @@ const CodeGenerator: React.FC<CodeGeneratorProps> = ({
   };
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(code).then(() => {
-      message.success('代码已复制到剪贴板');
-    }).catch(() => {
-      message.error('复制失败');
-    });
+    navigator.clipboard
+      .writeText(code)
+      .then(() => {
+        message.success('代码已复制到剪贴板');
+      })
+      .catch(() => {
+        message.error('复制失败');
+      });
   };
 
   const handleDownload = () => {
@@ -93,7 +96,7 @@ const CodeGenerator: React.FC<CodeGeneratorProps> = ({
       go: 'go',
       php: 'php',
       ruby: 'rb',
-      swift: 'swift'
+      swift: 'swift',
     };
     return extensions[lang] || 'txt';
   };
@@ -103,11 +106,7 @@ const CodeGenerator: React.FC<CodeGeneratorProps> = ({
       title="代码生成"
       extra={
         <Space>
-          <Select
-            value={language}
-            onChange={setLanguage}
-            style={{ width: 150 }}
-          >
+          <Select value={language} onChange={setLanguage} style={{ width: 150 }}>
             {languages.map(lang => (
               <Option key={lang.value} value={lang.value}>
                 {lang.label}
@@ -117,7 +116,7 @@ const CodeGenerator: React.FC<CodeGeneratorProps> = ({
           {environments.length > 0 && (
             <Select
               value={selectedEnv?.id}
-              onChange={(id) => {
+              onChange={id => {
                 const env = environments.find(e => e.id === id);
                 setSelectedEnv(env || null);
               }}
@@ -132,31 +131,18 @@ const CodeGenerator: React.FC<CodeGeneratorProps> = ({
               ))}
             </Select>
           )}
-          <Button
-            icon={<CopyOutlined />}
-            onClick={handleCopy}
-            disabled={!code}
-          >
+          <Button icon={<CopyOutlined />} onClick={handleCopy} disabled={!code}>
             复制
           </Button>
-          <Button
-            icon={<DownloadOutlined />}
-            onClick={handleDownload}
-            disabled={!code}
-          >
+          <Button icon={<DownloadOutlined />} onClick={handleDownload} disabled={!code}>
             下载
           </Button>
         </Space>
       }
     >
-      <CodeBlock
-        code={code}
-        language={language}
-        loading={loading}
-      />
+      <CodeBlock code={code} language={language} loading={loading} />
     </Card>
   );
 };
 
 export default CodeGenerator;
-

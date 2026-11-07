@@ -9,8 +9,8 @@ export class JSONExporter {
         basepath: project.basepath,
       },
       interfaces: interfaces
-        .filter((i) => !publicOnly || i.tag?.includes('public'))
-        .map((i) => ({
+        .filter(i => !publicOnly || i.tag?.includes('public'))
+        .map(i => ({
           title: i.title,
           path: i.path,
           method: i.method,
@@ -30,6 +30,3 @@ export class JSONExporter {
     return JSON.stringify(data, null, 2);
   }
 }
-
-
-

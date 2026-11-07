@@ -5,7 +5,9 @@ import ProjectFollow from '../Models/ProjectFollow.js';
 import Project from '../Models/Project.js';
 
 class ProjectFollowController extends BaseController {
-  static get ControllerName() { return 'ProjectFollowController'; }
+  static get ControllerName() {
+    return 'ProjectFollowController';
+  }
 
   static async followProject(ctx) {
     try {
@@ -54,9 +56,7 @@ class ProjectFollowController extends BaseController {
       logger.error({ error }, 'Follow project error');
       ctx.status = 500;
       ctx.body = ProjectFollowController.error(
-        process.env.NODE_ENV === 'production'
-          ? '关注项目失败'
-          : error.message || '关注项目失败'
+        process.env.NODE_ENV === 'production' ? '关注项目失败' : error.message || '关注项目失败'
       );
     }
   }
@@ -90,9 +90,7 @@ class ProjectFollowController extends BaseController {
       logger.error({ error }, 'Unfollow project error');
       ctx.status = 500;
       ctx.body = ProjectFollowController.error(
-        process.env.NODE_ENV === 'production'
-          ? '取消关注失败'
-          : error.message || '取消关注失败'
+        process.env.NODE_ENV === 'production' ? '取消关注失败' : error.message || '取消关注失败'
       );
     }
   }
@@ -177,6 +175,3 @@ class ProjectFollowController extends BaseController {
 }
 
 export default ProjectFollowController;
-
-
-

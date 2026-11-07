@@ -1,0 +1,10 @@
+# Container image publish
+
+- Keep `Helm/**/templates/**` in `.prettierignore` (Go templates break Prettier YAML parse).
+- Canonical image: `hanyouqing/apiadmin` (GHCR `ghcr.io/hanyouqing/apiadmin`, Docker Hub `hanyouqing/apiadmin`).
+- Publish via `.github/workflows/publish-images.yml` to GHCR and Docker Hub on `main` / tags `v*` and `release-*`. Pull requests build `linux/amd64` and do not push. A version tag on `main` also publishes `Helm/apiadmin` to `gh-pages`. Do not `docker push` secrets from a laptop.
+- Registry credentials live only in GitHub Actions Secrets (`DOCKERHUB_*`); never commit tokens, `.env.sh`, or `*.tfstate`.
+- GitHub metadata: Terragrunt under `terragrunt/prod/github/apiadmin/{repository,actions}` + [terraform-github-modules](https://github.com/hanyouqing/terraform-github-modules). See `Docs/PUBLISH.md`.
+- Commands: `make tg-plan` or `infra tg -e prod -s github/apiadmin/repository plan`.
+- S3 backend: env vars or gitignored `backend.secrets.hcl` only.
+- Before `gh` / Terragrunt: `unset GITHUB_TOKEN GH_TOKEN`, then `export GITHUB_TOKEN="$(gh auth token)"`.

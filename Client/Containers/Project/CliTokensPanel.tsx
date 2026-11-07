@@ -36,7 +36,7 @@ const CliTokensPanel: React.FC<CliTokensPanelProps> = ({ projectId }) => {
       const res = await api.get('/cicd/tokens');
       const list: CliTokenRow[] = res.data?.data || [];
       setTokens(
-        list.filter((tok) => {
+        list.filter(tok => {
           if (!tok.projectId) return true;
           const id = typeof tok.projectId === 'string' ? tok.projectId : tok.projectId?._id;
           return !id || id === projectId;
@@ -138,7 +138,8 @@ const CliTokensPanel: React.FC<CliTokensPanelProps> = ({ projectId }) => {
         message={t('cicd.hint')}
         description={
           <Text code>
-            apiadmin run-collection --url &lt;host&gt; --token $TOKEN --collection &lt;id&gt; --format junit
+            apiadmin run-collection --url &lt;host&gt; --token $TOKEN --collection &lt;id&gt;
+            --format junit
           </Text>
         }
       />
@@ -158,7 +159,13 @@ const CliTokensPanel: React.FC<CliTokensPanelProps> = ({ projectId }) => {
           </Button>
         }
       >
-        <Table rowKey="id" loading={loading} columns={columns} dataSource={tokens} pagination={false} />
+        <Table
+          rowKey="id"
+          loading={loading}
+          columns={columns}
+          dataSource={tokens}
+          pagination={false}
+        />
       </Card>
 
       <Modal
@@ -191,8 +198,15 @@ const CliTokensPanel: React.FC<CliTokensPanelProps> = ({ projectId }) => {
       >
         {rawToken ? (
           <div>
-            <Alert type="warning" showIcon message={t('cicd.tokenOnce')} style={{ marginBottom: 12 }} />
-            <Paragraph copyable={{ text: rawToken, tooltips: [t('common.copy'), t('common.copied')] }}>
+            <Alert
+              type="warning"
+              showIcon
+              message={t('cicd.tokenOnce')}
+              style={{ marginBottom: 12 }}
+            />
+            <Paragraph
+              copyable={{ text: rawToken, tooltips: [t('common.copy'), t('common.copied')] }}
+            >
               <Text code>{rawToken}</Text>
             </Paragraph>
             <Button

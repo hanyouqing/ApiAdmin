@@ -3,14 +3,14 @@
 
 /**
  * 创建超级管理员脚本
- * 
+ *
  * 使用方法：
  * 1. 将现有用户设置为超级管理员：
  *    node Server/scripts/create-super-admin.js --email user@example.com
- * 
+ *
  * 2. 创建新的超级管理员账号：
  *    node Server/scripts/create-super-admin.js --email admin@example.com --username admin --password YourPassword123
- * 
+ *
  * 3. 如果数据库中没有用户，将第一个用户设置为超级管理员：
  *    node Server/scripts/create-super-admin.js --auto
  */
@@ -110,7 +110,9 @@ async function setFirstUserAsSuperAdmin() {
     const firstUser = await User.findOne().sort({ createdAt: 1 });
     if (!firstUser) {
       console.log('⚠️  数据库中没有用户，请先注册一个用户，然后运行：');
-      console.log(`   node Server/scripts/create-super-admin.js --email ${firstUser?.email || 'your-email@example.com'}`);
+      console.log(
+        `   node Server/scripts/create-super-admin.js --email ${firstUser?.email || 'your-email@example.com'}`
+      );
       return;
     }
 
@@ -219,9 +221,8 @@ async function main() {
   process.exit(0);
 }
 
-main().catch((error) => {
+main().catch(error => {
   logger.error({ error }, 'Script error');
   console.error('❌ 脚本执行失败:', error.message);
   process.exit(1);
 });
-

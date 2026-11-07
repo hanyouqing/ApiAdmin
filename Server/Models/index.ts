@@ -37,3 +37,7 @@ import './TestRuleConfig.js';
 import './CodeRepository.js';
 import './AIConfig.js';
 import './CodeFixSuggestion.js';
+import './Bug.js';
+import './ApiMonitor.js';
+import './ApiMonitorRun.js';
+import './ProjectVariableStore.js';

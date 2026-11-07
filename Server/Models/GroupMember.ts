@@ -76,16 +76,31 @@ groupMemberSchema.pre('save', function (next) {
   if (this.isNew || this.isModified('role')) {
     const rolePermissions: Record<GroupMemberRole, IGroupPermissions> = {
       owner: {
-        view_group: true, edit_group: true, delete_group: true, manage_members: true,
-        create_project: true, view_all_projects: true, manage_all_projects: true,
+        view_group: true,
+        edit_group: true,
+        delete_group: true,
+        manage_members: true,
+        create_project: true,
+        view_all_projects: true,
+        manage_all_projects: true,
       },
       admin: {
-        view_group: true, edit_group: true, delete_group: false, manage_members: true,
-        create_project: true, view_all_projects: true, manage_all_projects: true,
+        view_group: true,
+        edit_group: true,
+        delete_group: false,
+        manage_members: true,
+        create_project: true,
+        view_all_projects: true,
+        manage_all_projects: true,
       },
       member: {
-        view_group: true, edit_group: false, delete_group: false, manage_members: false,
-        create_project: false, view_all_projects: true, manage_all_projects: false,
+        view_group: true,
+        edit_group: false,
+        delete_group: false,
+        manage_members: false,
+        create_project: false,
+        view_all_projects: true,
+        manage_all_projects: false,
       },
     };
 
@@ -95,6 +110,9 @@ groupMemberSchema.pre('save', function (next) {
   next();
 });
 
-const GroupMember = mongoose.model<IGroupMember, GroupMemberModel>('GroupMember', groupMemberSchema);
+const GroupMember = mongoose.model<IGroupMember, GroupMemberModel>(
+  'GroupMember',
+  groupMemberSchema
+);
 
 export default GroupMember;

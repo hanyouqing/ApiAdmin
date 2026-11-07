@@ -30,7 +30,10 @@ class TestPipelineAIService {
       // 获取代码仓库配置
       const repository = await CodeRepository.findById(task.code_repository_id).lean();
       if (!repository || !repository.enabled) {
-        logger.warn({ resultId, taskId: task._id }, 'Code repository not found or disabled, skipping AI analysis');
+        logger.warn(
+          { resultId, taskId: task._id },
+          'Code repository not found or disabled, skipping AI analysis'
+        );
         return null;
       }
 
@@ -47,7 +50,11 @@ class TestPipelineAIService {
 
       // 1. 完善测试用例
       try {
-        analysis.testCaseImprovement = await this.improveTestCases(result, codeContext, task.ai_config_provider);
+        analysis.testCaseImprovement = await this.improveTestCases(
+          result,
+          codeContext,
+          task.ai_config_provider
+        );
       } catch (error) {
         logger.error({ error, resultId }, 'Failed to improve test cases');
       }
@@ -61,7 +68,11 @@ class TestPipelineAIService {
 
       // 3. 优化建议
       try {
-        analysis.optimizationSuggestions = await this.getOptimizationSuggestions(result, codeContext, task.ai_config_provider);
+        analysis.optimizationSuggestions = await this.getOptimizationSuggestions(
+          result,
+          codeContext,
+          task.ai_config_provider
+        );
       } catch (error) {
         logger.error({ error, resultId }, 'Failed to get optimization suggestions');
       }
@@ -87,14 +98,14 @@ class TestPipelineAIService {
    */
   async getRelevantCode(testResult, repository) {
     const codeFiles = [];
-    
+
     try {
       // 从测试结果中提取接口路径，推断代码文件位置
       for (const testCaseResult of testResult.results || []) {
         if (testCaseResult.request?.url) {
           const interfacePath = testCaseResult.request.url;
           const possiblePaths = codeRepositoryService.inferFilePath(interfacePath);
-          
+
           for (const filePath of possiblePaths) {
             try {
               const content = await codeRepositoryService.getFileContent(repository, filePath);
@@ -126,16 +137,16 @@ class TestPipelineAIService {
   detectLanguage(filePath) {
     const ext = filePath.split('.').pop()?.toLowerCase() || '';
     const languageMap = {
-      'js': 'javascript',
-      'ts': 'typescript',
-      'jsx': 'javascript',
-      'tsx': 'typescript',
-      'py': 'python',
-      'java': 'java',
-      'go': 'go',
-      'rs': 'rust',
-      'php': 'php',
-      'rb': 'ruby',
+      js: 'javascript',
+      ts: 'typescript',
+      jsx: 'javascript',
+      tsx: 'typescript',
+      py: 'python',
+      java: 'java',
+      go: 'go',
+      rs: 'rust',
+      php: 'php',
+      rb: 'ruby',
     };
     return languageMap[ext] || 'text';
   }
@@ -145,10 +156,11 @@ class TestPipelineAIService {
    */
   async improveTestCases(testResult, codeContext, aiProvider) {
     const prompt = this.buildTestCaseImprovementPrompt(testResult, codeContext);
-    
+
     const response = await aiService.callAI(prompt, {
       provider: aiProvider,
-      systemPrompt: '你是一个专业的测试工程师，擅长编写全面的测试用例，目标是达到100%的代码覆盖率。',
+      systemPrompt:
+        '你是一个专业的测试工程师，擅长编写全面的测试用例，目标是达到100%的代码覆盖率。',
     });
 
     return {
@@ -161,8 +173,10 @@ class TestPipelineAIService {
    * 修复问题/bug
    */
   async fixBugs(testResult, codeContext, aiProvider) {
-    const failedTests = (testResult.results || []).filter(r => r.status === 'failed' || r.status === 'error');
-    
+    const failedTests = (testResult.results || []).filter(
+      r => r.status === 'failed' || r.status === 'error'
+    );
+
     if (failedTests.length === 0) {
       return {
         fixes: [],
@@ -171,10 +185,11 @@ class TestPipelineAIService {
     }
 
     const prompt = this.buildBugFixPrompt(testResult, failedTests, codeContext);
-    
+
     const response = await aiService.callAI(prompt, {
       provider: aiProvider,
-      systemPrompt: '你是一个专业的软件工程师，擅长分析和修复代码中的bug。请提供详细的修复方案和代码变更。',
+      systemPrompt:
+        '你是一个专业的软件工程师，擅长分析和修复代码中的bug。请提供详细的修复方案和代码变更。',
     });
 
     return {
@@ -188,10 +203,11 @@ class TestPipelineAIService {
    */
   async getOptimizationSuggestions(testResult, codeContext, aiProvider) {
     const prompt = this.buildOptimizationPrompt(testResult, codeContext);
-    
+
     const response = await aiService.callAI(prompt, {
       provider: aiProvider,
-      systemPrompt: '你是一个资深的软件架构师，擅长代码优化和性能提升。请提供详细的优化建议和变更理由。',
+      systemPrompt:
+        '你是一个资深的软件架构师，擅长代码优化和性能提升。请提供详细的优化建议和变更理由。',
     });
 
     return {
@@ -204,8 +220,10 @@ class TestPipelineAIService {
    * 构建测试用例完善提示
    */
   buildTestCaseImprovementPrompt(testResult, codeContext) {
-    const codeSnippets = codeContext.map(f => `文件: ${f.path}\n\`\`\`${f.language}\n${f.content.substring(0, 2000)}\n\`\`\``).join('\n\n');
-    
+    const codeSnippets = codeContext
+      .map(f => `文件: ${f.path}\n\`\`\`${f.language}\n${f.content.substring(0, 2000)}\n\`\`\``)
+      .join('\n\n');
+
     const testSummary = `
 测试结果摘要:
 - 总测试数: ${testResult.summary.total}
@@ -214,13 +232,19 @@ class TestPipelineAIService {
 - 错误: ${testResult.summary.error}
 `;
 
-    const failedTests = (testResult.results || []).filter(r => r.status === 'failed' || r.status === 'error');
-    const failedDetails = failedTests.map((test, idx) => `
+    const failedTests = (testResult.results || []).filter(
+      r => r.status === 'failed' || r.status === 'error'
+    );
+    const failedDetails = failedTests
+      .map(
+        (test, idx) => `
 测试用例 ${idx + 1}:
 - 接口: ${test.interface_name}
 - 状态: ${test.status}
 - 错误: ${test.error?.message || test.assertion_result?.errors?.join(', ') || 'N/A'}
-`).join('\n');
+`
+      )
+      .join('\n');
 
     return `
 请分析以下测试结果和代码，提供完善的测试用例建议，目标是达到100%的代码覆盖率。
@@ -261,16 +285,22 @@ ${codeSnippets || '未找到相关代码文件'}
    * 构建bug修复提示
    */
   buildBugFixPrompt(testResult, failedTests, codeContext) {
-    const codeSnippets = codeContext.map(f => `文件: ${f.path}\n\`\`\`${f.language}\n${f.content.substring(0, 2000)}\n\`\`\``).join('\n\n');
-    
-    const failedDetails = failedTests.map((test, idx) => `
+    const codeSnippets = codeContext
+      .map(f => `文件: ${f.path}\n\`\`\`${f.language}\n${f.content.substring(0, 2000)}\n\`\`\``)
+      .join('\n\n');
+
+    const failedDetails = failedTests
+      .map(
+        (test, idx) => `
 测试用例 ${idx + 1}:
 - 接口: ${test.interface_name}
 - 请求: ${JSON.stringify(test.request, null, 2)}
 - 响应: ${JSON.stringify(test.response, null, 2)}
 - 错误信息: ${test.error?.message || test.assertion_result?.errors?.join(', ') || 'N/A'}
 - 断言结果: ${JSON.stringify(test.assertion_result, null, 2)}
-`).join('\n');
+`
+      )
+      .join('\n');
 
     return `
 请分析以下失败的测试用例和相关代码，提供详细的bug修复方案。
@@ -312,8 +342,10 @@ ${codeSnippets || '未找到相关代码文件'}
    * 构建优化建议提示
    */
   buildOptimizationPrompt(testResult, codeContext) {
-    const codeSnippets = codeContext.map(f => `文件: ${f.path}\n\`\`\`${f.language}\n${f.content.substring(0, 2000)}\n\`\`\``).join('\n\n');
-    
+    const codeSnippets = codeContext
+      .map(f => `文件: ${f.path}\n\`\`\`${f.language}\n${f.content.substring(0, 2000)}\n\`\`\``)
+      .join('\n\n');
+
     const performanceData = (testResult.results || []).map(r => ({
       interface: r.interface_name,
       duration: r.duration || 0,
@@ -400,7 +432,7 @@ ${codeSnippets || '未找到相关代码文件'}
     const total = testResult.summary.total || 0;
     const passed = testResult.summary.passed || 0;
     const coverage = total > 0 ? (passed / total) * 100 : 0;
-    
+
     return {
       currentCoverage: coverage.toFixed(2) + '%',
       totalTests: total,
@@ -416,7 +448,7 @@ ${codeSnippets || '未找到相关代码文件'}
   analyzePerformance(testResult) {
     const results = testResult.results || [];
     const durations = results.map(r => r.duration || 0).filter(d => d > 0);
-    
+
     if (durations.length === 0) {
       return {
         averageDuration: 0,
@@ -440,5 +472,3 @@ ${codeSnippets || '未找到相关代码文件'}
 
 export const testPipelineAIService = new TestPipelineAIService();
 export default testPipelineAIService;
-
-

@@ -126,7 +126,7 @@ class UserController extends BaseController {
       if (!user) {
         // @ts-ignore
         // @ts-ignore
-      await logLogin({
+        await logLogin({
           username: email.split('@')[0] || email,
           email: email.toLowerCase(),
           loginType: 'password',
@@ -145,7 +145,7 @@ class UserController extends BaseController {
       if (!isPasswordValid) {
         // @ts-ignore
         // @ts-ignore
-      await logLogin({
+        await logLogin({
           userId: user._id as any,
           username: user.username,
           email: user.email,
@@ -439,7 +439,13 @@ class UserController extends BaseController {
         user.email = sanitizeInput(email);
       }
       if (role) {
-        const allowedRoles = ['super_admin', 'group_leader', 'project_leader', 'developer', 'guest'];
+        const allowedRoles = [
+          'super_admin',
+          'group_leader',
+          'project_leader',
+          'developer',
+          'guest',
+        ];
         if (!allowedRoles.includes(role)) {
           ctx.status = 400;
           ctx.body = UserController.error('无效的角色');

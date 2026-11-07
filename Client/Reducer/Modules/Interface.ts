@@ -92,9 +92,9 @@ const interfaceSlice = createSlice({
       state.currentInterface = action.payload;
     },
   },
-  extraReducers: (builder) => {
+  extraReducers: builder => {
     builder
-      .addCase(fetchInterfaces.pending, (state) => {
+      .addCase(fetchInterfaces.pending, state => {
         state.loading = true;
       })
       .addCase(fetchInterfaces.fulfilled, (state, action) => {
@@ -114,7 +114,7 @@ const interfaceSlice = createSlice({
         state.interfaces.push(action.payload);
       })
       .addCase(updateInterface.fulfilled, (state, action) => {
-        const index = state.interfaces.findIndex((i) => i._id === action.payload._id);
+        const index = state.interfaces.findIndex(i => i._id === action.payload._id);
         if (index !== -1) {
           state.interfaces[index] = action.payload;
         }
@@ -123,11 +123,10 @@ const interfaceSlice = createSlice({
         }
       })
       .addCase(deleteInterface.fulfilled, (state, action) => {
-        state.interfaces = state.interfaces.filter((i) => i._id !== action.payload);
+        state.interfaces = state.interfaces.filter(i => i._id !== action.payload);
       });
   },
 });
 
 export const { setCurrentInterface } = interfaceSlice.actions;
 export default interfaceSlice.reducer;
-

@@ -39,7 +39,9 @@ const WhitelistManagement: React.FC = () => {
       const response = await api.get('/whitelist/config');
       setEnabled(response.data.data?.enabled || false);
     } catch (error: any) {
-      message.error(error.response?.data?.message || t('admin.whitelist.fetchFailed') || '获取配置失败');
+      message.error(
+        error.response?.data?.message || t('admin.whitelist.fetchFailed') || '获取配置失败'
+      );
     }
   };
 
@@ -51,7 +53,9 @@ const WhitelistManagement: React.FC = () => {
       // 后端返回的是 { list: [], pagination: {} } 格式
       setEntries(data.list || []);
     } catch (error: any) {
-      message.error(error.response?.data?.message || t('admin.whitelist.fetchFailed') || '获取白名单列表失败');
+      message.error(
+        error.response?.data?.message || t('admin.whitelist.fetchFailed') || '获取白名单列表失败'
+      );
     } finally {
       setLoading(false);
     }
@@ -63,7 +67,9 @@ const WhitelistManagement: React.FC = () => {
       setEnabled(checked);
       message.success(t('admin.whitelist.updateSuccess') || '配置更新成功');
     } catch (error: any) {
-      message.error(error.response?.data?.message || t('admin.whitelist.operationFailed') || '配置更新失败');
+      message.error(
+        error.response?.data?.message || t('admin.whitelist.operationFailed') || '配置更新失败'
+      );
     }
   };
 
@@ -82,7 +88,9 @@ const WhitelistManagement: React.FC = () => {
           message.success(t('admin.whitelist.deleteSuccess') || '删除成功');
           fetchWhitelist();
         } catch (error: any) {
-          message.error(error.response?.data?.message || t('admin.whitelist.operationFailed') || '删除失败');
+          message.error(
+            error.response?.data?.message || t('admin.whitelist.operationFailed') || '删除失败'
+          );
         }
       },
     });
@@ -102,7 +110,9 @@ const WhitelistManagement: React.FC = () => {
       form.resetFields();
       fetchWhitelist();
     } catch (error: any) {
-      message.error(error.response?.data?.message || t('admin.whitelist.operationFailed') || '添加失败');
+      message.error(
+        error.response?.data?.message || t('admin.whitelist.operationFailed') || '添加失败'
+      );
     }
   };
 
@@ -139,7 +149,12 @@ const WhitelistManagement: React.FC = () => {
       key: 'action',
       width: 150,
       render: (_: any, record: WhitelistEntry) => (
-        <Button type="link" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record._id)}>
+        <Button
+          type="link"
+          danger
+          icon={<DeleteOutlined />}
+          onClick={() => handleDelete(record._id)}
+        >
           {t('common.delete')}
         </Button>
       ),
@@ -158,7 +173,12 @@ const WhitelistManagement: React.FC = () => {
           <Space>
             <span>{t('admin.whitelist.enable')}</span>
             <Switch checked={enabled} onChange={handleEnableChange} />
-            <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd} style={{ color: '#ffffff' }}>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={handleAdd}
+              style={{ color: '#ffffff' }}
+            >
               {t('admin.whitelist.add')}
             </Button>
           </Space>
@@ -204,4 +224,3 @@ const WhitelistManagement: React.FC = () => {
 };
 
 export default WhitelistManagement;
-

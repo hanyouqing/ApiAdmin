@@ -6,10 +6,10 @@ export class SwaggerExporter {
     const tags = new Set();
 
     interfaces
-      .filter((i) => !publicOnly || i.tag?.includes('public'))
-      .forEach((interfaceData) => {
+      .filter(i => !publicOnly || i.tag?.includes('public'))
+      .forEach(interfaceData => {
         if (interfaceData.tag) {
-          interfaceData.tag.forEach((tag) => tags.add(tag));
+          interfaceData.tag.forEach(tag => tags.add(tag));
         }
 
         const path = interfaceData.path;
@@ -22,14 +22,14 @@ export class SwaggerExporter {
           description: interfaceData.desc || '',
           tags: interfaceData.tag || [],
           parameters: [
-            ...(interfaceData.req_query || []).map((q) => ({
+            ...(interfaceData.req_query || []).map(q => ({
               name: q.name,
               in: 'query',
               schema: { type: q.type || 'string' },
               required: q.required || false,
               description: q.desc || '',
             })),
-            ...(interfaceData.req_headers || []).map((h) => ({
+            ...(interfaceData.req_headers || []).map(h => ({
               name: h.name,
               in: 'header',
               schema: { type: 'string' },
@@ -38,7 +38,7 @@ export class SwaggerExporter {
             })),
           ],
           responses: {
-            '200': {
+            200: {
               description: 'Success',
               content: {
                 'application/json': {
@@ -74,7 +74,7 @@ export class SwaggerExporter {
           url: project.basepath || '/',
         },
       ],
-      tags: Array.from(tags).map((tag) => ({ name: tag })),
+      tags: Array.from(tags).map(tag => ({ name: tag })),
       paths,
     };
 
@@ -109,4 +109,3 @@ export class SwaggerExporter {
     return { type: typeof obj };
   }
 }
-

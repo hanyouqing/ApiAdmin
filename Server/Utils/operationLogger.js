@@ -32,7 +32,10 @@ export async function logOperation({
   try {
     // 验证必需参数
     if (!type || !action || !targetId || !userId || !username) {
-      logger.warn({ type, action, targetId, userId, username }, 'Missing required parameters for operation log');
+      logger.warn(
+        { type, action, targetId, userId, username },
+        'Missing required parameters for operation log'
+      );
       return;
     }
 
@@ -56,4 +59,3 @@ export async function logOperation({
     logger.error({ error, params: { type, action, targetId, userId } }, 'Failed to log operation');
   }
 }
-

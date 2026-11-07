@@ -18,7 +18,10 @@ export interface IEmailConfig {
 
 export interface IEmailConfigStatics {
   getConfig(): Promise<mongoose.HydratedDocument<IEmailConfig>>;
-  updateConfig(updates: Partial<IEmailConfig>, userId?: Schema.Types.ObjectId | null): Promise<mongoose.HydratedDocument<IEmailConfig>>;
+  updateConfig(
+    updates: Partial<IEmailConfig>,
+    userId?: Schema.Types.ObjectId | null
+  ): Promise<mongoose.HydratedDocument<IEmailConfig>>;
 }
 
 export type EmailConfigModel = Model<IEmailConfig, {}, IEmailConfigStatics>;
@@ -101,6 +104,9 @@ emailConfigSchema.statics.updateConfig = async function (updates, userId = null)
   return config;
 };
 
-const EmailConfig = mongoose.model<IEmailConfig, EmailConfigModel>('EmailConfig', emailConfigSchema);
+const EmailConfig = mongoose.model<IEmailConfig, EmailConfigModel>(
+  'EmailConfig',
+  emailConfigSchema
+);
 
 export default EmailConfig;

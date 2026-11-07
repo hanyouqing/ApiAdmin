@@ -80,7 +80,7 @@ describe('MockExpectation Model', () => {
     const expectation = new MockExpectation({
       response: { status: 200 },
     });
-    
+
     await expect(expectation.save()).rejects.toThrow();
   });
 });

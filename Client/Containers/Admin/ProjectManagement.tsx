@@ -1,6 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Button, Table, Space, Modal, Form, Input, Select, Tag, App } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, EnvironmentOutlined } from '@ant-design/icons';
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  EyeOutlined,
+  EnvironmentOutlined,
+} from '@ant-design/icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -178,11 +184,7 @@ const ProjectManagement: React.FC = () => {
           >
             {t('common.view')}
           </Button>
-          <Button
-            type="link"
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-          >
+          <Button type="link" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
             {t('common.edit')}
           </Button>
           <Button
@@ -203,7 +205,12 @@ const ProjectManagement: React.FC = () => {
       <Card
         title={t('admin.project.title')}
         extra={
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate} style={{ color: '#ffffff' }}>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={handleCreate}
+            style={{ color: '#ffffff' }}
+          >
             {t('admin.project.create')}
           </Button>
         }
@@ -267,4 +274,3 @@ const ProjectManagement: React.FC = () => {
 };
 
 export default ProjectManagement;
-

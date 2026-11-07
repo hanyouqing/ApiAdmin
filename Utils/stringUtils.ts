@@ -5,7 +5,11 @@
 /**
  * 截取字符串
  */
-export const truncate = (str: string | null | undefined, length: number = 50, suffix: string = '...'): string => {
+export const truncate = (
+  str: string | null | undefined,
+  length: number = 50,
+  suffix: string = '...'
+): string => {
   if (!str || typeof str !== 'string') return str || '';
   if (str.length <= length) return str;
   return str.substring(0, length) + suffix;
@@ -61,6 +65,3 @@ export const stripHtml = (html: string | null | undefined): string => {
   if (!html || typeof html !== 'string') return html || '';
   return html.replace(/<[^>]*>/g, '');
 };
-
-
-

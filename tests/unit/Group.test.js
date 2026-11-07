@@ -9,7 +9,7 @@ function createMockCtx(params = {}, query = {}, body = {}, user = null) {
   return {
     params,
     query,
-    request: { 
+    request: {
       body,
       url: '/api/test',
     },
@@ -37,7 +37,7 @@ describe('Group Model', () => {
       }
       throw error;
     }
-    
+
     await Group.deleteMany({});
     await User.deleteMany({});
     await OperationLog.deleteMany({});
@@ -72,7 +72,7 @@ describe('Group Model', () => {
 
   it('should require group_name', async () => {
     const group = new Group({ group_desc: 'Test Description', uid: ownerUser._id });
-    
+
     await expect(group.save()).rejects.toThrow();
   });
 
@@ -116,7 +116,7 @@ describe('GroupController', () => {
       }
       throw error;
     }
-    
+
     await Group.deleteMany({});
     await User.deleteMany({});
     await OperationLog.deleteMany({});
@@ -285,12 +285,7 @@ describe('GroupController', () => {
         uid: superAdmin._id,
       });
 
-      const ctx = createMockCtx(
-        {},
-        { _id: groupToDelete._id.toString() },
-        {},
-        superAdmin
-      );
+      const ctx = createMockCtx({}, { _id: groupToDelete._id.toString() }, {}, superAdmin);
       await GroupController.delete(ctx);
 
       expect(ctx.status).toBe(200);
@@ -356,4 +351,3 @@ describe('GroupController', () => {
     });
   });
 });
-

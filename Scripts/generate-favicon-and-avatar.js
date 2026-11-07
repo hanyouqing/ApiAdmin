@@ -58,7 +58,7 @@ async function generateFaviconAndAvatar() {
     console.log('生成 favicon.ico...');
     const sizes = [16, 32, 48];
     const pngBuffers = await Promise.all(
-      sizes.map(async (size) => sharp(svgBuffer).resize(size, size).png().toBuffer())
+      sizes.map(async size => sharp(svgBuffer).resize(size, size).png().toBuffer())
     );
 
     const icoBuffer = await pngToIco(pngBuffers);

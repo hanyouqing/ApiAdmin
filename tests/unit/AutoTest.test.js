@@ -121,7 +121,9 @@ describe('AutoTestController', () => {
 
     it('should handle errors gracefully', async () => {
       const ctx = createMockCtx({}, {}, { projectId: testProject._id.toString() }, testUser);
-      vi.spyOn(AutoTestConfig, 'getOrCreateConfig').mockRejectedValueOnce(new Error('Database error'));
+      vi.spyOn(AutoTestConfig, 'getOrCreateConfig').mockRejectedValueOnce(
+        new Error('Database error')
+      );
 
       await AutoTestController.updateConfig(ctx);
 

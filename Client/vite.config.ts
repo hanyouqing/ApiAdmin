@@ -7,18 +7,23 @@ import { readFileSync } from 'fs';
 // 获取版本信息
 const getVersionInfo = () => {
   try {
-    const packageJson = JSON.parse(readFileSync(path.resolve(__dirname, '../package.json'), 'utf-8'));
+    const packageJson = JSON.parse(
+      readFileSync(path.resolve(__dirname, '../package.json'), 'utf-8')
+    );
     const version = packageJson.version || '0.0.1';
-    
+
     let commitId = 'unknown';
     try {
-      commitId = execSync('git rev-parse --short HEAD', { encoding: 'utf-8', cwd: path.resolve(__dirname, '..') }).trim();
+      commitId = execSync('git rev-parse --short HEAD', {
+        encoding: 'utf-8',
+        cwd: path.resolve(__dirname, '..'),
+      }).trim();
     } catch {
       // Git 命令失败时使用默认值
     }
-    
+
     const buildTime = new Date().toISOString();
-    
+
     return {
       VITE_APP_VERSION: version,
       VITE_APP_COMMIT_ID: commitId,
@@ -35,7 +40,7 @@ const getVersionInfo = () => {
 
 export default defineConfig(({ mode }) => {
   const versionInfo = getVersionInfo();
-  
+
   return {
     plugins: [react()],
     // Configure public directory for static assets (favicon, icons, etc.)
@@ -90,6 +95,16 @@ export default defineConfig(({ mode }) => {
             });
           },
         },
+        '/swagger.json': {
+          target: 'http://localhost:3000',
+          changeOrigin: true,
+          secure: false,
+        },
+        '/openapi.json': {
+          target: 'http://localhost:3000',
+          changeOrigin: true,
+          secure: false,
+        },
       },
     },
     build: {
@@ -98,4 +113,3 @@ export default defineConfig(({ mode }) => {
     },
   };
 });
-

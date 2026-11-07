@@ -1,11 +1,7 @@
 import axios from 'axios';
 import { logger } from './logger.js';
 import AIConfig from '../Models/AIConfig.js';
-import {
-  decryptSecret,
-  isCloudAiAllowed,
-  CLOUD_AI_PROVIDERS,
-} from './secretCrypto.js';
+import { decryptSecret, isCloudAiAllowed, CLOUD_AI_PROVIDERS } from './secretCrypto.js';
 
 /**
  * AI 服务
@@ -30,7 +26,9 @@ class AIService {
       }
 
       if (CLOUD_AI_PROVIDERS.has(aiConfig.provider) && !isCloudAiAllowed()) {
-        throw new Error('受监管模式已禁用云端 AI，请使用本地 Ollama（custom）或设置 ALLOW_CLOUD_AI=true');
+        throw new Error(
+          '受监管模式已禁用云端 AI，请使用本地 Ollama（custom）或设置 ALLOW_CLOUD_AI=true'
+        );
       }
 
       await AIConfig.findByIdAndUpdate(aiConfig._id, {
@@ -111,7 +109,10 @@ class AIService {
       {
         model,
         messages: [
-          { role: 'system', content: options.systemPrompt || '你是一个专业的软件工程师，擅长分析和修复代码问题。' },
+          {
+            role: 'system',
+            content: options.systemPrompt || '你是一个专业的软件工程师，擅长分析和修复代码问题。',
+          },
           { role: 'user', content: prompt },
         ],
         max_tokens: config.max_tokens || 2000,
@@ -132,13 +133,16 @@ class AIService {
   async callOpenAI(config, prompt, options) {
     const endpoint = config.api_endpoint || 'https://api.openai.com/v1/chat/completions';
     const model = config.model || 'gpt-3.5-turbo';
-    
+
     const response = await axios.post(
       endpoint,
       {
         model,
         messages: [
-          { role: 'system', content: options.systemPrompt || '你是一个专业的软件工程师，擅长分析和修复代码问题。' },
+          {
+            role: 'system',
+            content: options.systemPrompt || '你是一个专业的软件工程师，擅长分析和修复代码问题。',
+          },
           { role: 'user', content: prompt },
         ],
         max_tokens: config.max_tokens || 2000,
@@ -146,7 +150,7 @@ class AIService {
       },
       {
         headers: {
-          'Authorization': `Bearer ${config.api_key}`,
+          Authorization: `Bearer ${config.api_key}`,
           'Content-Type': 'application/json',
         },
         timeout: config.timeout || 30000,
@@ -162,13 +166,16 @@ class AIService {
   async callDeepSeek(config, prompt, options) {
     const endpoint = config.api_endpoint || 'https://api.deepseek.com/v1/chat/completions';
     const model = config.model || 'deepseek-chat';
-    
+
     const response = await axios.post(
       endpoint,
       {
         model,
         messages: [
-          { role: 'system', content: options.systemPrompt || '你是一个专业的软件工程师，擅长分析和修复代码问题。' },
+          {
+            role: 'system',
+            content: options.systemPrompt || '你是一个专业的软件工程师，擅长分析和修复代码问题。',
+          },
           { role: 'user', content: prompt },
         ],
         max_tokens: config.max_tokens || 2000,
@@ -176,7 +183,7 @@ class AIService {
       },
       {
         headers: {
-          'Authorization': `Bearer ${config.api_key}`,
+          Authorization: `Bearer ${config.api_key}`,
           'Content-Type': 'application/json',
         },
         timeout: config.timeout || 30000,
@@ -190,15 +197,19 @@ class AIService {
    * 调用豆包 (字节跳动)
    */
   async callDoubao(config, prompt, options) {
-    const endpoint = config.api_endpoint || 'https://ark.cn-beijing.volces.com/api/v3/chat/completions';
+    const endpoint =
+      config.api_endpoint || 'https://ark.cn-beijing.volces.com/api/v3/chat/completions';
     const model = config.model || 'ep-20241208101230-xxxxx'; // 需要替换为实际的模型ID
-    
+
     const response = await axios.post(
       endpoint,
       {
         model,
         messages: [
-          { role: 'system', content: options.systemPrompt || '你是一个专业的软件工程师，擅长分析和修复代码问题。' },
+          {
+            role: 'system',
+            content: options.systemPrompt || '你是一个专业的软件工程师，擅长分析和修复代码问题。',
+          },
           { role: 'user', content: prompt },
         ],
         max_tokens: config.max_tokens || 2000,
@@ -206,7 +217,7 @@ class AIService {
       },
       {
         headers: {
-          'Authorization': `Bearer ${config.api_key}`,
+          Authorization: `Bearer ${config.api_key}`,
           'Content-Type': 'application/json',
         },
         timeout: config.timeout || 30000,
@@ -220,16 +231,22 @@ class AIService {
    * 调用 Gemini (Google)
    */
   async callGemini(config, prompt, options) {
-    const endpoint = config.api_endpoint || `https://generativelanguage.googleapis.com/v1beta/models/${config.model || 'gemini-pro'}:generateContent`;
-    
+    const endpoint =
+      config.api_endpoint ||
+      `https://generativelanguage.googleapis.com/v1beta/models/${config.model || 'gemini-pro'}:generateContent`;
+
     const response = await axios.post(
       `${endpoint}?key=${config.api_key}`,
       {
-        contents: [{
-          parts: [{
-            text: `${options.systemPrompt || '你是一个专业的软件工程师，擅长分析和修复代码问题。'}\n\n${prompt}`,
-          }],
-        }],
+        contents: [
+          {
+            parts: [
+              {
+                text: `${options.systemPrompt || '你是一个专业的软件工程师，擅长分析和修复代码问题。'}\n\n${prompt}`,
+              },
+            ],
+          },
+        ],
         generationConfig: {
           maxOutputTokens: config.max_tokens || 2000,
           temperature: config.temperature || 0.7,
@@ -252,13 +269,16 @@ class AIService {
   async callKimi(config, prompt, options) {
     const endpoint = config.api_endpoint || 'https://api.moonshot.cn/v1/chat/completions';
     const model = config.model || 'moonshot-v1-8k';
-    
+
     const response = await axios.post(
       endpoint,
       {
         model,
         messages: [
-          { role: 'system', content: options.systemPrompt || '你是一个专业的软件工程师，擅长分析和修复代码问题。' },
+          {
+            role: 'system',
+            content: options.systemPrompt || '你是一个专业的软件工程师，擅长分析和修复代码问题。',
+          },
           { role: 'user', content: prompt },
         ],
         max_tokens: config.max_tokens || 2000,
@@ -266,7 +286,7 @@ class AIService {
       },
       {
         headers: {
-          'Authorization': `Bearer ${config.api_key}`,
+          Authorization: `Bearer ${config.api_key}`,
           'Content-Type': 'application/json',
         },
         timeout: config.timeout || 30000,
@@ -280,16 +300,21 @@ class AIService {
    * 调用阿里大模型 (通义千问)
    */
   async callAliyun(config, prompt, options) {
-    const endpoint = config.api_endpoint || 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation';
+    const endpoint =
+      config.api_endpoint ||
+      'https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation';
     const model = config.model || 'qwen-turbo';
-    
+
     const response = await axios.post(
       endpoint,
       {
         model,
         input: {
           messages: [
-            { role: 'system', content: options.systemPrompt || '你是一个专业的软件工程师，擅长分析和修复代码问题。' },
+            {
+              role: 'system',
+              content: options.systemPrompt || '你是一个专业的软件工程师，擅长分析和修复代码问题。',
+            },
             { role: 'user', content: prompt },
           ],
         },
@@ -300,7 +325,7 @@ class AIService {
       },
       {
         headers: {
-          'Authorization': `Bearer ${config.api_key}`,
+          Authorization: `Bearer ${config.api_key}`,
           'Content-Type': 'application/json',
         },
         timeout: config.timeout || 30000,
@@ -316,8 +341,9 @@ class AIService {
   async analyzeTestFailure(testResult, codeContext = null) {
     try {
       const prompt = this.buildAnalysisPrompt(testResult, codeContext);
-      const systemPrompt = '你是一个专业的软件测试工程师和代码审查专家。请仔细分析测试失败的原因，并提供详细的修复建议。';
-      
+      const systemPrompt =
+        '你是一个专业的软件测试工程师和代码审查专家。请仔细分析测试失败的原因，并提供详细的修复建议。';
+
       const analysis = await this.callAI(prompt, {
         systemPrompt,
         provider: null, // 使用默认启用的AI
@@ -339,7 +365,7 @@ class AIService {
    */
   buildAnalysisPrompt(testResult, codeContext) {
     let prompt = `请分析以下测试失败的原因，并提供修复建议：\n\n`;
-    
+
     prompt += `## 测试结果概览\n`;
     prompt += `- 测试任务: ${testResult.task_id?.name || 'N/A'}\n`;
     prompt += `- 状态: ${testResult.status}\n`;
@@ -392,7 +418,7 @@ class AIService {
     // 简单的正则提取，实际可以更复杂
     const suggestions = [];
     const lines = analysis.split('\n');
-    
+
     let currentSuggestion = null;
     for (const line of lines) {
       if (line.match(/^\d+\.|^[-*]/)) {
@@ -417,7 +443,7 @@ class AIService {
   calculateConfidence(analysis) {
     // 简单的启发式方法
     let confidence = 0.5;
-    
+
     if (analysis.includes('修复') || analysis.includes('建议')) {
       confidence += 0.2;
     }
@@ -529,4 +555,3 @@ ${sourceCode}
 
 export const aiService = new AIService();
 export default aiService;
-

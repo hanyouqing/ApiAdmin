@@ -5,7 +5,9 @@ import CodeRepository from '../Models/CodeRepository.js';
 import Project from '../Models/Project.js';
 
 class CodeRepositoryController extends BaseController {
-  static get ControllerName() { return 'CodeRepositoryController'; }
+  static get ControllerName() {
+    return 'CodeRepositoryController';
+  }
 
   /**
    * 获取项目的代码仓库配置
@@ -41,7 +43,18 @@ class CodeRepositoryController extends BaseController {
     try {
       const user = ctx.state.user;
       const { projectId } = ctx.params;
-      const { provider, repository_url, branch, auth_type, access_token, ssh_private_key, ssh_private_key_password, username, enabled, auto_sync } = ctx.request.body;
+      const {
+        provider,
+        repository_url,
+        branch,
+        auth_type,
+        access_token,
+        ssh_private_key,
+        ssh_private_key_password,
+        username,
+        enabled,
+        auto_sync,
+      } = ctx.request.body;
 
       if (!validateObjectId(projectId)) {
         ctx.status = 400;
@@ -103,7 +116,10 @@ class CodeRepositoryController extends BaseController {
           auth_type: auth_type || 'token',
           access_token: access_token && access_token !== '***' ? access_token : '',
           ssh_private_key: ssh_private_key && ssh_private_key !== '***' ? ssh_private_key : '',
-          ssh_private_key_password: ssh_private_key_password !== undefined && ssh_private_key_password !== '***' ? (ssh_private_key_password || '') : '',
+          ssh_private_key_password:
+            ssh_private_key_password !== undefined && ssh_private_key_password !== '***'
+              ? ssh_private_key_password || ''
+              : '',
           username: username || '',
           enabled: enabled !== undefined ? enabled : true,
           auto_sync: auto_sync || false,
@@ -173,18 +189,16 @@ class CodeRepositoryController extends BaseController {
       }
 
       const { codeRepositoryService } = await import('../Utils/codeRepositoryService.js');
-      
+
       // 拉取代码
       const repoPath = await codeRepositoryService.cloneRepository(repository);
-      
+
       ctx.body = CodeRepositoryController.success({ repoPath }, '代码拉取成功');
     } catch (error) {
       logger.error({ error }, 'Pull code repository error');
       ctx.status = 500;
       ctx.body = CodeRepositoryController.error(
-        process.env.NODE_ENV === 'production'
-          ? '拉取代码失败'
-          : error.message || '拉取代码失败'
+        process.env.NODE_ENV === 'production' ? '拉取代码失败' : error.message || '拉取代码失败'
       );
     }
   }
@@ -231,7 +245,11 @@ class CodeRepositoryController extends BaseController {
       }
 
       // 使用AI生成单元测试
-      const result = await aiService.generateUnitTests(sourceCode, functionName, testFramework || 'jest');
+      const result = await aiService.generateUnitTests(
+        sourceCode,
+        functionName,
+        testFramework || 'jest'
+      );
 
       ctx.body = CodeRepositoryController.success(result, '单元测试生成成功');
     } catch (error) {
@@ -333,7 +351,7 @@ class CodeRepositoryController extends BaseController {
 
       // 测试连接（尝试获取仓库信息）
       const { codeRepositoryService } = await import('../Utils/codeRepositoryService.js');
-      
+
       // 尝试获取 README 文件来测试连接
       try {
         await codeRepositoryService.getFileContent(repository, 'README.md');
@@ -346,13 +364,10 @@ class CodeRepositoryController extends BaseController {
       logger.error({ error }, 'Test code repository connection error');
       ctx.status = 500;
       ctx.body = CodeRepositoryController.error(
-        process.env.NODE_ENV === 'production'
-          ? '测试连接失败'
-          : error.message || '测试连接失败'
+        process.env.NODE_ENV === 'production' ? '测试连接失败' : error.message || '测试连接失败'
       );
     }
   }
 }
 
 export default CodeRepositoryController;
-

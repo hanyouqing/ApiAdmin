@@ -5,7 +5,9 @@ import Interface from '../Models/Interface.js';
 import InterfaceCat from '../Models/InterfaceCat.js';
 
 class OpenAPIController extends BaseController {
-  static get ControllerName() { return 'OpenAPIController'; }
+  static get ControllerName() {
+    return 'OpenAPIController';
+  }
 
   static async listInterfaces(ctx) {
     try {
@@ -85,9 +87,7 @@ class OpenAPIController extends BaseController {
       logger.error({ error }, 'Get interface via OpenAPI error');
       ctx.status = 500;
       ctx.body = OpenAPIController.error(
-        process.env.NODE_ENV === 'production'
-          ? '获取接口失败'
-          : error.message || '获取接口失败'
+        process.env.NODE_ENV === 'production' ? '获取接口失败' : error.message || '获取接口失败'
       );
     }
   }
@@ -95,7 +95,21 @@ class OpenAPIController extends BaseController {
   static async createInterface(ctx) {
     try {
       const projectId = ctx.state.projectId;
-      const { title, path, method, catid, desc, tag, status, req_query, req_headers, req_body_type, req_body, res_body, res_body_type } = ctx.request.body;
+      const {
+        title,
+        path,
+        method,
+        catid,
+        desc,
+        tag,
+        status,
+        req_query,
+        req_headers,
+        req_body_type,
+        req_body,
+        res_body,
+        res_body_type,
+      } = ctx.request.body;
 
       if (!title || !path || !method) {
         ctx.status = 400;
@@ -162,9 +176,7 @@ class OpenAPIController extends BaseController {
       logger.error({ error }, 'Create interface via OpenAPI error');
       ctx.status = 500;
       ctx.body = OpenAPIController.error(
-        process.env.NODE_ENV === 'production'
-          ? '创建接口失败'
-          : error.message || '创建接口失败'
+        process.env.NODE_ENV === 'production' ? '创建接口失败' : error.message || '创建接口失败'
       );
     }
   }
@@ -250,7 +262,9 @@ class OpenAPIController extends BaseController {
         interfaceData.req_query = Array.isArray(updateData.req_query) ? updateData.req_query : [];
       }
       if (updateData.req_headers !== undefined) {
-        interfaceData.req_headers = Array.isArray(updateData.req_headers) ? updateData.req_headers : [];
+        interfaceData.req_headers = Array.isArray(updateData.req_headers)
+          ? updateData.req_headers
+          : [];
       }
       if (updateData.req_body_type !== undefined) {
         interfaceData.req_body_type = updateData.req_body_type;
@@ -274,9 +288,7 @@ class OpenAPIController extends BaseController {
       logger.error({ error }, 'Update interface via OpenAPI error');
       ctx.status = 500;
       ctx.body = OpenAPIController.error(
-        process.env.NODE_ENV === 'production'
-          ? '更新接口失败'
-          : error.message || '更新接口失败'
+        process.env.NODE_ENV === 'production' ? '更新接口失败' : error.message || '更新接口失败'
       );
     }
   }
@@ -312,14 +324,10 @@ class OpenAPIController extends BaseController {
       logger.error({ error }, 'Delete interface via OpenAPI error');
       ctx.status = 500;
       ctx.body = OpenAPIController.error(
-        process.env.NODE_ENV === 'production'
-          ? '删除接口失败'
-          : error.message || '删除接口失败'
+        process.env.NODE_ENV === 'production' ? '删除接口失败' : error.message || '删除接口失败'
       );
     }
   }
 }
 
 export default OpenAPIController;
-
-

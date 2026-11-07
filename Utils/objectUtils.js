@@ -7,11 +7,11 @@
  * @param {any} obj - 原对象
  * @returns {any} 克隆后的对象
  */
-export const deepClone = (obj) => {
+export const deepClone = obj => {
   if (obj === null || typeof obj !== 'object') return obj;
   if (obj instanceof Date) return new Date(obj.getTime());
   if (obj instanceof Array) return obj.map(item => deepClone(item));
-  
+
   const cloned = {};
   for (const key in obj) {
     if (obj.hasOwnProperty(key)) {
@@ -50,7 +50,7 @@ export const deepMerge = (target, ...sources) => {
  * @param {any} item - 待判断的值
  * @returns {boolean} 是否为对象
  */
-const isObject = (item) => {
+const isObject = item => {
   return item && typeof item === 'object' && !Array.isArray(item);
 };
 
@@ -63,15 +63,15 @@ const isObject = (item) => {
  */
 export const get = (obj, path, defaultValue = undefined) => {
   if (!obj || typeof obj !== 'object') return defaultValue;
-  
+
   const keys = path.split('.');
   let result = obj;
-  
+
   for (const key of keys) {
     if (result === null || result === undefined) return defaultValue;
     result = result[key];
   }
-  
+
   return result !== undefined ? result : defaultValue;
 };
 
@@ -84,18 +84,18 @@ export const get = (obj, path, defaultValue = undefined) => {
  */
 export const set = (obj, path, value) => {
   if (!obj || typeof obj !== 'object') return obj;
-  
+
   const keys = path.split('.');
   const lastKey = keys.pop();
   let current = obj;
-  
+
   for (const key of keys) {
     if (!current[key] || typeof current[key] !== 'object') {
       current[key] = {};
     }
     current = current[key];
   }
-  
+
   current[lastKey] = value;
   return obj;
 };
@@ -105,9 +105,9 @@ export const set = (obj, path, value) => {
  * @param {Object} obj - 对象
  * @returns {Object} 移除空值后的对象
  */
-export const omitEmpty = (obj) => {
+export const omitEmpty = obj => {
   if (!obj || typeof obj !== 'object') return obj;
-  
+
   const result = {};
   for (const key in obj) {
     const value = obj[key];
@@ -124,4 +124,3 @@ export const omitEmpty = (obj) => {
   }
   return result;
 };
-

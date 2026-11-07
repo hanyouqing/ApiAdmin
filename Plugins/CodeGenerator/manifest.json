@@ -19,9 +19,7 @@
       "handler": "./Server/Controller.js#generate"
     }
   ],
-  "permissions": [
-    "read:interface"
-  ],
+  "permissions": ["read:interface"],
   "dependencies": {},
   "configSchema": {
     "type": "object",
@@ -40,4 +38,3 @@
     }
   }
 }
-

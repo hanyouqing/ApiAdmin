@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { 
-  Card, 
-  Row, 
-  Col, 
-  Statistic, 
-  List, 
+import {
+  Card,
+  Row,
+  Col,
+  Statistic,
+  List,
   Typography,
   Space,
   Button,
@@ -14,11 +14,11 @@ import {
   Collapse,
   Tag,
   Spin,
-  Divider
+  Divider,
 } from 'antd';
-import { 
-  ProjectOutlined, 
-  FolderOutlined, 
+import {
+  ProjectOutlined,
+  FolderOutlined,
   ApiOutlined,
   UserOutlined,
   ThunderboltOutlined,
@@ -29,7 +29,7 @@ import {
   CloseCircleOutlined,
   ExclamationCircleOutlined,
   ClockCircleOutlined,
-  EnvironmentOutlined
+  EnvironmentOutlined,
 } from '@ant-design/icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
@@ -56,7 +56,16 @@ interface MonitorStats {
   mockRequests: number;
   system?: {
     cpu: number;
-    memory: number | { used: number; total: number; free?: number; heapUsed?: number; heapTotal?: number; external?: number };
+    memory:
+      | number
+      | {
+          used: number;
+          total: number;
+          free?: number;
+          heapUsed?: number;
+          heapTotal?: number;
+          external?: number;
+        };
     disk: number;
     uptime: number;
     memoryDetail?: {
@@ -244,8 +253,8 @@ const Home: React.FC = () => {
   useEffect(() => {
     // 获取所有项目的接口数量
     if (safeProjects.length > 0) {
-      const projectIds = safeProjects.map((p) => p._id);
-      projectIds.forEach((projectId) => {
+      const projectIds = safeProjects.map(p => p._id);
+      projectIds.forEach(projectId => {
         dispatch(fetchInterfaces(projectId)).catch(() => {
           // 静默处理错误
         });
@@ -298,10 +307,9 @@ const Home: React.FC = () => {
   // 渲染测试任务卡片
   const renderTaskCard = (task: Task) => {
     const { latestResult, stats: taskStats, environment } = task;
-    const successRate = taskStats.total > 0 
-      ? ((taskStats.passed / taskStats.total) * 100).toFixed(1) 
-      : '0';
-    
+    const successRate =
+      taskStats.total > 0 ? ((taskStats.passed / taskStats.total) * 100).toFixed(1) : '0';
+
     return (
       <Card
         key={task._id}
@@ -331,7 +339,7 @@ const Home: React.FC = () => {
               {task.description}
             </Text>
           )}
-          
+
           {environment && (
             <div>
               <EnvironmentOutlined /> {environment.name}
@@ -340,7 +348,7 @@ const Home: React.FC = () => {
               </Text>
             </div>
           )}
-          
+
           {task.base_url && (
             <div>
               <Text type="secondary" style={{ fontSize: 12 }}>
@@ -356,7 +364,7 @@ const Home: React.FC = () => {
                   {t(`admin.monitor.status.${latestResult.status}`, latestResult.status)}
                 </Tag>
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  {latestResult.started_at 
+                  {latestResult.started_at
                     ? dayjs(latestResult.started_at).fromNow()
                     : t('admin.monitor.unknown')}
                 </Text>
@@ -414,8 +422,17 @@ const Home: React.FC = () => {
 
   return (
     <div style={{ padding: '24px' }}>
-      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Title level={2} style={{ margin: 0 }}>{t('home.welcome')}</Title>
+      <div
+        style={{
+          marginBottom: 24,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
+        <Title level={2} style={{ margin: 0 }}>
+          {t('home.welcome')}
+        </Title>
         {isSuperAdmin && (
           <Button
             icon={<ReloadOutlined />}
@@ -432,48 +449,53 @@ const Home: React.FC = () => {
 
       {/* 系统监控（仅超级管理员） */}
       {isSuperAdmin && monitorStats?.system && (
-        <Card 
+        <Card
           title={t('admin.monitor.system')}
           loading={monitorLoading}
           style={{ marginBottom: 24 }}
         >
           <Row gutter={[16, 16]}>
             <Col xs={12} sm={12} md={6}>
-              <Statistic 
-                title={t('admin.monitor.cpu')} 
-                value={typeof monitorStats.system.cpu === 'number' ? monitorStats.system.cpu : 0} 
-                suffix="%" 
+              <Statistic
+                title={t('admin.monitor.cpu')}
+                value={typeof monitorStats.system.cpu === 'number' ? monitorStats.system.cpu : 0}
+                suffix="%"
               />
             </Col>
             <Col xs={12} sm={12} md={6}>
-              <Statistic 
-                title={t('admin.monitor.memory')} 
+              <Statistic
+                title={t('admin.monitor.memory')}
                 value={
-                  typeof monitorStats.system.memory === 'number' 
-                    ? monitorStats.system.memory 
-                    : (monitorStats.system.memoryDetail 
-                        ? Math.round((monitorStats.system.memoryDetail.used / monitorStats.system.memoryDetail.total) * 100)
-                        : 0)
-                } 
-                suffix="%" 
+                  typeof monitorStats.system.memory === 'number'
+                    ? monitorStats.system.memory
+                    : monitorStats.system.memoryDetail
+                      ? Math.round(
+                          (monitorStats.system.memoryDetail.used /
+                            monitorStats.system.memoryDetail.total) *
+                            100
+                        )
+                      : 0
+                }
+                suffix="%"
               />
               {monitorStats.system.memoryDetail && (
                 <div style={{ marginTop: 4, fontSize: 12, color: '#666' }}>
-                  {monitorStats.system.memoryDetail.used}MB / {monitorStats.system.memoryDetail.total}MB
+                  {monitorStats.system.memoryDetail.used}MB /{' '}
+                  {monitorStats.system.memoryDetail.total}MB
                 </div>
               )}
             </Col>
             <Col xs={12} sm={12} md={6}>
-              <Statistic 
-                title={t('admin.monitor.disk')} 
-                value={typeof monitorStats.system.disk === 'number' ? monitorStats.system.disk : 0} 
-                suffix="%" 
+              <Statistic
+                title={t('admin.monitor.disk')}
+                value={typeof monitorStats.system.disk === 'number' ? monitorStats.system.disk : 0}
+                suffix="%"
               />
             </Col>
             <Col xs={12} sm={12} md={6}>
-              <Statistic 
-                title={t('admin.monitor.uptime')} 
-                value={formatUptime(monitorStats.system.uptime)} 
+              <Statistic
+                title={t('admin.monitor.uptime')}
+                value={formatUptime(monitorStats.system.uptime)}
               />
             </Col>
           </Row>
@@ -484,30 +506,44 @@ const Home: React.FC = () => {
               <Divider />
               <Row gutter={[16, 16]}>
                 <Col xs={12} sm={12} md={6}>
-                  <Statistic 
-                    title={t('admin.monitor.requests')} 
-                    value={monitorStats.requests.total} 
+                  <Statistic
+                    title={t('admin.monitor.requests')}
+                    value={monitorStats.requests.total}
                   />
                 </Col>
                 <Col xs={12} sm={12} md={6}>
-                  <Statistic 
-                    title={t('admin.monitor.successRate')} 
-                    value={monitorStats.requests.total > 0 ? ((monitorStats.requests.success / monitorStats.requests.total) * 100).toFixed(2) : 0} 
-                    suffix="%" 
+                  <Statistic
+                    title={t('admin.monitor.successRate')}
+                    value={
+                      monitorStats.requests.total > 0
+                        ? (
+                            (monitorStats.requests.success / monitorStats.requests.total) *
+                            100
+                          ).toFixed(2)
+                        : 0
+                    }
+                    suffix="%"
                   />
                 </Col>
                 <Col xs={12} sm={12} md={6}>
-                  <Statistic 
-                    title={t('admin.monitor.errorRate')} 
-                    value={monitorStats.requests.total > 0 ? ((monitorStats.requests.error / monitorStats.requests.total) * 100).toFixed(2) : 0} 
-                    suffix="%" 
+                  <Statistic
+                    title={t('admin.monitor.errorRate')}
+                    value={
+                      monitorStats.requests.total > 0
+                        ? (
+                            (monitorStats.requests.error / monitorStats.requests.total) *
+                            100
+                          ).toFixed(2)
+                        : 0
+                    }
+                    suffix="%"
                   />
                 </Col>
                 <Col xs={12} sm={12} md={6}>
-                  <Statistic 
-                    title={t('admin.monitor.avgResponseTime')} 
-                    value={monitorStats.requests.avgResponseTime} 
-                    suffix="ms" 
+                  <Statistic
+                    title={t('admin.monitor.avgResponseTime')}
+                    value={monitorStats.requests.avgResponseTime}
+                    suffix="ms"
                   />
                 </Col>
               </Row>
@@ -573,15 +609,15 @@ const Home: React.FC = () => {
 
       {/* 测试流水线（仅超级管理员） */}
       {isSuperAdmin && (
-        <Card 
-          title={t('admin.monitor.pipelineMonitor')} 
+        <Card
+          title={t('admin.monitor.pipelineMonitor')}
           loading={hierarchyLoading}
           style={{ marginBottom: 24 }}
         >
           {hierarchy.length === 0 ? (
             <Empty description={t('admin.monitor.noData')} />
           ) : (
-            <Collapse 
+            <Collapse
               defaultActiveKey={hierarchy.map(g => g._id)}
               items={hierarchy.map(group => ({
                 key: group._id,
@@ -589,35 +625,43 @@ const Home: React.FC = () => {
                   <Space>
                     <FolderOpenOutlined />
                     <Text strong>{group.group_name}</Text>
-                    <Badge count={group.projectCount} showZero style={{ backgroundColor: '#52c41a' }} />
+                    <Badge
+                      count={group.projectCount}
+                      showZero
+                      style={{ backgroundColor: '#52c41a' }}
+                    />
                     <Text type="secondary">
                       ({group.totalTasks} {t('admin.monitor.testPipelines')})
                     </Text>
                   </Space>
                 ),
-                children: group.projects.length === 0 ? (
-                  <Empty description={t('admin.monitor.noProjectsInGroup')} />
-                ) : (
-                  <Collapse
-                    items={group.projects.map(project => ({
-                      key: project._id,
-                      label: (
-                        <Space>
-                          <ProjectOutlined />
-                          <Text strong>{project.project_name}</Text>
-                          <Badge count={project.taskCount} showZero style={{ backgroundColor: '#1890ff' }} />
-                        </Space>
-                      ),
-                      children: project.tasks.length === 0 ? (
-                        <Empty description={t('admin.monitor.noPipelinesInProject')} />
-                      ) : (
-                        <div>
-                          {project.tasks.map(task => renderTaskCard(task))}
-                        </div>
-                      ),
-                    }))}
-                  />
-                ),
+                children:
+                  group.projects.length === 0 ? (
+                    <Empty description={t('admin.monitor.noProjectsInGroup')} />
+                  ) : (
+                    <Collapse
+                      items={group.projects.map(project => ({
+                        key: project._id,
+                        label: (
+                          <Space>
+                            <ProjectOutlined />
+                            <Text strong>{project.project_name}</Text>
+                            <Badge
+                              count={project.taskCount}
+                              showZero
+                              style={{ backgroundColor: '#1890ff' }}
+                            />
+                          </Space>
+                        ),
+                        children:
+                          project.tasks.length === 0 ? (
+                            <Empty description={t('admin.monitor.noPipelinesInProject')} />
+                          ) : (
+                            <div>{project.tasks.map(task => renderTaskCard(task))}</div>
+                          ),
+                      }))}
+                    />
+                  ),
               }))}
             />
           )}
@@ -627,43 +671,37 @@ const Home: React.FC = () => {
       {/* 最近项目和分组 */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} lg={12}>
-          <Card 
-            title={t('home.recentProjects')} 
+          <Card
+            title={t('home.recentProjects')}
             extra={<a onClick={() => navigate('/project')}>{t('common.viewAll')}</a>}
           >
             <List
               dataSource={safeProjects.slice(0, 5)}
-              renderItem={(item) => (
+              renderItem={item => (
                 <List.Item
                   style={{ cursor: 'pointer' }}
                   onClick={() => navigate(`/project/${item._id}`)}
                 >
-                  <List.Item.Meta
-                    title={item.project_name}
-                    description={item.project_desc}
-                  />
+                  <List.Item.Meta title={item.project_name} description={item.project_desc} />
                 </List.Item>
               )}
             />
           </Card>
         </Col>
         <Col xs={24} lg={12}>
-          <Card 
-            title={t('home.recentGroups')} 
+          <Card
+            title={t('home.recentGroups')}
             extra={<a onClick={() => navigate('/group')}>{t('common.viewAll')}</a>}
           >
             <List
               dataSource={safeGroups.slice(0, 5)}
-              renderItem={(item) => (
+              renderItem={item => (
                 <List.Item
                   key={item._id}
                   style={{ cursor: 'pointer' }}
                   onClick={() => navigate(`/group/${item._id}`)}
                 >
-                  <List.Item.Meta
-                    title={item.group_name}
-                    description={item.group_desc}
-                  />
+                  <List.Item.Meta title={item.group_name} description={item.group_desc} />
                 </List.Item>
               )}
             />

@@ -6,13 +6,16 @@ import TestEnvironment from '../Models/TestEnvironment.js';
 import Project from '../Models/Project.js';
 
 class TestEnvironmentController extends BaseController {
-  static get ControllerName() { return 'TestEnvironmentController'; }
+  static get ControllerName() {
+    return 'TestEnvironmentController';
+  }
 
   // 创建测试环境
   static async createEnvironment(ctx) {
     try {
       const user = ctx.state.user;
-      let { name, project_id, base_url, variables, headers, description, is_default } = ctx.request.body;
+      let { name, project_id, base_url, variables, headers, description, is_default } =
+        ctx.request.body;
 
       if (!name || !project_id || !base_url) {
         ctx.status = 400;
@@ -37,10 +40,7 @@ class TestEnvironmentController extends BaseController {
 
       // 如果设置为默认环境，取消其他默认环境
       if (is_default) {
-        await TestEnvironment.updateMany(
-          { project_id, is_default: true },
-          { is_default: false }
-        );
+        await TestEnvironment.updateMany({ project_id, is_default: true }, { is_default: false });
       }
 
       const environment = new TestEnvironment({
@@ -127,30 +127,39 @@ class TestEnvironmentController extends BaseController {
         }
       }
 
-      logger.debug({ 
-        projectId: project_id,
-        userId: user._id?.toString(),
-        userRole: user.role,
-      }, 'Fetching test environments');
+      logger.debug(
+        {
+          projectId: project_id,
+          userId: user._id?.toString(),
+          userRole: user.role,
+        },
+        'Fetching test environments'
+      );
 
       const environments = await TestEnvironment.find({ project_id })
         .populate('createdBy', 'username')
         .sort({ is_default: -1, createdAt: -1 })
         .lean();
 
-      logger.info({ 
-        projectId: project_id,
-        environmentCount: environments.length,
-      }, 'Test environments found');
+      logger.info(
+        {
+          projectId: project_id,
+          environmentCount: environments.length,
+        },
+        'Test environments found'
+      );
 
       ctx.body = TestEnvironmentController.success(environments || []);
     } catch (error) {
-      logger.error({ 
-        error: error.message,
-        stack: error.stack,
-        projectId: ctx.query.project_id,
-        userId: ctx.state.user?._id,
-      }, 'List test environments error');
+      logger.error(
+        {
+          error: error.message,
+          stack: error.stack,
+          projectId: ctx.query.project_id,
+          userId: ctx.state.user?._id,
+        },
+        'List test environments error'
+      );
       ctx.status = 500;
       ctx.body = TestEnvironmentController.error(
         process.env.NODE_ENV === 'production'
@@ -333,4 +342,3 @@ class TestEnvironmentController extends BaseController {
 }
 
 export default TestEnvironmentController;
-

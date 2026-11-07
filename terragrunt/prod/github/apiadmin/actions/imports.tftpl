@@ -1,0 +1,22 @@
+# Generated into the module working dir as imports.tf on terragrunt init/plan/apply.
+# Repo name comes from clone path ~/github.com/<owner>/<Repo> (see root.hcl).
+
+import {
+  to = github_actions_variable.this["${repo}/IMAGE_NAME"]
+  id = "${repo}:IMAGE_NAME"
+}
+
+import {
+  to = github_actions_variable.this["${repo}/DOCKERHUB_NAMESPACE"]
+  id = "${repo}:DOCKERHUB_NAMESPACE"
+}
+
+import {
+  to = github_actions_variable.this["${repo}/GHCR_IMAGE"]
+  id = "${repo}:GHCR_IMAGE"
+}
+
+import {
+  to = github_actions_variable.this["${repo}/DOCKERHUB_IMAGE"]
+  id = "${repo}:DOCKERHUB_IMAGE"
+}

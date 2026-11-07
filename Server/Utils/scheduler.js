@@ -171,7 +171,7 @@ class TaskScheduler {
         environment_id: environment?._id || null,
         status: 'running',
         summary: {
-          total: task.test_cases.filter((tc) => tc.enabled).length,
+          total: task.test_cases.filter(tc => tc.enabled).length,
           passed: 0,
           failed: 0,
           error: 0,
@@ -186,7 +186,7 @@ class TaskScheduler {
       await testResult.save();
 
       const runner = new AutoTestRunner();
-      runner.runTask(task, environment, testResult._id).catch((error) => {
+      runner.runTask(task, environment, testResult._id).catch(error => {
         logger.error({ error, taskId, resultId: testResult._id }, 'Scheduled task execution error');
       });
     } catch (error) {

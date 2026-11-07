@@ -22,8 +22,10 @@ import {
   DeleteOutlined,
   PlayCircleOutlined,
   HistoryOutlined,
+  BugOutlined,
 } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../../Utils/api';
 
 const { Option } = Select;
@@ -40,6 +42,7 @@ const statusColor: Record<string, string> = {
 const MonitorsPage: React.FC = () => {
   const { t } = useTranslation();
   const { message: messageApi } = App.useApp();
+  const navigate = useNavigate();
   const [projects, setProjects] = useState<any[]>([]);
   const [projectId, setProjectId] = useState<string | undefined>();
   const [environments, setEnvironments] = useState<any[]>([]);
@@ -65,17 +68,14 @@ const MonitorsPage: React.FC = () => {
     }
   }, [messageApi, t]);
 
-  const fetchEnvironments = useCallback(
-    async (pid: string) => {
-      try {
-        const res = await api.get('/test/environments', { params: { project_id: pid } });
-        setEnvironments(res.data?.data || []);
-      } catch {
-        setEnvironments([]);
-      }
-    },
-    []
-  );
+  const fetchEnvironments = useCallback(async (pid: string) => {
+    try {
+      const res = await api.get('/test/environments', { params: { project_id: pid } });
+      setEnvironments(res.data?.data || []);
+    } catch {
+      setEnvironments([]);
+    }
+  }, []);
 
   const fetchMonitors = useCallback(
     async (pid: string) => {
@@ -118,7 +118,13 @@ const MonitorsPage: React.FC = () => {
       request: { method: 'GET', url: '', headers: '{}' },
       assertions: { status_code: 200, body_contains: '', max_response_time_ms: 5000 },
       schedule: { enabled: true, cron: '*/5 * * * *', timezone: 'Asia/Shanghai' },
-      notification: { enabled: false, on_failure: true, on_success: false, webhook_url: '', email_addresses: '' },
+      notification: {
+        enabled: false,
+        on_failure: true,
+        on_success: false,
+        webhook_url: '',
+        email_addresses: '',
+      },
     });
     setModalVisible(true);
   };
@@ -286,12 +292,18 @@ const MonitorsPage: React.FC = () => {
       title: t('monitor.schedule'),
       key: 'schedule',
       render: (_: any, row: any) =>
-        row.schedule?.enabled ? <Tag color="blue">{row.schedule.cron}</Tag> : <Tag>{t('monitor.scheduleOff')}</Tag>,
+        row.schedule?.enabled ? (
+          <Tag color="blue">{row.schedule.cron}</Tag>
+        ) : (
+          <Tag>{t('monitor.scheduleOff')}</Tag>
+        ),
     },
     {
       title: t('monitor.lastStatus'),
       dataIndex: 'last_status',
-      render: (status: string) => <Tag color={statusColor[status] || 'default'}>{status || 'idle'}</Tag>,
+      render: (status: string) => (
+        <Tag color={statusColor[status] || 'default'}>{status || 'idle'}</Tag>
+      ),
     },
     {
       title: t('monitor.lastRun'),
@@ -326,7 +338,7 @@ const MonitorsPage: React.FC = () => {
               placeholder={t('monitor.selectProject')}
               value={projectId}
               onChange={setProjectId}
-              options={projects.map((p) => ({ value: p._id, label: p.project_name }))}
+              options={projects.map(p => ({ value: p._id, label: p.project_name }))}
               allowClear
             />
             <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
@@ -367,7 +379,7 @@ const MonitorsPage: React.FC = () => {
           </Form.Item>
           <Form.Item name="environment_id" label={t('monitor.environment')}>
             <Select allowClear placeholder={t('monitor.environmentOptional')}>
-              {environments.map((e) => (
+              {environments.map(e => (
                 <Option key={e._id} value={e._id}>
                   {e.name}
                 </Option>
@@ -376,7 +388,7 @@ const MonitorsPage: React.FC = () => {
           </Form.Item>
           <Form.Item name={['request', 'method']} label="Method" rules={[{ required: true }]}>
             <Select>
-              {['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'].map((m) => (
+              {['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'].map(m => (
                 <Option key={m} value={m}>
                   {m}
                 </Option>
@@ -401,7 +413,11 @@ const MonitorsPage: React.FC = () => {
           <Form.Item name={['assertions', 'max_response_time_ms']} label={t('monitor.maxMs')}>
             <InputNumber style={{ width: '100%' }} min={100} />
           </Form.Item>
-          <Form.Item name={['schedule', 'enabled']} label={t('monitor.scheduleEnabled')} valuePropName="checked">
+          <Form.Item
+            name={['schedule', 'enabled']}
+            label={t('monitor.scheduleEnabled')}
+            valuePropName="checked"
+          >
             <Switch />
           </Form.Item>
           <Form.Item name={['schedule', 'cron']} label="Cron">
@@ -410,10 +426,18 @@ const MonitorsPage: React.FC = () => {
           <Form.Item name={['schedule', 'timezone']} label="Timezone">
             <Input />
           </Form.Item>
-          <Form.Item name={['notification', 'enabled']} label={t('monitor.notifyEnabled')} valuePropName="checked">
+          <Form.Item
+            name={['notification', 'enabled']}
+            label={t('monitor.notifyEnabled')}
+            valuePropName="checked"
+          >
             <Switch />
           </Form.Item>
-          <Form.Item name={['notification', 'on_failure']} label={t('monitor.notifyOnFailure')} valuePropName="checked">
+          <Form.Item
+            name={['notification', 'on_failure']}
+            label={t('monitor.notifyOnFailure')}
+            valuePropName="checked"
+          >
             <Switch />
           </Form.Item>
           <Form.Item name={['notification', 'webhook_url']} label="Webhook URL">
@@ -453,22 +477,47 @@ const MonitorsPage: React.FC = () => {
             {
               title: t('common.actions') || '操作',
               key: 'fix',
-              width: 120,
+              width: 200,
               render: (_: any, record: any) =>
                 record.status === 'passing' ? null : (
-                  <Button
-                    size="small"
-                    type="link"
-                    loading={codeFixLoading}
-                    onClick={() => suggestFixForRun(record, false)}
-                  >
-                    {t('codeFix.suggest')}
-                  </Button>
+                  <Space size={0}>
+                    <Button
+                      size="small"
+                      type="link"
+                      loading={codeFixLoading}
+                      onClick={() => suggestFixForRun(record, false)}
+                    >
+                      {t('codeFix.suggest')}
+                    </Button>
+                    <Button
+                      size="small"
+                      type="link"
+                      icon={<BugOutlined />}
+                      onClick={() => {
+                        const params = new URLSearchParams({
+                          project_id: String(projectId || ''),
+                          monitor_id: String(activeMonitor?._id || ''),
+                          monitor_run_id: String(record._id || ''),
+                          title: `${activeMonitor?.name || 'Monitor'} failed: ${record.status}`,
+                          description: [
+                            `Monitor: ${activeMonitor?.name || ''}`,
+                            `Status: ${record.status}`,
+                            `Message: ${record.message || ''}`,
+                            `URL: ${record.request?.url || activeMonitor?.request?.url || ''}`,
+                            `Run at: ${record.run_at || ''}`,
+                          ].join('\n'),
+                        });
+                        navigate(`/bugs?${params.toString()}`);
+                      }}
+                    >
+                      {t('monitor.createBug')}
+                    </Button>
+                  </Space>
                 ),
             },
           ]}
           expandable={{
-            expandedRowRender: (record) => (
+            expandedRowRender: record => (
               <Descriptions size="small" column={1}>
                 <Descriptions.Item label="Request">
                   <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
@@ -476,7 +525,9 @@ const MonitorsPage: React.FC = () => {
                   </pre>
                 </Descriptions.Item>
                 <Descriptions.Item label="Response">
-                  <pre style={{ margin: 0, whiteSpace: 'pre-wrap', maxHeight: 240, overflow: 'auto' }}>
+                  <pre
+                    style={{ margin: 0, whiteSpace: 'pre-wrap', maxHeight: 240, overflow: 'auto' }}
+                  >
                     {JSON.stringify(record.response, null, 2)}
                   </pre>
                 </Descriptions.Item>
@@ -498,7 +549,10 @@ const MonitorsPage: React.FC = () => {
               disabled={!codeFixResult?.run_id}
               onClick={() =>
                 codeFixResult?.run_id &&
-                suggestFixForRun({ _id: codeFixResult.run_id, project_id: codeFixResult.project_id }, true)
+                suggestFixForRun(
+                  { _id: codeFixResult.run_id, project_id: codeFixResult.project_id },
+                  true
+                )
               }
             >
               {t('codeFix.createDraftPr')}

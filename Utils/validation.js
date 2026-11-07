@@ -8,7 +8,7 @@
  * @param {string} email - 邮箱地址
  * @returns {boolean} 是否为有效邮箱
  */
-export const validateEmail = (email) => {
+export const validateEmail = email => {
   if (!email || typeof email !== 'string') return false;
   // 不允许连续的点
   if (email.includes('..')) return false;
@@ -21,7 +21,7 @@ export const validateEmail = (email) => {
  * @param {string} password - 密码
  * @returns {{valid: boolean, message?: string}} 验证结果
  */
-export const validatePassword = (password) => {
+export const validatePassword = password => {
   if (!password || password.length < 8) {
     return { valid: false, message: 'Password must be at least 8 characters' };
   }
@@ -39,7 +39,7 @@ export const validatePassword = (password) => {
  * @param {string} str - 待清理的字符串
  * @returns {string} 清理后的字符串
  */
-export const sanitizeString = (str) => {
+export const sanitizeString = str => {
   if (typeof str !== 'string') {
     if (str === null || str === undefined) return '';
     return str;
@@ -53,7 +53,7 @@ export const sanitizeString = (str) => {
  * @param {any} input - 待清理的输入
  * @returns {any} 清理后的数据
  */
-export const sanitizeInput = (input) => {
+export const sanitizeInput = input => {
   if (typeof input === 'string') {
     return sanitizeString(input);
   }
@@ -75,7 +75,7 @@ export const sanitizeInput = (input) => {
  * @param {string} url - URL 地址
  * @returns {boolean} 是否为有效 URL
  */
-export const validateUrl = (url) => {
+export const validateUrl = url => {
   if (!url || typeof url !== 'string') return false;
   try {
     new URL(url);
@@ -90,7 +90,7 @@ export const validateUrl = (url) => {
  * @param {string} phone - 手机号
  * @returns {boolean} 是否为有效手机号
  */
-export const validatePhone = (phone) => {
+export const validatePhone = phone => {
   if (!phone || typeof phone !== 'string') return false;
   const phoneRegex = /^1[3-9]\d{9}$/;
   return phoneRegex.test(phone);
@@ -101,7 +101,7 @@ export const validatePhone = (phone) => {
  * @param {string} username - 用户名
  * @returns {{valid: boolean, message?: string}} 验证结果
  */
-export const validateUsername = (username) => {
+export const validateUsername = username => {
   if (!username || typeof username !== 'string') {
     return { valid: false, message: 'Username is required' };
   }
@@ -112,8 +112,10 @@ export const validateUsername = (username) => {
     return { valid: false, message: 'Username must be at most 20 characters' };
   }
   if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
-    return { valid: false, message: 'Username can only contain letters, numbers, underscores and hyphens' };
+    return {
+      valid: false,
+      message: 'Username can only contain letters, numbers, underscores and hyphens',
+    };
   }
   return { valid: true };
 };
-

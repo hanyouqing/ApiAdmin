@@ -1,15 +1,58 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Card, Button, Table, Space, Modal, Form, Input, Select, Tag, message, InputNumber, Switch, Tabs, Descriptions, Typography, Collapse, Empty, Alert, List } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, PlayCircleOutlined, ApiOutlined, SearchOutlined, EyeOutlined, RobotOutlined, LinkOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import {
+  Card,
+  Button,
+  Table,
+  Space,
+  Modal,
+  Form,
+  Input,
+  Select,
+  Tag,
+  message,
+  InputNumber,
+  Switch,
+  Tabs,
+  Descriptions,
+  Typography,
+  Collapse,
+  Empty,
+  Alert,
+  List,
+} from 'antd';
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  PlayCircleOutlined,
+  ApiOutlined,
+  SearchOutlined,
+  EyeOutlined,
+  RobotOutlined,
+  LinkOutlined,
+  ThunderboltOutlined,
+} from '@ant-design/icons';
 import Editor from '@monaco-editor/react';
 import Mock from '../../Utils/safeMock';
 import JSON5 from 'json5';
 import { useDispatch, useSelector } from 'react-redux';
 import { useParams, useLocation, useMatch, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { fetchInterfaces, createInterface, updateInterface, deleteInterface, runInterface, fetchInterfaceDetail } from '../../Reducer/Modules/Interface';
+import {
+  fetchInterfaces,
+  createInterface,
+  updateInterface,
+  deleteInterface,
+  runInterface,
+  fetchInterfaceDetail,
+} from '../../Reducer/Modules/Interface';
 import { fetchInterfaceCats, createInterfaceCat } from '../../Reducer/Modules/InterfaceCat';
-import { fetchMockExpectations, createMockExpectation, updateMockExpectation, deleteMockExpectation } from '../../Reducer/Modules/MockExpectation';
+import {
+  fetchMockExpectations,
+  createMockExpectation,
+  updateMockExpectation,
+  deleteMockExpectation,
+} from '../../Reducer/Modules/MockExpectation';
 import { fetchProjectDetail, fetchProjects } from '../../Reducer/Modules/Project';
 import { api } from '../../Utils/api';
 import type { AppDispatch, RootState } from '../../Reducer/Create';
@@ -29,9 +72,11 @@ const InterfaceManagement: React.FC = () => {
   const { t } = useTranslation();
   const { interfaces, loading } = useSelector((state: RootState) => state.interface);
   const { cats } = useSelector((state: RootState) => state.interfaceCat);
-  const { expectations: mockExpectations, loading: mockLoading } = useSelector((state: RootState) => state.mockExpectation);
+  const { expectations: mockExpectations, loading: mockLoading } = useSelector(
+    (state: RootState) => state.mockExpectation
+  );
   const { currentProject, projects } = useSelector((state: RootState) => state.project);
-  
+
   // 检查当前路径是否是接口相关路径
   const isInterfacePath = location.pathname.includes('/interface') || match !== null;
   const [form] = Form.useForm();
@@ -67,7 +112,7 @@ const InterfaceManagement: React.FC = () => {
     const pathParts = location.pathname.split('/');
     const routeKeywords = ['interface', 'test', 'setting', 'activity', 'docs'];
     const hasRouteKeyword = pathParts.some(part => routeKeywords.includes(part));
-    
+
     if (params.projectId) {
       // 如果 params.projectId 是路由关键字，返回空
       if (routeKeywords.includes(params.projectId)) {
@@ -75,7 +120,7 @@ const InterfaceManagement: React.FC = () => {
       }
       return params.projectId;
     }
-    
+
     // 从 URL 路径中提取：/project/:projectId/interface
     const pathMatch = location.pathname.match(/\/project\/([^/]+)/);
     if (pathMatch && pathMatch[1]) {
@@ -86,12 +131,12 @@ const InterfaceManagement: React.FC = () => {
       }
       return extractedId;
     }
-    
+
     // 如果路径包含路由关键字但不是从 projectId 位置匹配到的，尝试从 Redux store 获取
     if (hasRouteKeyword) {
       return currentProject?._id || '';
     }
-    
+
     // 最后从 Redux store 获取
     return currentProject?._id || '';
   }, [params.projectId, location.pathname, currentProject?._id]);
@@ -114,7 +159,7 @@ const InterfaceManagement: React.FC = () => {
     if (!projectId) return;
     api
       .get('/test/environments', { params: { project_id: projectId } })
-      .then((res) => {
+      .then(res => {
         setTestEnvironments(res.data?.data || []);
       })
       .catch(() => setTestEnvironments([]));
@@ -130,16 +175,18 @@ const InterfaceManagement: React.FC = () => {
         return;
       }
     }
-    
+
     // 只在接口相关路径且 projectId 有效时执行
-    if (isInterfacePath && 
-        projectId && 
-        projectId !== 'interface' && 
-        projectId !== 'test' && 
-        projectId !== 'setting' && 
-        projectId !== 'activity' &&
-        projectId !== 'docs' &&
-        projectId.length > 0) {
+    if (
+      isInterfacePath &&
+      projectId &&
+      projectId !== 'interface' &&
+      projectId !== 'test' &&
+      projectId !== 'setting' &&
+      projectId !== 'activity' &&
+      projectId !== 'docs' &&
+      projectId.length > 0
+    ) {
       dispatch(fetchInterfaces(projectId));
       dispatch(fetchInterfaceCats(projectId));
       dispatch(fetchProjectDetail(projectId));
@@ -149,7 +196,13 @@ const InterfaceManagement: React.FC = () => {
   const handleCreate = () => {
     setEditingInterface(null);
     form.resetFields();
-    form.setFieldsValue({ project_id: projectId, method: 'GET', req_body_type: 'json', res_body_type: 'json', status: 'developing' });
+    form.setFieldsValue({
+      project_id: projectId,
+      method: 'GET',
+      req_body_type: 'json',
+      res_body_type: 'json',
+      status: 'developing',
+    });
     setModalVisible(true);
   };
 
@@ -188,7 +241,9 @@ const InterfaceManagement: React.FC = () => {
       content: t('interface.batchDeleteConfirmMessage', { count: selectedRowKeys.length }),
       onOk: async () => {
         try {
-          const deletePromises = selectedRowKeys.map((id) => dispatch(deleteInterface(id as string)).unwrap());
+          const deletePromises = selectedRowKeys.map(id =>
+            dispatch(deleteInterface(id as string)).unwrap()
+          );
           await Promise.all(deletePromises);
           message.success(t('interface.batchDeleteSuccess', { count: selectedRowKeys.length }));
           setSelectedRowKeys([]);
@@ -249,14 +304,14 @@ const InterfaceManagement: React.FC = () => {
         method: sketch.method || form.getFieldValue('method') || 'GET',
         desc: sketch.desc || sketch.description || aiDescription,
         req_body_other: sketch.req_body_other
-          ? (typeof sketch.req_body_other === 'string'
+          ? typeof sketch.req_body_other === 'string'
             ? sketch.req_body_other
-            : JSON.stringify(sketch.req_body_other, null, 2))
+            : JSON.stringify(sketch.req_body_other, null, 2)
           : form.getFieldValue('req_body_other'),
         res_body: sketch.res_body
-          ? (typeof sketch.res_body === 'string'
+          ? typeof sketch.res_body === 'string'
             ? sketch.res_body
-            : JSON.stringify(sketch.res_body, null, 2))
+            : JSON.stringify(sketch.res_body, null, 2)
           : form.getFieldValue('res_body'),
       });
       setAiModalVisible(false);
@@ -274,7 +329,9 @@ const InterfaceManagement: React.FC = () => {
       const res = await api.get('/ai/suggestions', { params: { interfaceId: record._id } });
       const suggestions = res.data?.data?.suggestions || res.data?.data || [];
       const list = Array.isArray(suggestions)
-        ? suggestions.map((s: any) => (typeof s === 'string' ? s : s.message || s.text || JSON.stringify(s)))
+        ? suggestions.map((s: any) =>
+            typeof s === 'string' ? s : s.message || s.text || JSON.stringify(s)
+          )
         : [];
       setAiSuggestions(list);
       Modal.info({
@@ -298,26 +355,35 @@ const InterfaceManagement: React.FC = () => {
   const handleRunSubmit = async () => {
     try {
       const values = await runForm.validateFields();
-      
+
       // Parse JSON strings to objects
       const params: any = {};
       if (values.params?.query) {
         try {
-          params.query = typeof values.params.query === 'string' ? JSON.parse(values.params.query) : values.params.query;
+          params.query =
+            typeof values.params.query === 'string'
+              ? JSON.parse(values.params.query)
+              : values.params.query;
         } catch {
           params.query = {};
         }
       }
       if (values.params?.body) {
         try {
-          params.body = typeof values.params.body === 'string' ? JSON.parse(values.params.body) : values.params.body;
+          params.body =
+            typeof values.params.body === 'string'
+              ? JSON.parse(values.params.body)
+              : values.params.body;
         } catch {
           params.body = {};
         }
       }
       if (values.params?.headers) {
         try {
-          params.headers = typeof values.params.headers === 'string' ? JSON.parse(values.params.headers) : values.params.headers;
+          params.headers =
+            typeof values.params.headers === 'string'
+              ? JSON.parse(values.params.headers)
+              : values.params.headers;
         } catch {
           params.headers = {};
         }
@@ -441,7 +507,9 @@ const InterfaceManagement: React.FC = () => {
         );
       }
     } catch (error: any) {
-      message.error(error.response?.data?.message || t('interface.mockExpectation.aiGenerateFailed'));
+      message.error(
+        error.response?.data?.message || t('interface.mockExpectation.aiGenerateFailed')
+      );
     } finally {
       setAiMockLoading(false);
     }
@@ -515,24 +583,25 @@ const InterfaceManagement: React.FC = () => {
 
   const filteredInterfaces = useMemo(() => {
     let filtered = interfaces;
-    
+
     if (searchText) {
       const searchLower = searchText.toLowerCase();
-      filtered = filtered.filter((inter) => 
-        inter.title?.toLowerCase().includes(searchLower) ||
-        inter.path?.toLowerCase().includes(searchLower) ||
-        inter.tag?.some((tag) => tag.toLowerCase().includes(searchLower))
+      filtered = filtered.filter(
+        inter =>
+          inter.title?.toLowerCase().includes(searchLower) ||
+          inter.path?.toLowerCase().includes(searchLower) ||
+          inter.tag?.some(tag => tag.toLowerCase().includes(searchLower))
       );
     }
-    
+
     if (statusFilter) {
-      filtered = filtered.filter((inter) => inter.status === statusFilter);
+      filtered = filtered.filter(inter => inter.status === statusFilter);
     }
-    
+
     if (catFilter) {
-      filtered = filtered.filter((inter) => inter.catid === catFilter);
+      filtered = filtered.filter(inter => inter.catid === catFilter);
     }
-    
+
     return filtered;
   }, [interfaces, searchText, statusFilter, catFilter]);
 
@@ -559,7 +628,7 @@ const InterfaceManagement: React.FC = () => {
       dataIndex: 'catid',
       key: 'catid',
       render: (catid: string) => {
-        const cat = cats.find((c) => c._id === catid);
+        const cat = cats.find(c => c._id === catid);
         return cat ? cat.name : '-';
       },
     },
@@ -568,7 +637,9 @@ const InterfaceManagement: React.FC = () => {
       dataIndex: 'status',
       key: 'status',
       width: 100,
-      render: (status: string) => <Tag color={getStatusColor(status)}>{t(`interface.status.${status}`)}</Tag>,
+      render: (status: string) => (
+        <Tag color={getStatusColor(status)}>{t(`interface.status.${status}`)}</Tag>
+      ),
     },
     {
       title: t('interface.mockUrl'),
@@ -583,7 +654,9 @@ const InterfaceManagement: React.FC = () => {
             style={{ marginBottom: 0 }}
             ellipsis={{ rows: 1, tooltip: url }}
           >
-            <Text code style={{ fontSize: 12 }}>{url}</Text>
+            <Text code style={{ fontSize: 12 }}>
+              {url}
+            </Text>
           </Paragraph>
         ) : (
           '-'
@@ -654,22 +727,31 @@ const InterfaceManagement: React.FC = () => {
             <Button onClick={() => navigate(`/project/${projectId}/docs`)} icon={<LinkOutlined />}>
               {t('interface.gotoDocs')}
             </Button>
-            <Button onClick={() => setCatModalVisible(true)}>
-              {t('interface.cat.create')}
-            </Button>
+            <Button onClick={() => setCatModalVisible(true)}>{t('interface.cat.create')}</Button>
             <Button
               icon={<RobotOutlined />}
               onClick={() => {
                 setEditingInterface(null);
                 form.resetFields();
-                form.setFieldsValue({ project_id: projectId, method: 'GET', req_body_type: 'json', res_body_type: 'json', status: 'developing' });
+                form.setFieldsValue({
+                  project_id: projectId,
+                  method: 'GET',
+                  req_body_type: 'json',
+                  res_body_type: 'json',
+                  status: 'developing',
+                });
                 setAiModalVisible(true);
                 setModalVisible(true);
               }}
             >
               {t('interface.ai.generate')}
             </Button>
-            <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate} style={{ color: '#ffffff' }}>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={handleCreate}
+              style={{ color: '#ffffff' }}
+            >
               {t('interface.create')}
             </Button>
           </Space>
@@ -687,7 +769,7 @@ const InterfaceManagement: React.FC = () => {
               placeholder={t('interface.searchPlaceholder')}
               prefix={<SearchOutlined />}
               value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
+              onChange={e => setSearchText(e.target.value)}
               style={{ width: 200 }}
               allowClear
               aria-label={t('interface.searchPlaceholder')}
@@ -711,18 +793,14 @@ const InterfaceManagement: React.FC = () => {
               allowClear
               style={{ width: 200 }}
             >
-              {cats.map((cat) => (
+              {cats.map(cat => (
                 <Option key={cat._id} value={cat._id}>
                   {cat.name}
                 </Option>
               ))}
             </Select>
             {selectedRowKeys.length > 0 && (
-              <Button
-                danger
-                icon={<DeleteOutlined />}
-                onClick={handleBatchDelete}
-              >
+              <Button danger icon={<DeleteOutlined />} onClick={handleBatchDelete}>
                 {t('interface.batchDelete', { count: selectedRowKeys.length })}
               </Button>
             )}
@@ -735,10 +813,7 @@ const InterfaceManagement: React.FC = () => {
           loading={loading}
           locale={{
             emptyText: (
-              <Empty
-                description={t('interface.empty')}
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-              >
+              <Empty description={t('interface.empty')} image={Empty.PRESENTED_IMAGE_SIMPLE}>
                 <Space>
                   <Button type="primary" onClick={handleCreate} style={{ color: '#ffffff' }}>
                     {t('interface.create')}
@@ -752,7 +827,7 @@ const InterfaceManagement: React.FC = () => {
           }}
           rowSelection={{
             selectedRowKeys,
-            onChange: (newSelectedRowKeys) => {
+            onChange: newSelectedRowKeys => {
               setSelectedRowKeys(newSelectedRowKeys);
             },
           }}
@@ -781,7 +856,7 @@ const InterfaceManagement: React.FC = () => {
                 <TextArea
                   rows={3}
                   value={aiDescription}
-                  onChange={(e) => setAiDescription(e.target.value)}
+                  onChange={e => setAiDescription(e.target.value)}
                   placeholder={t('interface.ai.descriptionPlaceholder')}
                   aria-label={t('interface.ai.descriptionPlaceholder')}
                 />
@@ -833,7 +908,7 @@ const InterfaceManagement: React.FC = () => {
           </Form.Item>
           <Form.Item name="catid" label={t('interface.category')}>
             <Select placeholder={t('interface.categoryPlaceholder')} allowClear>
-              {cats.map((cat) => (
+              {cats.map(cat => (
                 <Option key={cat._id} value={cat._id}>
                   {cat.name}
                 </Option>
@@ -881,14 +956,14 @@ const InterfaceManagement: React.FC = () => {
                     name="mock_script"
                     label={t('interface.mockScript')}
                     tooltip={t('interface.mockScriptTooltip')}
-                    getValueFromEvent={(value) => value}
-                    getValueProps={(value) => ({ value: value || '' })}
+                    getValueFromEvent={value => value}
+                    getValueProps={value => ({ value: value || '' })}
                   >
                     <Editor
                       height="300px"
                       defaultLanguage="javascript"
                       theme="vs-dark"
-                      onChange={(value) => form.setFieldValue('mock_script', value || '')}
+                      onChange={value => form.setFieldValue('mock_script', value || '')}
                       value={form.getFieldValue('mock_script') || ''}
                       options={{
                         minimap: { enabled: false },
@@ -908,7 +983,9 @@ const InterfaceManagement: React.FC = () => {
                 onClick={() => {
                   try {
                     const resBody = form.getFieldValue('res_body') || '{}';
-                    const parsed = currentProject?.enable_json5 ? JSON5.parse(resBody) : JSON.parse(resBody);
+                    const parsed = currentProject?.enable_json5
+                      ? JSON5.parse(resBody)
+                      : JSON.parse(resBody);
                     const mocked = Mock.mock(parsed);
                     setMockPreviewData(mocked);
                     setMockPreviewVisible(true);
@@ -997,11 +1074,7 @@ const InterfaceManagement: React.FC = () => {
               children: (
                 <div>
                   <Space style={{ marginBottom: 16 }}>
-                    <Button
-                      type="primary"
-                      icon={<PlusOutlined />}
-                      onClick={handleCreateMock}
-                    >
+                    <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateMock}>
                       {t('interface.mockExpectation.create')}
                     </Button>
                     <Button
@@ -1037,7 +1110,11 @@ const InterfaceManagement: React.FC = () => {
                         dataIndex: 'enabled',
                         key: 'enabled',
                         width: 100,
-                        render: (enabled: boolean) => <Tag color={enabled ? 'green' : 'default'}>{enabled ? t('common.yes') : t('common.no')}</Tag>,
+                        render: (enabled: boolean) => (
+                          <Tag color={enabled ? 'green' : 'default'}>
+                            {enabled ? t('common.yes') : t('common.no')}
+                          </Tag>
+                        ),
                       },
                       {
                         title: t('common.operation'),
@@ -1073,7 +1150,9 @@ const InterfaceManagement: React.FC = () => {
             },
             {
               key: 'form',
-              label: editingMock ? t('interface.mockExpectation.edit') : t('interface.mockExpectation.create'),
+              label: editingMock
+                ? t('interface.mockExpectation.edit')
+                : t('interface.mockExpectation.create'),
               children: (
                 <Form form={mockForm} layout="vertical" onFinish={handleSubmitMock}>
                   <Form.Item name="interface_id" hidden>
@@ -1082,7 +1161,9 @@ const InterfaceManagement: React.FC = () => {
                   <Form.Item
                     name="name"
                     label={t('interface.mockExpectation.name')}
-                    rules={[{ required: true, message: t('interface.mockExpectation.nameRequired') }]}
+                    rules={[
+                      { required: true, message: t('interface.mockExpectation.nameRequired') },
+                    ]}
                   >
                     <Input placeholder={t('interface.mockExpectation.namePlaceholder')} />
                   </Form.Item>
@@ -1092,7 +1173,11 @@ const InterfaceManagement: React.FC = () => {
                   <Form.Item name="priority" label={t('interface.mockExpectation.priority')}>
                     <InputNumber min={0} defaultValue={0} />
                   </Form.Item>
-                  <Form.Item name="enabled" valuePropName="checked" label={t('interface.mockExpectation.enabled')}>
+                  <Form.Item
+                    name="enabled"
+                    valuePropName="checked"
+                    label={t('interface.mockExpectation.enabled')}
+                  >
                     <Switch />
                   </Form.Item>
                   <Form.Item
@@ -1101,10 +1186,16 @@ const InterfaceManagement: React.FC = () => {
                   >
                     <InputNumber min={100} max={599} defaultValue={200} />
                   </Form.Item>
-                  <Form.Item name={['response', 'delay']} label={t('interface.mockExpectation.delay')}>
+                  <Form.Item
+                    name={['response', 'delay']}
+                    label={t('interface.mockExpectation.delay')}
+                  >
                     <InputNumber min={0} defaultValue={0} />
                   </Form.Item>
-                  <Form.Item name={['response', 'body']} label={t('interface.mockExpectation.body')}>
+                  <Form.Item
+                    name={['response', 'body']}
+                    label={t('interface.mockExpectation.body')}
+                  >
                     <TextArea rows={8} placeholder='{"code": 0, "message": "success"}' />
                   </Form.Item>
                   <Form.Item>
@@ -1112,9 +1203,7 @@ const InterfaceManagement: React.FC = () => {
                       <Button type="primary" htmlType="submit">
                         {t('common.save')}
                       </Button>
-                      <Button onClick={() => setEditingMock(null)}>
-                        {t('common.cancel')}
-                      </Button>
+                      <Button onClick={() => setEditingMock(null)}>{t('common.cancel')}</Button>
                     </Space>
                   </Form.Item>
                 </Form>
@@ -1122,7 +1211,7 @@ const InterfaceManagement: React.FC = () => {
             },
           ]}
           activeKey={editingMock ? 'form' : 'list'}
-          onChange={(key) => {
+          onChange={key => {
             if (key === 'list') {
               setEditingMock(null);
               mockForm.resetFields();
@@ -1160,13 +1249,17 @@ const InterfaceManagement: React.FC = () => {
                       style={{ marginBottom: 12 }}
                       message={t('interface.mockUrl')}
                       description={
-                        <Paragraph copyable={{ text: getMockUrl(runningInterface) }} style={{ marginBottom: 0 }}>
+                        <Paragraph
+                          copyable={{ text: getMockUrl(runningInterface) }}
+                          style={{ marginBottom: 0 }}
+                        >
                           <Text code>{getMockUrl(runningInterface)}</Text>
                         </Paragraph>
                       }
                     />
                   )}
-                  {(testEnvironments.length > 0 || (currentProject?.env && currentProject.env.length > 0)) && (
+                  {(testEnvironments.length > 0 ||
+                    (currentProject?.env && currentProject.env.length > 0)) && (
                     <>
                       {testEnvironments.length > 0 && (
                         <Form.Item name="environment_id" label={t('interface.run.testEnvironment')}>
@@ -1196,17 +1289,23 @@ const InterfaceManagement: React.FC = () => {
                   <Form.Item name={['params', 'query']} label={t('interface.run.query')}>
                     <TextArea rows={4} placeholder='{"key": "value"}' />
                   </Form.Item>
-                  {runningInterface && ['POST', 'PUT', 'PATCH'].includes(runningInterface.method) && (
-                    <Form.Item name={['params', 'body']} label={t('interface.run.body')}>
-                      <TextArea rows={8} placeholder='{"key": "value"}' />
-                    </Form.Item>
-                  )}
+                  {runningInterface &&
+                    ['POST', 'PUT', 'PATCH'].includes(runningInterface.method) && (
+                      <Form.Item name={['params', 'body']} label={t('interface.run.body')}>
+                        <TextArea rows={8} placeholder='{"key": "value"}' />
+                      </Form.Item>
+                    )}
                   <Form.Item name={['params', 'headers']} label={t('interface.run.headers')}>
                     <TextArea rows={4} placeholder='{"Content-Type": "application/json"}' />
                   </Form.Item>
                   <Form.Item>
                     <Space>
-                      <Button type="primary" htmlType="submit" loading={running} icon={<PlayCircleOutlined />}>
+                      <Button
+                        type="primary"
+                        htmlType="submit"
+                        loading={running}
+                        icon={<PlayCircleOutlined />}
+                      >
                         {t('interface.run')}
                       </Button>
                       <Button onClick={() => navigate(`/project/${projectId}/test`)}>
@@ -1224,7 +1323,13 @@ const InterfaceManagement: React.FC = () => {
                 <div>
                   <Descriptions column={1} bordered>
                     <Descriptions.Item label={t('interface.run.status')}>
-                      <Tag color={runResult.response?.status >= 200 && runResult.response?.status < 300 ? 'green' : 'red'}>
+                      <Tag
+                        color={
+                          runResult.response?.status >= 200 && runResult.response?.status < 300
+                            ? 'green'
+                            : 'red'
+                        }
+                      >
                         {runResult.response?.status} {runResult.response?.statusText}
                       </Tag>
                     </Descriptions.Item>
@@ -1243,11 +1348,17 @@ const InterfaceManagement: React.FC = () => {
                       {JSON.stringify(runResult.response?.headers || {}, null, 2)}
                     </pre>
                   </Typography.Paragraph>
-                  <Typography.Title level={5}>
-                    {t('interface.run.responseBody')}
-                  </Typography.Title>
+                  <Typography.Title level={5}>{t('interface.run.responseBody')}</Typography.Title>
                   <Typography.Paragraph>
-                    <pre style={{ background: '#f5f5f5', padding: 12, borderRadius: 4, maxHeight: 400, overflow: 'auto' }}>
+                    <pre
+                      style={{
+                        background: '#f5f5f5',
+                        padding: 12,
+                        borderRadius: 4,
+                        maxHeight: 400,
+                        overflow: 'auto',
+                      }}
+                    >
                       {typeof runResult.response?.data === 'string'
                         ? runResult.response.data
                         : JSON.stringify(runResult.response?.data || {}, null, 2)}

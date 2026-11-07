@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+set -e
+
+echo "→ lint-staged (format + eslint on staged files)"
+npx lint-staged
+
+if [ "${SKIP_TESTS:-}" = "1" ]; then
+  echo "→ unit tests skipped (SKIP_TESTS=1)"
+else
+  echo "→ unit tests (vitest --run)"
+  npm run test:run
+fi

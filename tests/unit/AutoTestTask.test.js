@@ -24,7 +24,7 @@ function createMockCtx(params = {}, query = {}, body = {}, user = null) {
   return {
     params,
     query,
-    request: { 
+    request: {
       body,
       url: '/api/test',
     },
@@ -319,7 +319,9 @@ describe('AutoTestTaskController', () => {
 
       expect(ctx.status).toBe(200);
       expect(ctx.body.success).toBe(true);
-      expect(ctx.body.data.every(t => t.project_id._id.toString() === testProject._id.toString())).toBe(true);
+      expect(
+        ctx.body.data.every(t => t.project_id._id.toString() === testProject._id.toString())
+      ).toBe(true);
     });
 
     it('should filter by enabled status', async () => {
@@ -471,7 +473,7 @@ describe('AutoTestTaskController', () => {
         test_cases: [
           {
             order: 0,
-          interface_id: testInterface._id,
+            interface_id: testInterface._id,
             enabled: true,
           },
         ],
@@ -511,7 +513,7 @@ describe('AutoTestTaskController', () => {
         test_cases: [
           {
             order: 0,
-          interface_id: testInterface._id,
+            interface_id: testInterface._id,
             enabled: true,
           },
         ],
@@ -598,7 +600,12 @@ describe('AutoTestTaskController', () => {
         triggered_by_user: testUser._id,
       });
 
-      const ctx = createMockCtx({ id: task._id.toString() }, { page: 1, pageSize: 10 }, {}, testUser);
+      const ctx = createMockCtx(
+        { id: task._id.toString() },
+        { page: 1, pageSize: 10 },
+        {},
+        testUser
+      );
       await AutoTestTaskController.getTaskHistory(ctx);
 
       expect(ctx.status).toBe(200);
@@ -617,4 +624,3 @@ describe('AutoTestTaskController', () => {
     });
   });
 });
-

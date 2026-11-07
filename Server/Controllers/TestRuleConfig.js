@@ -5,7 +5,9 @@ import TestRuleConfig from '../Models/TestRuleConfig.js';
 import Project from '../Models/Project.js';
 
 class TestRuleConfigController extends BaseController {
-  static get ControllerName() { return 'TestRuleConfigController'; }
+  static get ControllerName() {
+    return 'TestRuleConfigController';
+  }
 
   /**
    * 获取项目的规则配置列表
@@ -47,7 +49,16 @@ class TestRuleConfigController extends BaseController {
   static async createRule(ctx) {
     try {
       const user = ctx.state.user;
-      const { projectId, name, type, enabled, assertion_rules, request_config, response_config, description } = ctx.request.body;
+      const {
+        projectId,
+        name,
+        type,
+        enabled,
+        assertion_rules,
+        request_config,
+        response_config,
+        description,
+      } = ctx.request.body;
 
       if (!projectId || !validateObjectId(projectId)) {
         ctx.status = 400;
@@ -239,5 +250,3 @@ class TestRuleConfigController extends BaseController {
 }
 
 export default TestRuleConfigController;
-
-

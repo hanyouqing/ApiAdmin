@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { createPmSandbox, runScript, applyEnvToString, deepResolveTemplates } from '../../Server/Utils/scriptSandbox.js';
+import {
+  createPmSandbox,
+  runScript,
+  applyEnvToString,
+  deepResolveTemplates,
+} from '../../Server/Utils/scriptSandbox.js';
 
 describe('scriptSandbox', () => {
   it('runs pre-request script and mutates environment', () => {

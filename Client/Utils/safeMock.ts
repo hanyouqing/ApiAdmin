@@ -32,7 +32,11 @@ export const Random = {
 };
 
 function resolvePlaceholder(token: string) {
-  const key = String(token || '').replace(/^@/, '').split('(')[0].trim().toLowerCase();
+  const key = String(token || '')
+    .replace(/^@/, '')
+    .split('(')[0]
+    .trim()
+    .toLowerCase();
   const map: Record<string, () => any> = {
     integer: () => Random.integer(),
     natural: () => Random.natural(),
@@ -72,7 +76,7 @@ function parseRange(spec?: string) {
 }
 
 function mockNode(node: any): any {
-  if (Array.isArray(node)) return node.map((item) => mockNode(item));
+  if (Array.isArray(node)) return node.map(item => mockNode(item));
   if (node && typeof node === 'object') {
     const out: Record<string, any> = {};
     for (const [rawKey, value] of Object.entries(node)) {
@@ -104,9 +108,10 @@ function mockNode(node: any): any {
 export function mock(template: any) {
   if (template == null) return template;
   try {
-    const cloned = typeof structuredClone === 'function'
-      ? structuredClone(template)
-      : JSON.parse(JSON.stringify(template));
+    const cloned =
+      typeof structuredClone === 'function'
+        ? structuredClone(template)
+        : JSON.parse(JSON.stringify(template));
     return mockNode(cloned);
   } catch {
     return mockNode(template);

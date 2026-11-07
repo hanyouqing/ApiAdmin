@@ -6,11 +6,10 @@
 export const getAvatarUrl = (avatar?: string | null): string => {
   // Static 目录被映射到根路径，所以 /icons/icon-64x64.png 对应 Static/icons/icon-64x64.png
   const DEFAULT_AVATAR = '/icons/icon-64x64.png';
-  
+
   if (!avatar || avatar === '') {
     return DEFAULT_AVATAR;
   }
-  
+
   return avatar;
 };
-

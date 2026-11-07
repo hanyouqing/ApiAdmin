@@ -1,0 +1,340 @@
+# Build the ApiAdmin image and publish it to Docker Hub and GHCR.
+# A version tag on main also publishes the Helm chart to the gh-pages branch.
+name: Build and Push Docker Images
+
+on:
+  push:
+    branches: [main, master]
+    tags:
+      - 'v*'
+      - 'release-*'
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Optional extra image tag (immutable branch-sha-timestamp is always applied)'
+        required: false
+        default: 'latest'
+      push_to_dockerhub:
+        description: 'Push to Docker Hub'
+        type: boolean
+        default: true
+      push_to_ghcr:
+        description: 'Push to GitHub Container Registry'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docker-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  lint-chart:
+    name: Lint Helm chart
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install Helm
+        uses: azure/setup-helm@v5
+
+      - name: Lint and render
+        run: |
+          set -euo pipefail
+          helm lint Helm/apiadmin
+          helm template apiadmin Helm/apiadmin >/dev/null
+          helm template apiadmin Helm/apiadmin \
+            --set config.requireExplicitSecrets=true \
+            --set config.jwtSecret=0123456789abcdef0123456789abcdef \
+            --set mongodb.enabled=false \
+            --set mongodb.external.url=mongodb://apiadmin:change-me@mongo.internal:27017/apiadmin?authSource=admin \
+            --set redis.enabled=false \
+            --set redis.external.url=redis://:change-me@redis.internal:6379 \
+            --set env.CORS_ORIGIN=https://apiadmin.example.com \
+            >/dev/null
+
+  validate-tag:
+    name: Validate tag on main/master
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Ensure tag points to main or master
+        run: |
+          set -euo pipefail
+          TAG_SHA="$(git rev-list -n 1 "${GITHUB_REF_NAME}")"
+          git fetch origin main:refs/remotes/origin/main 2>/dev/null || true
+          git fetch origin master:refs/remotes/origin/master 2>/dev/null || true
+          on_main=0
+          if git rev-parse --verify origin/main >/dev/null 2>&1 \
+            && git merge-base --is-ancestor "$TAG_SHA" origin/main; then
+            on_main=1
+          fi
+          if git rev-parse --verify origin/master >/dev/null 2>&1 \
+            && git merge-base --is-ancestor "$TAG_SHA" origin/master; then
+            on_main=1
+          fi
+          if [ "$on_main" -ne 1 ]; then
+            echo "Tag ${GITHUB_REF_NAME} (${TAG_SHA}) is not on main/master. Aborting."
+            git branch -a --contains "$TAG_SHA" || true
+            exit 1
+          fi
+          echo "Tag ${GITHUB_REF_NAME} is on main/master."
+
+      - name: Extract version
+        id: meta
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          case "$TAG" in
+            release-*) VERSION="${TAG#release-}" ;;
+            v*) VERSION="${TAG#v}" ;;
+            *) VERSION="$TAG" ;;
+          esac
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Package version: ${VERSION}"
+
+  publish-docker:
+    name: Build and push Docker images
+    needs: validate-tag
+    if: always() && (needs.validate-tag.result == 'success' || needs.validate-tag.result == 'skipped')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Determine push targets
+        id: push-targets
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            PUSH_DOCKERHUB="${{ github.event.inputs.push_to_dockerhub }}"
+            PUSH_GHCR="${{ github.event.inputs.push_to_ghcr }}"
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            PUSH_DOCKERHUB="false"
+            PUSH_GHCR="false"
+          else
+            PUSH_DOCKERHUB="true"
+            PUSH_GHCR="true"
+          fi
+          echo "push_dockerhub=${PUSH_DOCKERHUB}" >> "$GITHUB_OUTPUT"
+          echo "push_ghcr=${PUSH_GHCR}" >> "$GITHUB_OUTPUT"
+
+      - name: Image names
+        id: names
+        run: |
+          set -euo pipefail
+          OWNER="$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')"
+          echo "owner=${OWNER}" >> "$GITHUB_OUTPUT"
+          {
+            echo "images<<EOF"
+            if [ "${{ steps.push-targets.outputs.push_dockerhub }}" = "true" ] || [ "${{ github.event_name }}" = "pull_request" ]; then
+              echo "${OWNER}/apiadmin"
+            fi
+            if [ "${{ steps.push-targets.outputs.push_ghcr }}" = "true" ]; then
+              echo "ghcr.io/${OWNER}/apiadmin"
+            fi
+            if [ "${{ steps.push-targets.outputs.push_dockerhub }}" != "true" ] && [ "${{ steps.push-targets.outputs.push_ghcr }}" != "true" ] && [ "${{ github.event_name }}" != "pull_request" ]; then
+              echo "${OWNER}/apiadmin"
+            fi
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Log in to Docker Hub
+        if: steps.push-targets.outputs.push_dockerhub == 'true'
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Log in to GitHub Container Registry
+        if: steps.push-targets.outputs.push_ghcr == 'true'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Version
+        id: version
+        run: |
+          set -euo pipefail
+          BUILD_TIME="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          GIT_COMMIT="$(git rev-parse --short HEAD)"
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            GIT_BRANCH="main"
+          elif [ -n "${{ github.head_ref }}" ]; then
+            GIT_BRANCH="${{ github.head_ref }}"
+          else
+            GIT_BRANCH="${GITHUB_REF_NAME}"
+          fi
+          BRANCH_SAFE="$(echo "$GIT_BRANCH" | tr '/' '-' | tr -c 'A-Za-z0-9._-' '-')"
+          STAMP="$(date +%Y%m%d%H%M%S)"
+          IMAGE_TAG="${BRANCH_SAFE}-${GIT_COMMIT}-${STAMP}"
+          SEMVER="0.0.0"
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            SEMVER="${{ needs.validate-tag.outputs.version }}"
+          fi
+          EXTRA="unused"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            EXTRA="${{ github.event.inputs.version }}"
+            if [ -z "${EXTRA}" ] || [ "${EXTRA}" = "latest" ]; then
+              EXTRA="unused"
+            fi
+          fi
+          APP_VERSION="${IMAGE_TAG}"
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            APP_VERSION="${SEMVER}"
+          fi
+          {
+            echo "image_tag=${IMAGE_TAG}"
+            echo "build_time=${BUILD_TIME}"
+            echo "git_commit=${GIT_COMMIT}"
+            echo "git_branch=${GIT_BRANCH}"
+            echo "extra_tag=${EXTRA}"
+            echo "semver=${SEMVER}"
+            echo "app_version=${APP_VERSION}"
+          } >> "$GITHUB_OUTPUT"
+          echo "Image tag: ${IMAGE_TAG}"
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ steps.names.outputs.images }}
+          tags: |
+            type=raw,value=${{ steps.version.outputs.image_tag }}
+            type=raw,value=${{ github.ref_name }},enable=${{ github.ref_type == 'tag' }}
+            type=raw,value=${{ steps.version.outputs.semver }},enable=${{ github.ref_type == 'tag' }}
+            type=raw,value=${{ steps.version.outputs.extra_tag }},enable=${{ github.event_name == 'workflow_dispatch' && steps.version.outputs.extra_tag != 'unused' }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref_type == 'tag' }}
+
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./Dockerfile
+          push: ${{ steps.push-targets.outputs.push_dockerhub == 'true' || steps.push-targets.outputs.push_ghcr == 'true' }}
+          pull: true
+          platforms: ${{ github.event_name == 'pull_request' && 'linux/amd64' || 'linux/amd64,linux/arm64' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            APP_VERSION=${{ steps.version.outputs.app_version }}
+            BUILD_TIME=${{ steps.version.outputs.build_time }}
+            BUILD_COMMIT=${{ steps.version.outputs.git_commit }}
+            BUILD_BRANCH=${{ steps.version.outputs.git_branch }}
+          cache-from: type=gha,scope=apiadmin
+          cache-to: type=gha,mode=max,scope=apiadmin
+
+      - name: Scan image (Trivy CRITICAL)
+        if: steps.push-targets.outputs.push_ghcr == 'true' || steps.push-targets.outputs.push_dockerhub == 'true'
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ steps.push-targets.outputs.push_ghcr == 'true' && format('ghcr.io/{0}/apiadmin@{1}', steps.names.outputs.owner, steps.build.outputs.digest) || format('{0}/apiadmin@{1}', steps.names.outputs.owner, steps.build.outputs.digest) }}
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: CRITICAL
+          vuln-type: os,library
+
+      - name: Image summary
+        if: steps.push-targets.outputs.push_dockerhub == 'true' || steps.push-targets.outputs.push_ghcr == 'true'
+        run: |
+          {
+            echo "## Docker images"
+            echo ""
+            echo "Immutable tag: \`${{ steps.version.outputs.image_tag }}\`"
+            if [ "${{ github.ref_type }}" = "tag" ]; then
+              echo "Release tag: \`${{ github.ref_name }}\` and \`${{ steps.version.outputs.semver }}\`"
+            fi
+            echo ""
+            if [ "${{ steps.push-targets.outputs.push_dockerhub }}" = "true" ]; then
+              echo "- Docker Hub: \`${{ steps.names.outputs.owner }}/apiadmin:${{ steps.version.outputs.image_tag }}\`"
+            fi
+            if [ "${{ steps.push-targets.outputs.push_ghcr }}" = "true" ]; then
+              echo "- GHCR: \`ghcr.io/${{ steps.names.outputs.owner }}/apiadmin:${{ steps.version.outputs.image_tag }}\`"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  publish-charts:
+    name: Package and release Helm chart
+    needs: [validate-tag, publish-docker]
+    if: needs.validate-tag.result == 'success' && needs.publish-docker.result == 'success'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+      - name: Install Helm
+        uses: azure/setup-helm@v5
+
+      - name: Update chart version
+        env:
+          VERSION: ${{ needs.validate-tag.outputs.version }}
+        run: python3 .github/scripts/sync-chart-version.py
+
+      - name: Ensure gh-pages branch exists
+        run: |
+          set -euo pipefail
+          if ! git ls-remote --exit-code --heads origin gh-pages; then
+            git checkout --orphan gh-pages
+            git reset --hard
+            git commit --allow-empty -m "Initial commit on gh-pages"
+            git push origin gh-pages
+            git checkout "${GITHUB_REF_NAME}"
+          fi
+
+      - name: Run chart-releaser
+        uses: helm/chart-releaser-action@v1.7.0
+        with:
+          charts_dir: Helm
+          skip_existing: true
+        env:
+          CR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish Artifact Hub metadata
+        run: |
+          set -euo pipefail
+          cp Helm/artifacthub-repo.yml /tmp/artifacthub-repo.yml
+          git fetch origin gh-pages
+          git checkout gh-pages
+          cp /tmp/artifacthub-repo.yml ./artifacthub-repo.yml
+          git add artifacthub-repo.yml
+          if ! git diff --cached --quiet; then
+            git commit -m "Add Artifact Hub metadata"
+            git push origin gh-pages
+          fi

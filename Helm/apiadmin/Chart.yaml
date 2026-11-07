@@ -1,17 +1,31 @@
 apiVersion: v2
 name: apiadmin
-description: A Helm chart for ApiAdmin API Management Platform
+description: ApiAdmin — open-source API management, mock, and testing
 type: application
-version: 0.0.1
-appVersion: "0.0.1"
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: '>=1.23.0-0'
+home: https://github.com/hanyouqing/ApiAdmin
+sources:
+  - https://github.com/hanyouqing/ApiAdmin
+maintainers:
+  - name: hanyouqing
+    url: https://github.com/hanyouqing
 keywords:
   - api
   - management
   - mock
   - testing
-maintainers:
-  - name: ApiAdmin Team
-home: https://github.com/hanyouqing/ApiAdmin
-sources:
-  - https://github.com/hanyouqing/ApiAdmin
-
+annotations:
+  artifacthub.io/category: integration-delivery
+  artifacthub.io/license: MIT
+  artifacthub.io/links: |
+    - name: Source
+      url: https://github.com/hanyouqing/ApiAdmin
+    - name: Chart source
+      url: https://github.com/hanyouqing/ApiAdmin/tree/main/Helm/apiadmin
+  artifacthub.io/images: |
+    - name: apiadmin
+      image: ghcr.io/hanyouqing/apiadmin:0.0.1
+    - name: apiadmin-dockerhub
+      image: hanyouqing/apiadmin:0.0.1

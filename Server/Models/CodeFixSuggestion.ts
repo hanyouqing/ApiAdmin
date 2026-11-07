@@ -116,6 +116,9 @@ codeFixSuggestionSchema.index({ test_result_id: 1, status: 1 });
 codeFixSuggestionSchema.index({ project_id: 1, status: 1 });
 codeFixSuggestionSchema.index({ created_at: -1 });
 
-const CodeFixSuggestion = mongoose.model<ICodeFixSuggestion, CodeFixSuggestionModel>('CodeFixSuggestion', codeFixSuggestionSchema);
+const CodeFixSuggestion = mongoose.model<ICodeFixSuggestion, CodeFixSuggestionModel>(
+  'CodeFixSuggestion',
+  codeFixSuggestionSchema
+);
 
 export default CodeFixSuggestion;

@@ -11,10 +11,7 @@
     "server": "./Server/index.js",
     "client": "./Client/index.tsx"
   },
-  "hooks": [
-    "beforeRequest",
-    "afterResponse"
-  ],
+  "hooks": ["beforeRequest", "afterResponse"],
   "routes": [
     {
       "path": "/action",
@@ -22,9 +19,7 @@
       "handler": "./Server/Controller.js#action"
     }
   ],
-  "permissions": [
-    "read:interface"
-  ],
+  "permissions": ["read:interface"],
   "dependencies": {},
   "configSchema": {
     "type": "object",
@@ -36,4 +31,3 @@
     }
   }
 }
-

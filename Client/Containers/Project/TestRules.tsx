@@ -1,5 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Button, Table, Space, Modal, Form, Input, Select, Tag, message, Switch, InputNumber, Collapse, Typography } from 'antd';
+import {
+  Card,
+  Button,
+  Table,
+  Space,
+  Modal,
+  Form,
+  Input,
+  Select,
+  Tag,
+  message,
+  Switch,
+  InputNumber,
+  Collapse,
+  Typography,
+} from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SettingOutlined } from '@ant-design/icons';
 import { api } from '../../Utils/api';
 import { useTranslation } from 'react-i18next';
@@ -49,7 +64,13 @@ const TestRules: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState<string>('all');
 
   useEffect(() => {
-    if (projectId && projectId !== 'test' && projectId !== 'interface' && projectId !== 'setting' && projectId !== 'activity') {
+    if (
+      projectId &&
+      projectId !== 'test' &&
+      projectId !== 'interface' &&
+      projectId !== 'setting' &&
+      projectId !== 'activity'
+    ) {
       fetchRules();
     }
   }, [projectId, typeFilter]);
@@ -186,11 +207,7 @@ const TestRules: React.FC = () => {
       key: 'actions',
       render: (_: any, record: TestRule) => (
         <Space>
-          <Button
-            type="link"
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-          >
+          <Button type="link" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
             {t('common.edit')}
           </Button>
           <Button
@@ -273,10 +290,7 @@ const TestRules: React.FC = () => {
         {ruleType === 'request' && (
           <Collapse>
             <Panel header={t('test.rules.requestConfig')} key="request">
-              <Form.Item
-                name={['request_config', 'timeout']}
-                label={t('test.rules.timeout')}
-              >
+              <Form.Item name={['request_config', 'timeout']} label={t('test.rules.timeout')}>
                 <InputNumber min={0} addonAfter="ms" style={{ width: '100%' }} />
               </Form.Item>
               <Form.Item
@@ -326,7 +340,7 @@ const TestRules: React.FC = () => {
     );
   };
 
-  const filteredRules = typeFilter === 'all' ? rules : rules.filter((r) => r.type === typeFilter);
+  const filteredRules = typeFilter === 'all' ? rules : rules.filter(r => r.type === typeFilter);
 
   return (
     <Card
@@ -338,11 +352,7 @@ const TestRules: React.FC = () => {
       }
       extra={
         <Space>
-          <Select
-            value={typeFilter}
-            onChange={setTypeFilter}
-            style={{ width: 150 }}
-          >
+          <Select value={typeFilter} onChange={setTypeFilter} style={{ width: 150 }}>
             <Option value="all">{t('test.rules.filter.all')}</Option>
             <Option value="assertion">{t('test.rules.type.assertion')}</Option>
             <Option value="request">{t('test.rules.type.request')}</Option>
@@ -377,5 +387,3 @@ const TestRules: React.FC = () => {
 };
 
 export default TestRules;
-
-

@@ -70,9 +70,7 @@ describe('HTMLExporter', () => {
           path: '/api/test',
           method: 'GET',
           title: 'Test Interface',
-          req_query: [
-            { name: 'id', type: 'string', required: true, desc: 'ID' },
-          ],
+          req_query: [{ name: 'id', type: 'string', required: true, desc: 'ID' }],
           req_body: null,
           res_body: '{}',
         },
@@ -115,7 +113,9 @@ describe('HTMLExporter', () => {
 
   describe('escapeHtml', () => {
     it('should escape HTML special characters', () => {
-      expect(exporter.escapeHtml('<script>alert("xss")</script>')).toBe('&lt;script&gt;alert(&quot;xss&quot;)&lt;&#x2F;script&gt;');
+      expect(exporter.escapeHtml('<script>alert("xss")</script>')).toBe(
+        '&lt;script&gt;alert(&quot;xss&quot;)&lt;&#x2F;script&gt;'
+      );
       expect(exporter.escapeHtml('&')).toBe('&amp;');
       expect(exporter.escapeHtml('"')).toBe('&quot;');
       expect(exporter.escapeHtml("'")).toBe('&#039;');
@@ -127,4 +127,3 @@ describe('HTMLExporter', () => {
     });
   });
 });
-

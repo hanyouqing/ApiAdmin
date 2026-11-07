@@ -23,11 +23,8 @@ export function normalizeReportForFormatters(report) {
         duration: report.duration || 0,
       };
 
-  const results = (report.results || []).map((result) => {
-    const assertion =
-      result.assertion_result ||
-      result.assertionResult ||
-      null;
+  const results = (report.results || []).map(result => {
+    const assertion = result.assertion_result || result.assertionResult || null;
     const interfaceId =
       result.interface_id?.toString?.() ||
       result.interface_id ||
@@ -35,19 +32,13 @@ export function normalizeReportForFormatters(report) {
       result.interfaceId ||
       'unknown';
     const interfaceName =
-      result.interface_name ||
-      result.interfaceName ||
-      result.testCaseName ||
-      String(interfaceId);
+      result.interface_name || result.interfaceName || result.testCaseName || String(interfaceId);
     return {
       ...result,
       interface_id: interfaceId,
       interface_name: interfaceName,
       test_case_name:
-        result.test_case_name ||
-        result.testCaseName ||
-        result.interface_name ||
-        interfaceName,
+        result.test_case_name || result.testCaseName || result.interface_name || interfaceName,
       assertion_result: assertion
         ? {
             message: assertion.message,
@@ -66,9 +57,7 @@ export function normalizeReportForFormatters(report) {
         ? {
             ...result.response,
             status:
-              result.response.status ??
-              result.response.status_code ??
-              result.response.statusCode,
+              result.response.status ?? result.response.status_code ?? result.response.statusCode,
           }
         : undefined,
     };
@@ -98,12 +87,12 @@ export function formatJUnitXML(report) {
 
     // 按接口分组
     const interfaceMap = new Map();
-    
+
     if (normalized.results && Array.isArray(normalized.results)) {
       for (const result of normalized.results) {
         const interfaceId = result.interface_id?.toString() || result.interface_id || 'unknown';
         const interfaceName = result.interface_name || result.interface_id || 'Unknown Interface';
-        
+
         if (!interfaceMap.has(interfaceId)) {
           interfaceMap.set(interfaceId, {
             '@_name': interfaceName,
@@ -130,7 +119,8 @@ export function formatJUnitXML(report) {
           testcase.failure = {
             '@_message': result.assertion_result?.message || 'Test failed',
             '@_type': 'AssertionError',
-            '#text': result.assertion_result?.details || result.error?.message || 'Test assertion failed',
+            '#text':
+              result.assertion_result?.details || result.error?.message || 'Test assertion failed',
           };
         } else if (result.status === 'error') {
           testsuite['@_errors']++;
@@ -205,10 +195,14 @@ export function formatAllureJSON(report) {
           links: [],
           name: result.test_case_name || result.interface_name || 'Test Case',
           status: mapStatusToAllure(result.status),
-          statusDetails: result.status === 'failed' || result.status === 'error' ? {
-            message: result.assertion_result?.message || result.error?.message || 'Test failed',
-            trace: result.error?.stack || result.assertion_result?.details || '',
-          } : undefined,
+          statusDetails:
+            result.status === 'failed' || result.status === 'error'
+              ? {
+                  message:
+                    result.assertion_result?.message || result.error?.message || 'Test failed',
+                  trace: result.error?.stack || result.assertion_result?.details || '',
+                }
+              : undefined,
           stage: 'finished',
           description: result.description || '',
           steps: [],
@@ -240,7 +234,10 @@ export function formatAllureJSON(report) {
           if (result.request.body) {
             allureResult.parameters.push({
               name: 'body',
-              value: typeof result.request.body === 'string' ? result.request.body : JSON.stringify(result.request.body),
+              value:
+                typeof result.request.body === 'string'
+                  ? result.request.body
+                  : JSON.stringify(result.request.body),
             });
           }
         }
@@ -330,5 +327,3 @@ export async function generateAllureReport(allureResults, outputDir) {
     throw new Error(`生成 Allure 报告失败: ${error.message}`);
   }
 }
-
-

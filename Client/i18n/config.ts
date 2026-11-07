@@ -14,21 +14,16 @@ const resources = {
 
 const savedLocale = localStorage.getItem('locale') || 'en-US';
 
-i18n
-  .use(initReactI18next)
-  .init({
-    resources,
-    lng: savedLocale,
-    fallbackLng: 'en-US',
-    interpolation: {
-      escapeValue: false,
-    },
-    react: {
-      useSuspense: false,
-    },
-  });
+i18n.use(initReactI18next).init({
+  resources,
+  lng: savedLocale,
+  fallbackLng: 'en-US',
+  interpolation: {
+    escapeValue: false,
+  },
+  react: {
+    useSuspense: false,
+  },
+});
 
 export default i18n;
-
-
-

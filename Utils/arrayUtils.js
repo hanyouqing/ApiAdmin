@@ -7,7 +7,7 @@
  * @param {Array} arr - 原数组
  * @returns {Array} 去重后的数组
  */
-export const unique = (arr) => {
+export const unique = arr => {
   if (!Array.isArray(arr)) return [];
   return [...new Set(arr)];
 };
@@ -20,7 +20,7 @@ export const unique = (arr) => {
  */
 export const groupBy = (arr, key) => {
   if (!Array.isArray(arr)) return {};
-  
+
   return arr.reduce((result, item) => {
     const groupKey = typeof key === 'function' ? key(item) : item[key];
     if (!result[groupKey]) {
@@ -40,11 +40,11 @@ export const groupBy = (arr, key) => {
  */
 export const sortBy = (arr, key, order = 'asc') => {
   if (!Array.isArray(arr)) return [];
-  
+
   return [...arr].sort((a, b) => {
     const aVal = a[key];
     const bVal = b[key];
-    
+
     if (aVal < bVal) return order === 'asc' ? -1 : 1;
     if (aVal > bVal) return order === 'asc' ? 1 : -1;
     return 0;
@@ -60,7 +60,7 @@ export const sortBy = (arr, key, order = 'asc') => {
  */
 export const paginate = (arr, page = 1, pageSize = 10) => {
   if (!Array.isArray(arr)) return [];
-  
+
   const start = (page - 1) * pageSize;
   const end = start + pageSize;
   return arr.slice(start, end);
@@ -76,6 +76,3 @@ export const flatten = (arr, depth = Infinity) => {
   if (!Array.isArray(arr)) return [];
   return arr.flat(depth);
 };
-
-
-

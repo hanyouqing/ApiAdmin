@@ -13,7 +13,7 @@ function createMockCtx(params = {}, query = {}, body = {}, user = null) {
   return {
     params,
     query,
-    request: { 
+    request: {
       body,
       url: '/api/test',
     },
@@ -129,7 +129,7 @@ describe('AnalyticsController', () => {
         path: '/api/undoc',
         method: 'GET',
         project_id: testProject._id,
-      uid: testUser._id,
+        uid: testUser._id,
       });
 
       const ctx = createMockCtx({ projectId: testProject._id.toString() }, {}, {}, testUser);
@@ -158,13 +158,15 @@ describe('AnalyticsController', () => {
 
     it('should handle errors gracefully', async () => {
       const ctx = createMockCtx({ projectId: testProject._id.toString() }, {}, {}, testUser);
-      const findByIdSpy = vi.spyOn(Project, 'findById').mockRejectedValueOnce(new Error('Database error'));
+      const findByIdSpy = vi
+        .spyOn(Project, 'findById')
+        .mockRejectedValueOnce(new Error('Database error'));
 
       await AnalyticsController.getProjectHealth(ctx);
 
       expect(ctx.status).toBe(500);
       expect(ctx.body.success).toBe(false);
-      
+
       findByIdSpy.mockRestore();
     });
   });
@@ -308,9 +310,8 @@ describe('AnalyticsController', () => {
 
       expect(ctx.status).toBe(500);
       expect(ctx.body.success).toBe(false);
-      
+
       findSpy.mockRestore();
     });
   });
 });
-

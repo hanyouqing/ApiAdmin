@@ -70,13 +70,10 @@ export const fetchTestCollections = createAsyncThunk(
   }
 );
 
-export const fetchTestCollection = createAsyncThunk(
-  'test/fetchCollection',
-  async (id: string) => {
-    const response = await api.get(`/test/collection/${id}`);
-    return response.data;
-  }
-);
+export const fetchTestCollection = createAsyncThunk('test/fetchCollection', async (id: string) => {
+  const response = await api.get(`/test/collection/${id}`);
+  return response.data;
+});
 
 export const createTestCollection = createAsyncThunk(
   'test/createCollection',
@@ -94,10 +91,13 @@ export const updateTestCollection = createAsyncThunk(
   }
 );
 
-export const deleteTestCollection = createAsyncThunk('test/deleteCollection', async (id: string) => {
-  await api.delete(`/test/collection/${id}`);
-  return id;
-});
+export const deleteTestCollection = createAsyncThunk(
+  'test/deleteCollection',
+  async (id: string) => {
+    await api.delete(`/test/collection/${id}`);
+    return id;
+  }
+);
 
 export const createTestCase = createAsyncThunk(
   'test/createTestCase',
@@ -115,18 +115,23 @@ export const updateTestCase = createAsyncThunk(
   }
 );
 
+export const syncCaseFromInterface = createAsyncThunk(
+  'test/syncCaseFromInterface',
+  async (id: string) => {
+    const response = await api.post(`/test/case/${id}/sync-from-interface`);
+    return response.data;
+  }
+);
+
 export const deleteTestCase = createAsyncThunk('test/deleteTestCase', async (id: string) => {
   await api.delete(`/test/case/${id}`);
   return id;
 });
 
-export const runTest = createAsyncThunk(
-  'test/runTest',
-  async (collectionId: string) => {
-    const response = await api.post('/test/run', { collection_id: collectionId });
-    return response.data;
-  }
-);
+export const runTest = createAsyncThunk('test/runTest', async (collectionId: string) => {
+  const response = await api.post('/test/run', { collection_id: collectionId });
+  return response.data;
+});
 
 export const fetchTestHistory = createAsyncThunk(
   'test/fetchHistory',
@@ -144,9 +149,9 @@ const testSlice = createSlice({
       state.currentCollection = action.payload;
     },
   },
-  extraReducers: (builder) => {
+  extraReducers: builder => {
     builder
-      .addCase(fetchTestCollections.pending, (state) => {
+      .addCase(fetchTestCollections.pending, state => {
         state.loading = true;
       })
       .addCase(fetchTestCollections.fulfilled, (state, action) => {
@@ -165,7 +170,7 @@ const testSlice = createSlice({
         state.collections.push(action.payload);
       })
       .addCase(updateTestCollection.fulfilled, (state, action) => {
-        const index = state.collections.findIndex((c) => c._id === action.payload._id);
+        const index = state.collections.findIndex(c => c._id === action.payload._id);
         if (index !== -1) {
           state.collections[index] = action.payload;
         }
@@ -174,7 +179,7 @@ const testSlice = createSlice({
         }
       })
       .addCase(deleteTestCollection.fulfilled, (state, action) => {
-        state.collections = state.collections.filter((c) => c._id !== action.payload);
+        state.collections = state.collections.filter(c => c._id !== action.payload);
         if (state.currentCollection?._id === action.payload) {
           state.currentCollection = null;
           state.testCases = [];
@@ -184,13 +189,13 @@ const testSlice = createSlice({
         state.testCases.push(action.payload);
       })
       .addCase(updateTestCase.fulfilled, (state, action) => {
-        const index = state.testCases.findIndex((tc) => tc._id === action.payload._id);
+        const index = state.testCases.findIndex(tc => tc._id === action.payload._id);
         if (index !== -1) {
           state.testCases[index] = action.payload;
         }
       })
       .addCase(deleteTestCase.fulfilled, (state, action) => {
-        state.testCases = state.testCases.filter((tc) => tc._id !== action.payload);
+        state.testCases = state.testCases.filter(tc => tc._id !== action.payload);
       })
       .addCase(fetchTestHistory.fulfilled, (state, action) => {
         state.testResults = action.payload;
@@ -200,6 +205,3 @@ const testSlice = createSlice({
 
 export const { setCurrentCollection } = testSlice.actions;
 export default testSlice.reducer;
-
-
-
